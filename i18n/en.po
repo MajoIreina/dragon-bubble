@@ -826,3 +826,345 @@ msgstr "The image sequence is empty or exceeds 128 MB decoded"
 
 msgid "动作 %s 的帧索引超出图片范围"
 msgstr "The frame index for action %s is outside the image range"
+
+msgid "行为"
+msgstr "Behavior"
+
+msgid "显示"
+msgstr "Display"
+
+msgid "语言"
+msgstr "Language"
+
+msgid "退出"
+msgstr "Quit"
+
+msgid "大小"
+msgstr "Size"
+
+msgid "屏幕"
+msgstr "Monitor"
+
+msgid "当前状态"
+msgstr "Current state"
+
+msgid "自由走动"
+msgstr "Free roaming"
+
+msgid "始终置顶"
+msgstr "Always on top"
+
+msgid "调整大小"
+msgstr "Resize"
+
+msgid "完成"
+msgstr "Done"
+
+msgid "不限"
+msgstr "Unlimited"
+
+msgid "保存"
+msgstr "Save"
+
+msgid "龙泡泡"
+msgstr "Dragon Bubble"
+
+msgid "导入外观"
+msgstr "Import appearance"
+
+msgid "打开外观目录"
+msgstr "Open appearance folder"
+
+msgid "移动到屏幕"
+msgstr "Move to monitor"
+
+msgid "模型朝向"
+msgstr "Model orientation"
+
+msgid "重置适配"
+msgstr "Reset adaptation"
+
+msgid "随方向翻转"
+msgstr "Flip with direction"
+
+msgid "Blender 路径"
+msgstr "Blender path"
+
+msgid "渲染分辨率"
+msgstr "Render resolution"
+
+msgid "环境遮蔽"
+msgstr "Ambient occlusion"
+
+msgid "环境遮蔽开启时使用 TAA 平滑边缘。"
+msgstr "TAA smooths edges while ambient occlusion is enabled."
+
+msgid "隐藏窗口"
+msgstr "Hide window"
+
+msgid "预览仅在设置窗口可见时更新。"
+msgstr "Preview updates only while the settings window is visible."
+
+msgid "点击：摸摸回应"
+msgstr "Click: pet your companion"
+
+msgid "拖动：提起桌宠"
+msgstr "Drag: pick up your companion"
+
+msgid "松手：惯性抛掷、重力与落地反弹"
+msgstr "Release: throw, fall and bounce"
+
+msgid "右键：打开快捷菜单"
+msgstr "Right-click: open quick menu"
+
+msgid "关闭设置窗口后，桌宠继续在托盘运行。"
+msgstr "Your companion keeps running after closing settings."
+
+msgid "支持 GLB、glTF、VRM、FBX、OBJ、Blender、STL、PLY 和图片外观。"
+msgstr "Supports GLB, glTF, VRM, FBX, OBJ, Blender, STL, PLY and images."
+
+msgid "正在导入外观…"
+msgstr "Importing appearance…"
+
+msgid "正在导入外观，完成后自动退出。"
+msgstr "Importing appearance; the app will quit when finished."
+
+msgid "模型中没有场景"
+msgstr "The model contains no scene"
+
+msgid "模型缺少有效网格尺寸"
+msgstr "The model has no valid mesh bounds"
+
+msgid "省电"
+msgstr "Power saving"
+
+msgid "高画质"
+msgstr "High quality"
+
+msgid "均衡"
+msgstr "Balanced"
+
+msgid "动作类型"
+msgstr "Motion profile"
+
+msgid "找不到外观："
+msgstr "Appearance not found: "
+
+msgid "模型加载失败："
+msgstr "Model loading failed: "
+
+msgid "为桌面选择一位伙伴"
+msgstr "Choose a companion for your desktop"
+
+msgid "让每一次互动都有回应"
+msgstr "Bring every interaction to life"
+
+msgid "适合你的桌面与屏幕"
+msgstr "Make it fit your desktop"
+
+msgid "预览动作，适配你的模型"
+msgstr "Preview animations and adapt your model"
+
+msgid "平衡清晰度、流畅度与功耗"
+msgstr "Balance detail, smoothness and power use"
+
+msgid "更高的分辨率呈现更多细节，也会增加显卡负载。"
+msgstr "Higher resolution adds detail and increases GPU usage."
+
+msgid "其他"
+msgstr "Other"
+
+msgid "语言、更新与应用信息"
+msgstr "Language, updates and app information"
+
+msgid "清除"
+msgstr "Clear"
+
+msgid "搜索结果"
+msgstr "Search results"
+
+msgid "选择结果以打开对应的设置页面"
+msgstr "Choose a result to open its settings page"
+
+msgid "未找到相关设置"
+msgstr "No matching settings"
+
+msgid "试试其他关键词，例如语言、更新、帧率或外观。"
+msgstr "Try language, updates, frame rate or appearance."
+
+msgid "打开"
+msgstr "Open"
+
+msgid "点击外观即可切换，设置会自动保存。"
+msgstr "Choose an appearance. Changes are saved automatically."
+
+msgid "管理外观"
+msgstr "Manage appearances"
+
+msgid "选择文件"
+msgstr "Choose a file"
+
+msgid "查看和管理已导入的外观文件"
+msgstr "View and manage imported appearances"
+
+msgid "打开目录"
+msgstr "Open folder"
+
+msgid "允许桌宠在屏幕上散步、奔跑和休息"
+msgstr "Let your companion walk, run and rest on your screen"
+
+msgid "桌宠会根据互动和时间自然切换状态"
+msgstr "Your companion responds to interaction and time"
+
+msgid "互动指南"
+msgstr "Interaction guide"
+
+msgid "点击"
+msgstr "Click"
+
+msgid "拖动"
+msgstr "Drag"
+
+msgid "松手"
+msgstr "Release"
+
+msgid "右键"
+msgstr "Right-click"
+
+msgid "让桌宠显示在其他普通窗口上方"
+msgstr "Keep your companion above other windows"
+
+msgid "按桌面比例调整，拖动滑条即时预览"
+msgstr "Drag the slider to preview the size immediately"
+
+msgid "屏幕与位置"
+msgstr "Screens and position"
+
+msgid "移动到此屏幕"
+msgstr "Move here"
+
+msgid "将桌宠找回到当前可用的屏幕内"
+msgstr "Bring your companion back onto an available screen"
+
+msgid "重置"
+msgstr "Reset"
+
+msgid "动作预览"
+msgstr "Animation preview"
+
+msgid "选择状态以查看对应动作"
+msgstr "Choose a state to preview its animation"
+
+msgid "模型适配"
+msgstr "Model setup"
+
+msgid "未映射的状态使用对应风格的通用动作"
+msgstr "Unmapped states use animations for the selected style"
+
+msgid "调整模型三个坐标轴的旋转角度"
+msgstr "Adjust the model rotation on each axis"
+
+msgid "平面外观跟随移动方向左右翻转"
+msgstr "Flip flat appearances to face the direction of travel"
+
+msgid "状态动作映射"
+msgstr "State animation mapping"
+
+msgid "恢复当前外观的默认动作与朝向"
+msgstr "Restore default animations and orientation"
+
+msgid "用于导入 Blender、STL 与 PLY 模型，可按需配置"
+msgstr "Optional converter for Blender, STL and PLY models"
+
+msgid "画质方案"
+msgstr "Graphics preset"
+
+msgid "快速选择适合你的性能与功耗方案"
+msgstr "Choose a balance of quality, performance and power"
+
+msgid "渲染与流畅度"
+msgstr "Rendering and motion"
+
+msgid "更高的帧率带来更流畅的动作，也会增加功耗。"
+msgstr "Higher frame rates make motion smoother and use more power."
+
+msgid "图像质量"
+msgstr "Image quality"
+
+msgid "平滑模型轮廓，减少边缘锯齿与闪烁"
+msgstr "Smooth outlines and reduce jagged edges and shimmer"
+
+msgid "调整模型细节与阴影质量"
+msgstr "Adjust model detail and shadow quality"
+
+msgid "增强接触部位的阴影与立体感"
+msgstr "Add depth and shading where surfaces meet"
+
+msgid "让呈现节奏与显示器刷新同步"
+msgstr "Synchronize presentation with the display refresh"
+
+msgid "常规"
+msgstr "General"
+
+msgid "设置、托盘与菜单的显示语言，切换后立即生效"
+msgstr "Display language for settings, tray and menus. Applies immediately."
+
+msgid "应用更新"
+msgstr "App updates"
+
+msgid "检查更新"
+msgstr "Check for updates"
+
+msgid "当前版本"
+msgstr "Current version"
+
+msgid "正在检查更新…"
+msgstr "Checking for updates…"
+
+msgid "当前已是最新版本"
+msgstr "You are up to date"
+
+msgid "发现新版本：{}"
+msgstr "New version available: {}"
+
+msgid "项目尚未发布公开版本，可前往发布页面查看。"
+msgstr "No public release is available yet. Visit the releases page for details."
+
+msgid "更新服务暂时受限，请稍后重试或查看发布页面。"
+msgstr "The update service is temporarily limited. Try again later or visit releases."
+
+msgid "无法检查更新，请检查网络连接后重试。"
+msgstr "Could not check for updates. Check your connection and try again."
+
+msgid "检查 GitHub 上发布的最新正式版本"
+msgstr "Check the latest stable release on GitHub"
+
+msgid "刚刚检查"
+msgstr "Just checked"
+
+msgid "上次检查：{} 分钟前"
+msgstr "Last checked: {} minutes ago"
+
+msgid "前往发布页面"
+msgstr "View releases"
+
+msgid "关于"
+msgstr "About"
+
+msgid "陪伴在桌面上的小小伙伴"
+msgstr "A little companion for your desktop"
+
+msgid "版本"
+msgstr "Version"
+
+msgid "作者"
+msgstr "Author"
+
+msgid "许可证"
+msgstr "License"
+
+msgid "项目主页"
+msgstr "Project home"
+
+msgid "反馈问题"
+msgstr "Report an issue"

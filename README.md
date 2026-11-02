@@ -1,33 +1,20 @@
 # 龙泡泡 · My Dragon Bubble
 
-面向 Windows 的 Godot 4.5 桌宠框架，角色外观与桌面功能、行为状态分开。可克隆到任意本地目录；本文命令默认在项目根目录执行。
+Windows 桌宠，使用纯 Rust 技术栈：Bevy 0.17 / wgpu Vulkan、egui、原生 Win32 透明窗口与系统托盘。运行时无需 Godot。迁移核对与已知边界见 [迁移记录](docs/rust-migration.md)。
 
-## 项目导航与归档
+## 启动与构建
 
-| 目录 / 文件 | 内容 |
-| --- | --- |
-| `project.godot`、`scenes/`、`scripts/` | Godot 工程、场景与桌宠程序 |
-| `assets/`、`skins/`、`i18n/` | 图标、内置外观与翻译 |
-| `source_models/` | 当前 Blender 工程、纹理、原始模型及历史模型快照 |
-| `tools/`、`converters/`、`tests/` | 建模 / 导出 / 预览工具、格式转换与验证 |
-| `docs/` | 使用和模型说明；[归档说明](docs/archive.md)记录恢复步骤 |
-| `archive/` | 从临时工作区整理出的历史代码、参考图、诊断脚本与结果 |
-| `docs/media/` | 本次归档的模型与界面预览 |
-| `work/`、`outputs/`、`.godot/` | 本机工具、生成输出与缓存，不提交 Git |
-| `archives/` | 本机 Git bundle、文件校验清单与预览程序压缩包，不提交 Git |
+需要 Windows Vulkan 驱动，以及 Rust stable MSVC 工具链（含 Visual Studio C++ Build Tools）。
 
-首次克隆后安装 Godot 4.5.1+，运行 `./start.ps1 -GodotPath '你的 Godot 可执行文件路径' -Editor` 完成资源导入，再运行项目。模型编辑额外需要 Blender，Python 预览脚本需要 Pillow。Git 仓库包含当前可运行素材及历史模型，不需要 Git LFS。
+```powershell
+./start.ps1           # 开发运行；也可双击 start.cmd
+./start.ps1 -Release  # 优化版本
+./build.ps1           # 回归测试、release 编译、打包资源
+```
 
-## 启动
+产物为 `outputs/rust/My Dragon Bubble.exe`，请保留旁边的 `assets/`、`skins/`、`i18n/`、`converters/`。不再需要 PCK 或 Godot 可执行文件。Blender 仅用于可选的 blend / STL / PLY 转换。
 
-- 双击 `outputs/My Dragon Bubble.exe` 运行开发预览版；`My Dragon Bubble.pck` 必须和它放在一起。
-- EXE 静默启动，不显示 Godot 启动标志或启动背景，直接加载桌宠。
-- EXE、窗口、设置页和托盘使用同一个龙泡泡图标。打包时从 `assets/tray.svg` 生成 16–256 像素的 Windows 图标并写入启动器。
-- 从源码运行：双击 `start.cmd`，或在 PowerShell 运行 `./start.ps1`。
-- 编辑项目：`./start.ps1 -Editor`，也可以用 Godot 4.5.1 打开 `project.godot`。
-- 重新打包预览版：`./build.ps1`。本地引擎位于 `work/tools/godot/`，启动器也支持 `-GodotPath` 指定其他 Godot 4.5.1+ 引擎。
-
-预览 EXE 使用官方 Godot 编辑器二进制和项目 PCK，因此体积较大。正式发布时安装对应版本的 Windows export templates，从 `Windows Desktop` 预设导出精简发行版。Godot 许可证随预览版一起提供。
+Vulkan 离屏渲染通过预乘 alpha 合成交给 Windows 分层窗口，完整帧原子替换；不会依赖交换链的桌面透明能力。新外观完成加载后才替换旧实例，避免加载过程清空整窗。
 
 ## 使用
 
@@ -37,15 +24,17 @@
 
 右键桌宠或系统托盘图标打开快捷菜单：自由散步、始终置顶、切换外观、大小调节、性能与画质、找回桌宠、退出，以及“打开完整设置”。左键托盘图标可打开完整设置。托盘图标可能位于 Windows 的隐藏图标区域；退出程序时自动移除。“桌宠大小”打开带滑动条和百分比输入框的小面板。菜单或大小面板展开时暂时冻结运动，关闭后继续；在完整设置中仍可正常下落。快捷菜单与完整设置共享配置并即时同步。首次启动自动展示设置；关闭设置窗口后桌宠继续运行。
 
-设置使用 Win11 Fluent 浅色风格：系统标题栏、灰白分层背景、蓝色强调色、细边框圆角卡片与侧栏选中指示条。侧栏“查找设置”支持搜索“置顶”“FPS”“导入”等关键词。切换页面带短促的滑入和淡入，选中指示条平滑移动；按钮悬停 / 按下、开关和快捷菜单均有过渡，快速连续操作会中断旧动画。按用途分为五个页面：
+设置采用 Win11 风格的分类侧栏、顶部搜索和分组卡片，启动时跟随系统深浅色主题。支持搜索“置顶”“FPS”“导入”“语言”“更新”等关键词，并在主内容区展示结果；六个页面覆盖外观、行为、显示、动作适配、性能和其他：
 
 - **外观与模型**：当前角色实时预览、外观选择、导入和外观文件夹入口。
 - **动作与适配**：自动识别动画和角色风格、八个状态逐项映射与预览、3D 朝向和 2D 翻转、模型转换器配置。
 - **行为与互动**：自由散步开关、当前状态、鼠标互动说明。
 - **桌面与显示**：页首提供“桌宠始终置顶”开关，开启后位于其他普通窗口上方，关闭后允许其他窗口遮挡；即时应用、与右键菜单同步并保存到下次启动。另有显示器选择、尺寸调节和位置重置。
-- **性能与画质**：省电 / 均衡 / 高画质方案，内部渲染分辨率、帧率上限、垂直同步、短绒与阴影画质、FXAA / MSAA、环境光遮蔽和实时帧率。修改即时应用并保存，预览共用同一设置；详见 [性能设置](docs/performance.md)。
+- **性能与画质**：省电 / 均衡 / 高画质方案，内部渲染分辨率、帧率上限、垂直同步、短绒与阴影画质、FXAA / MSAA / TAA、环境光遮蔽和实时帧率。修改即时应用并保存，预览共用同一设置；详见 [性能设置](docs/performance.md)。
 
-侧栏底部的“界面语言”可随时切换 **简体中文 / 日本語 / English**，默认简体中文。设置、快捷菜单、托盘提示、动作状态及导入诊断同步切换，选择自动保存，无需重启；用户自定义名称和文件路径保留原文。搜索支持中日英关键词。更名后继续使用原 `LPPDesktopPet` 数据目录，已有外观、位置、大小和画质配置自动沿用。
+**其他**页面集中提供语言、检查更新和关于信息。更新检查在后台查询项目的 GitHub 最新正式发布，区分最新版本、新版本、暂无发布、服务限流与网络失败，提供发布页面入口。关于包含版本、作者、许可证、项目主页与问题反馈。
+
+“其他 → 语言”可随时切换 **简体中文 / 日本語 / English**，默认简体中文。设置、快捷菜单、托盘提示、动作状态及导入诊断同步切换，选择自动保存，无需重启；用户自定义名称和文件路径保留原文。搜索支持中日英关键词。更名后继续使用原 `LPPDesktopPet` 数据目录，已有外观、位置、大小和画质配置自动沿用。
 
 桌宠大小范围为 **20%–300%**，以 1% 为步长。滑动即时生效；手动输入后按 Enter 或移开焦点应用，超出范围时自动限制到上下限。两处大小控件均提供“恢复 100%”，数值会自动保存到下次启动。
 
@@ -53,9 +42,9 @@
 
 各页独立滚动，修改即时生效并自动保存。角色预览在关闭设置或切换到其他分类后暂停渲染。
 
-默认角色为 **黍泡泡**，使用按实物照片重建的毛绒模型，包含八组专用动作。左右移动时保持 90° 完整侧身，停止后平滑回到半侧面。走路使用四拍交替支撑；跑步参考猫科奔跑，后腿蹬伸、展体腾空、前腿接地、收腹腾空，身体后段随步态屈伸，脚掌步幅与桌面速度及大小同步。自由散步中会偶尔短跑，也可在设置中分别预览。身体后半段会受重力下沉和压缩，使下腹形成较平的承托面；背鳍、缝线、绒毛和尾巴一起变形。拖动时带有惯性和阻尼回稳，下落时填充卸载，落地时恢复承托。模型使用标准 GLB 外观包接入，详见 [模型说明与导出方法](docs/shu-model.md)。原来的四种示例仍可切换，已有外观及大小、行为、多屏位置设置继续沿用。
+默认角色为 **黍泡泡**，使用按实物照片重建的模型并启用三渲二：分段明暗、柔和高光、轮廓暗线与平整色块，隐藏细密短绒，包含八组专用动作。左右移动时保持 90° 完整侧身，停止后平滑回到半侧面。走路使用四拍交替支撑；跑步参考猫科奔跑，后腿蹬伸、展体腾空、前腿接地、收腹腾空，身体后段随步态屈伸，脚掌步幅与桌面速度及大小同步。自由散步中会偶尔短跑，也可在设置中分别预览。身体后半段会受重力下沉和压缩，使下腹形成较平的承托面；背鳍、缝线、绒毛和尾巴一起变形。拖动时带有惯性和阻尼回稳，下落时填充卸载，落地时恢复承托。模型使用标准 GLB 外观包接入，详见 [模型说明与导出方法](docs/shu-model.md)。原来的四种示例仍可切换，已有外观及大小、行为、多屏位置设置继续沿用。
 
-走跑接近屏幕外侧边缘时先减速收步，原地交替踏步转过 180°，再逐渐起步；相接显示器之间继续通行。转身期间暂停桌面位移，菜单可暂停转身，拖拽可立即打断。待机增加柔和呼吸、顾盼、单次和连续眨眼及少量闪光；睡眠保持闭眼、放松压低身体并慢呼吸，鼻息气泡与渐隐 Z 字随头部移动，醒来后淡出。
+走跑接近屏幕外侧边缘时先减速收步，原地交替踏步转过 180°，再逐渐起步；相接显示器之间继续通行。转身期间暂停桌面位移，菜单可暂停转身，拖拽可立即打断。待机增加柔和呼吸、顾盼、眨眼及少量闪光；睡眠保持闭眼、放松压低身体并慢呼吸，鼻息气泡与渐隐 Z 字随头部移动，醒来后淡出。
 
 ## 用户自定义
 
@@ -69,75 +58,38 @@
 - `preferences.json`：外观 ID、显示大小、散步开关、置顶、窗口位置、界面语言和性能设置。
 - `appearance-overrides.json`：各外观独立的动作、风格、朝向和翻转设置。
 - `converter-path.txt`：可选的 Blender 可执行文件路径。
-- `logs/`：Godot 运行日志。
+- `cache/`：标准化 GLB 模型缓存。
 
-## 代码结构
+## 代码与扩展
 
-| 文件 | 职责 |
+| 路径 | 职责 |
 | --- | --- |
-| `scripts/main.gd` | 组装模块、窗口移动、输入、切换外观时保留旧角色 |
-| `scripts/core/pet_brain.gd` | 待机 / 走路 / 跑步 / 睡觉 / 摸摸 / 拖动 / 落下状态 |
-| `scripts/core/pet_motion.gd` | 拖动速度采样、惯性、重力、边缘碰撞与落地摩擦 |
-| `scripts/core/desktop_layout.gd` | 屏幕工作区集合、共享边缘通行、屏幕归属与离屏恢复 |
-| `scripts/core/skin_catalog.gd` | 扫描、清单校验、导入和重复 ID 处理 |
-| `scripts/core/preferences.gd` | 配置读写，损坏数据使用默认设置 |
-| `scripts/core/i18n.gd`、`i18n/*.po` | 中日英切换、内置名称及动态诊断本地化 |
-| `scripts/avatars/avatar_base.gd` | 统一状态接口和程序化弹性动作 |
-| `scripts/avatars/sprite_avatar.gd` | 图片、GIF、精灵图和序列帧播放、透明裁剪与落地点 |
-| `scripts/core/action_adapter.gd` | 通用状态、中英文动作匹配、角色风格识别 |
-| `scripts/core/asset_io.gd`、`asset_importer.gd` | 格式解码、依赖封装、后台导入和失败回滚 |
-| `scripts/core/obj_reader.gd`、`gif_reader.gd` | 运行时 OBJ / MTL 与 GIF 解码 |
-| `scripts/core/skin_overrides.gd` | 按角色保存动作适配覆盖 |
-| `scripts/avatars/procedural_rig.gd` | 常见骨骼部位识别、坐标轴换算和轻量动作 |
-| `converters/model_to_glb.py` | Blender 模型转换，禁用自动执行源文件脚本 |
-| `scripts/avatars/model_avatar.gd` | 3D 渲染、运行时 GLB 解码、尺寸归一化、动画映射 |
-| `scripts/avatars/model_physics.gd`、`soft_body.gd` | 显式配置的身体截面软体形变、承托约束、惯性与 GPU 蒙皮 |
-| `scripts/ui/settings_window.gd` | 独立原生设置窗口和文件导入入口 |
-| `scripts/ui/quick_menu.gd` | 右键快捷菜单、外观子菜单和独立大小调节面板 |
-| `scripts/ui/tray_icon.gd` | Windows 原生托盘图标与左右键入口、退出清理 |
-| `scripts/core/render_options.gd`、`scripts/ui/performance_panel.gd` | 性能选项校验、预设、帧率与画质控件 |
-| `scripts/ui/scale_control.gd` | 完整设置与快捷面板共享的滑动条、百分比输入和复位控件 |
+| `crates/pet-core/src/behavior.rs`、`motion.rs`、`desktop.rs` | 八状态、抛掷重力、多屏拓扑与边界 |
+| `crates/pet-core/src/assets.rs`、`sprite.rs` | 外观清单、图片 / GIF / 精灵图 |
+| `crates/pet-core/src/import.rs`、`model_import.rs` | 自包含 GLB、原生 OBJ / FBX、导入事务 |
+| `crates/pet-core/src/action.rs`、`preferences.rs`、`i18n.rs` | 动作识别、配置兼容、翻译 |
+| `crates/pet-core/src/soft_body.rs` | 独立于渲染器的软体截面计算 |
+| `crates/pet-desktop/src/avatar.rs`、`expressions.rs`、`effects.rs` | 模型与图片、原生动画、通用骨骼 / 表情和状态特效 |
+| `crates/pet-desktop/src/toon.rs`、`toon.wgsl` | 可扩展的三渲二材质 |
+| `crates/pet-desktop/src/composite.rs`、`layered.rs` | alpha 合成、Vulkan 回读与 Windows 透明呈现 |
+| `crates/pet-desktop/src/temporal.rs`、`temporal.wgsl` | 正交镜头抖动、运动重投影与透明轮廓 TAA |
+| `crates/pet-desktop/src/platform.rs`、`runtime.rs`、`ui.rs` | 桌面输入 / 托盘、状态协调、设置 |
+| `skins/`、`assets/`、`i18n/` | 外观、图标、翻译资源 |
+| `converters/model_to_glb.py` | 可选 Blender 转换器 |
 
-增加新渲染格式时实现 `PetAvatar.configure(skin)`、`set_state(state)`，再在 `main.gd` 添加工厂分支；已有行为层与桌面层无需重写。
+新格式适配器在核心层标准化为 GLB 或 SpritePack，复用桌面与行为层。自定义模型在清单指定 `render_style: "toon"` 可启用三渲二，默认其他模型保留 PBR。软体通过清单 `physics.soft_bodies` 显式配置，不覆盖已有蒙皮或形态目标。
 
 ## 验证
 
 ```powershell
-$engine = './work/tools/godot/Godot_v4.5.1-stable_win64_console.exe'
-& $engine --headless --path . --script tests/test_core.gd
-& $engine --headless --path . --script tests/test_runtime.gd
-& $engine --headless --path . --script tests/test_locomotion.gd
-& $engine --headless --path . --script tests/test_turn_rest.gd
-& $engine --headless --path . --script tests/test_performance.gd
-& $engine --headless --path . --script tests/test_localization.gd
-& $engine --path . --script tests/test_localization_ui.gd
-& $engine --path . --script tests/test_edge_turn.gd
-& $engine --path . --script tests/test_tray_performance_ui.gd
-& $engine --headless --path . --script tests/test_soft_body.gd
-& $engine --headless --path . --script tests/test_motion.gd
-& $engine --headless --path . --script tests/test_desktop.gd
-& $engine --path . -- --smoke-test
-& $engine --headless --main-pack 'outputs/My Dragon Bubble.pck' -- --smoke-test
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
+./start.ps1 -SmokeTest
 ```
 
-扩展适配检查先运行 `python tests/create_adapter_fixtures.py`（需 Pillow），再用 Blender `--background --factory-startup --disable-autoexec --python tests/create_blender_fixtures.py` 生成实际格式样本。以图形模式运行 Godot `--path . --script tests/test_adapters.gd` 和 `--path . --script tests/test_adaptation_ui.gd`；FBX 形态键再导出依赖图形渲染器，不使用 headless。
+冒烟测试使用独立的 `work/rust-smoke-data`，遍历八状态、内置外观和二十组渲染场景，覆盖抗锯齿切换、透明 TAA、缩放、左右拖动及预览重开，输出透明 PNG 与设置截图。日常运行可用 `LPP_DATA_DIR` 指定隔离数据目录。
 
-核心检查覆盖路径越界、无效清单、重复 ID、行为中断和配置恢复。运行时检查验证用户 GLB 导入、嵌入动画和缺少动作的降级。冒烟模式逐一切换内置外观后退出；它会使用并保存当前用户设置，仅供开发。
+真实 FBX 回归需要先用 `tests/create_blender_fixtures.py` 生成样本，再执行 `cargo test -p pet-core --test native_models -- --include-ignored`。核心回归覆盖多屏 / 负坐标 / 台阶 / 热拔插、抛掷与落地、配置容错、外观导入事务、路径约束、动作映射和软体。
 
-三语检查验证词条及格式占位符、旧配置兼容、切换后保留角色与运动、语言重启恢复，以及三个语言下五页设置的默认 / 最小窗口布局。`python tools/build_translations.py` 可重新生成翻译目录。运行主场景或 UI 测试前应备份用户设置，完成后恢复。
-
-物理检查覆盖抛出方向、重力、衰减回弹、静止松手、速度上限、边缘碰撞、长帧防穿透、飞行中抓取、帧率一致性和负坐标显示器。
-
-软体检查验证后半身下沉及截面压缩、腹部承托、四脚保留、绒毛和尾巴的地面约束、原生动画叠加、GPU 形变一致性、下落卸载及缩放复位。`tools/render_model_physics.gd` 生成实际 Godot 渲染，`python tools/make_shu_physics_preview.py` 生成侧面对比图。
-
-## 当前边界
-
-- 已实现透明置顶小窗口、惯性拖动与重力、落地回弹、右键快捷菜单、基本互动、散步、工作区边界限制、多格式外观热切换、自动及手动动画映射和设置保存。
-- 鼠标可点击区域当前为包围角色的矩形区域，矩形外可穿透；矩形内部分透明像素仍会接收点击。精确按角色轮廓穿透、开机启动和窗口边缘攀爬尚未实现。
-- 软体采用需要外观作者声明的截面形变及承托约束，适合毛绒身体；不提供任意模型的自动软体识别、布料自碰撞或完整体积有限元模拟。已有蒙皮或形态键的部件保留原绑定，不覆盖生成。
-- 多屏按各自工作区处理，禁止穿入布局空隙；已在当前三块真实显示器上验证移动与设置定位。混合 DPI 多屏的视觉尺寸一致性、独占全屏和各种显卡的透明兼容性仍需专项验证。显示器编号使用操作系统的枚举顺序，重接设备时编号可能变化。
-- 惯性和重力作用于桌面角色窗口，不依赖模型刚体；子步内重新计算屏幕归属，可以沿相接工作区跨屏。GLB 落地基准取静态网格包围盒，复杂动画或自带根位移动画仍需模型适配。
-- 图片、GIF、精灵图和序列帧均参与统一动作状态；通用模组不生成图片里不存在的可动部位。常见骨架可进行轻量动作，不提供任意骨架的自动蒙皮、跨模型动画重定向、复杂 IK 或精细步态。
-- 资源包为数据文件，不加载用户 GDScript、DLL 或 Godot 场景。导入前限制资源体积，glTF 的外部依赖仅允许同目录及子目录并嵌入安装文件，但不是针对恶意二进制文件的完整隔离沙箱。
-
-运行时 GLB 导入依据 [Godot GLTFDocument](https://docs.godotengine.org/en/stable/classes/class_gltfdocument.html)；透明与鼠标区域依据 [Godot Window](https://docs.godotengine.org/en/4.5/classes/class_window.html)。
+旧 `scripts/`、`scenes/`、`project.godot`、`.gd` 测试保留作迁移对照，不参与 Rust 运行与构建。`source_models/` 是模型源文件；`work/`、`target/`、`outputs/` 为本地生成内容，不提交 Git。

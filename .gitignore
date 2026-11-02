@@ -26,5 +26,6 @@ desktop.ini
 .env.*
 !.env.example
 export_credentials.cfg
+/target/
 *.pem
 *.key

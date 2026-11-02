@@ -4,12 +4,13 @@
   "name": "黍泡泡",
   "type": "model3d",
   "asset": "shu.glb",
+  "render_style": "toon",
   "physics": {
     "soft_bodies": [
       {
         "node": "PlushBody",
         "profile_mesh": "BodyShell • 横向水滴",
-        "anchors": ["FrontFoot_L", "FrontFoot_R", "RearFoot_L", "RearFoot_R"],
+        "anchors": ["FrontFoot.L", "FrontFoot.R", "RearFoot.L", "RearFoot.R"],
         "axis": [0, 0, -1],
         "start": 0.0,
         "length": 2.3,

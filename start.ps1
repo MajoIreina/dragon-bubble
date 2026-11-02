@@ -1,14 +1,8 @@
-param([string]$GodotPath = "", [switch]$Editor)
+param([switch]$Release, [switch]$SmokeTest)
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
-if ([string]::IsNullOrWhiteSpace($GodotPath)) {
-    $localEngine = Join-Path $PSScriptRoot 'work/tools/godot/Godot_v4.5.1-stable_win64.exe'
-    if (Test-Path -LiteralPath $localEngine) { $GodotPath = $localEngine }
-    else {
-        $engineCommand = Get-Command godot, godot4 -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($null -eq $engineCommand) { throw '请安装 Godot 4.5.1+，或传入 -GodotPath 指定引擎路径。' }
-        $GodotPath = $engineCommand.Source
-    }
-}
-if ($Editor) { & $GodotPath --editor --path $PSScriptRoot }
-else { & $GodotPath --path $PSScriptRoot }
+$cargoArgs = @('run', '--locked', '-p', 'pet-desktop')
+if ($Release) { $cargoArgs += '--release' }
+if ($SmokeTest) { $cargoArgs += @('--', '--smoke-test') }
+& cargo @cargoArgs
+if ($LASTEXITCODE -ne 0) { throw "Rust 桌宠启动失败，退出码 $LASTEXITCODE" }

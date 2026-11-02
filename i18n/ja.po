@@ -826,3 +826,345 @@ msgstr "連番画像が空か、展開後 128 MB を超えています"
 
 msgid "动作 %s 的帧索引超出图片范围"
 msgstr "動作 %s のフレーム番号が画像の範囲外です"
+
+msgid "行为"
+msgstr "行動"
+
+msgid "显示"
+msgstr "表示"
+
+msgid "语言"
+msgstr "言語"
+
+msgid "退出"
+msgstr "終了"
+
+msgid "大小"
+msgstr "サイズ"
+
+msgid "屏幕"
+msgstr "モニター"
+
+msgid "当前状态"
+msgstr "現在の状態"
+
+msgid "自由走动"
+msgstr "自由に歩く"
+
+msgid "始终置顶"
+msgstr "常に最前面"
+
+msgid "调整大小"
+msgstr "サイズ調整"
+
+msgid "完成"
+msgstr "完了"
+
+msgid "不限"
+msgstr "無制限"
+
+msgid "保存"
+msgstr "保存"
+
+msgid "龙泡泡"
+msgstr "龍泡泡"
+
+msgid "导入外观"
+msgstr "外観をインポート"
+
+msgid "打开外观目录"
+msgstr "外観フォルダーを開く"
+
+msgid "移动到屏幕"
+msgstr "モニターへ移動"
+
+msgid "模型朝向"
+msgstr "モデルの向き"
+
+msgid "重置适配"
+msgstr "適応設定をリセット"
+
+msgid "随方向翻转"
+msgstr "移動方向に合わせて反転"
+
+msgid "Blender 路径"
+msgstr "Blender のパス"
+
+msgid "渲染分辨率"
+msgstr "レンダリング解像度"
+
+msgid "环境遮蔽"
+msgstr "アンビエントオクルージョン"
+
+msgid "环境遮蔽开启时使用 TAA 平滑边缘。"
+msgstr "アンビエントオクルージョン有効時は TAA で輪郭を滑らかにします。"
+
+msgid "隐藏窗口"
+msgstr "ウィンドウを隠す"
+
+msgid "预览仅在设置窗口可见时更新。"
+msgstr "プレビューは設定画面の表示中のみ更新されます。"
+
+msgid "点击：摸摸回应"
+msgstr "クリック：なでる"
+
+msgid "拖动：提起桌宠"
+msgstr "ドラッグ：持ち上げる"
+
+msgid "松手：惯性抛掷、重力与落地反弹"
+msgstr "離す：慣性で飛び、重力で落下して弾む"
+
+msgid "右键：打开快捷菜单"
+msgstr "右クリック：クイックメニュー"
+
+msgid "关闭设置窗口后，桌宠继续在托盘运行。"
+msgstr "設定を閉じてもデスクトップペットは動き続けます。"
+
+msgid "支持 GLB、glTF、VRM、FBX、OBJ、Blender、STL、PLY 和图片外观。"
+msgstr "GLB、glTF、VRM、FBX、OBJ、Blender、STL、PLY と画像に対応。"
+
+msgid "正在导入外观…"
+msgstr "外観をインポート中…"
+
+msgid "正在导入外观，完成后自动退出。"
+msgstr "インポート完了後に終了します。"
+
+msgid "模型中没有场景"
+msgstr "モデルにシーンがありません"
+
+msgid "模型缺少有效网格尺寸"
+msgstr "モデルのメッシュ範囲が無効です"
+
+msgid "省电"
+msgstr "省電力"
+
+msgid "高画质"
+msgstr "高画質"
+
+msgid "均衡"
+msgstr "バランス"
+
+msgid "动作类型"
+msgstr "動作タイプ"
+
+msgid "找不到外观："
+msgstr "外観が見つかりません："
+
+msgid "模型加载失败："
+msgstr "モデルの読み込みに失敗しました："
+
+msgid "为桌面选择一位伙伴"
+msgstr "デスクトップの仲間を選びましょう"
+
+msgid "让每一次互动都有回应"
+msgstr "ふれあうたびに、生き生きとした反応を"
+
+msgid "适合你的桌面与屏幕"
+msgstr "デスクトップと画面に合わせて調整"
+
+msgid "预览动作，适配你的模型"
+msgstr "動きを確認してモデルを調整"
+
+msgid "平衡清晰度、流畅度与功耗"
+msgstr "鮮明さ、滑らかさ、消費電力のバランスを調整"
+
+msgid "更高的分辨率呈现更多细节，也会增加显卡负载。"
+msgstr "解像度を上げると細部が鮮明になり、GPU 負荷も増えます。"
+
+msgid "其他"
+msgstr "その他"
+
+msgid "语言、更新与应用信息"
+msgstr "言語、更新とアプリ情報"
+
+msgid "清除"
+msgstr "クリア"
+
+msgid "搜索结果"
+msgstr "検索結果"
+
+msgid "选择结果以打开对应的设置页面"
+msgstr "結果を選ぶと設定ページが開きます"
+
+msgid "未找到相关设置"
+msgstr "一致する設定がありません"
+
+msgid "试试其他关键词，例如语言、更新、帧率或外观。"
+msgstr "言語、更新、フレームレート、外観などで検索してください。"
+
+msgid "打开"
+msgstr "開く"
+
+msgid "点击外观即可切换，设置会自动保存。"
+msgstr "外観を選ぶと切り替わり、自動で保存されます。"
+
+msgid "管理外观"
+msgstr "外観の管理"
+
+msgid "选择文件"
+msgstr "ファイルを選択"
+
+msgid "查看和管理已导入的外观文件"
+msgstr "インポートした外観ファイルを管理します"
+
+msgid "打开目录"
+msgstr "フォルダーを開く"
+
+msgid "允许桌宠在屏幕上散步、奔跑和休息"
+msgstr "画面上を歩いたり、走ったり、休んだりします"
+
+msgid "桌宠会根据互动和时间自然切换状态"
+msgstr "操作や時間に応じて状態が変わります"
+
+msgid "互动指南"
+msgstr "操作ガイド"
+
+msgid "点击"
+msgstr "クリック"
+
+msgid "拖动"
+msgstr "ドラッグ"
+
+msgid "松手"
+msgstr "離す"
+
+msgid "右键"
+msgstr "右クリック"
+
+msgid "让桌宠显示在其他普通窗口上方"
+msgstr "他の通常ウィンドウより手前に表示します"
+
+msgid "按桌面比例调整，拖动滑条即时预览"
+msgstr "スライダーを動かすとサイズにすぐ反映されます"
+
+msgid "屏幕与位置"
+msgstr "画面と位置"
+
+msgid "移动到此屏幕"
+msgstr "この画面へ移動"
+
+msgid "将桌宠找回到当前可用的屏幕内"
+msgstr "利用できる画面内にペットを戻します"
+
+msgid "重置"
+msgstr "リセット"
+
+msgid "动作预览"
+msgstr "アニメーションのプレビュー"
+
+msgid "选择状态以查看对应动作"
+msgstr "状態を選んで動きを確認します"
+
+msgid "模型适配"
+msgstr "モデルの調整"
+
+msgid "未映射的状态使用对应风格的通用动作"
+msgstr "未割り当ての状態は選択した種類の汎用動作を使います"
+
+msgid "调整模型三个坐标轴的旋转角度"
+msgstr "モデルの各軸の回転角度を調整します"
+
+msgid "平面外观跟随移动方向左右翻转"
+msgstr "平面の外観を移動方向に合わせて左右反転します"
+
+msgid "状态动作映射"
+msgstr "状態ごとの動作割り当て"
+
+msgid "恢复当前外观的默认动作与朝向"
+msgstr "現在の外観の動作と向きを初期設定に戻します"
+
+msgid "用于导入 Blender、STL 与 PLY 模型，可按需配置"
+msgstr "Blender、STL、PLY のインポートに使用する任意設定です"
+
+msgid "画质方案"
+msgstr "画質プリセット"
+
+msgid "快速选择适合你的性能与功耗方案"
+msgstr "画質、性能、消費電力のバランスを選びます"
+
+msgid "渲染与流畅度"
+msgstr "描画と滑らかさ"
+
+msgid "更高的帧率带来更流畅的动作，也会增加功耗。"
+msgstr "フレームレートを上げると動きが滑らかになり、消費電力も増えます。"
+
+msgid "图像质量"
+msgstr "画像品質"
+
+msgid "平滑模型轮廓，减少边缘锯齿与闪烁"
+msgstr "輪郭を滑らかにして、ギザギザやちらつきを抑えます"
+
+msgid "调整模型细节与阴影质量"
+msgstr "モデルの細部と影の品質を調整します"
+
+msgid "增强接触部位的阴影与立体感"
+msgstr "接触部分の影を加えて立体感を高めます"
+
+msgid "让呈现节奏与显示器刷新同步"
+msgstr "描画タイミングをディスプレイの更新に合わせます"
+
+msgid "常规"
+msgstr "全般"
+
+msgid "设置、托盘与菜单的显示语言，切换后立即生效"
+msgstr "設定、トレイ、メニューの表示言語。すぐに反映されます。"
+
+msgid "应用更新"
+msgstr "アプリの更新"
+
+msgid "检查更新"
+msgstr "更新プログラムの確認"
+
+msgid "当前版本"
+msgstr "現在のバージョン"
+
+msgid "正在检查更新…"
+msgstr "更新を確認しています…"
+
+msgid "当前已是最新版本"
+msgstr "最新バージョンです"
+
+msgid "发现新版本：{}"
+msgstr "新しいバージョンがあります：{}"
+
+msgid "项目尚未发布公开版本，可前往发布页面查看。"
+msgstr "公開リリースはまだありません。リリースページをご確認ください。"
+
+msgid "更新服务暂时受限，请稍后重试或查看发布页面。"
+msgstr "更新サービスが一時的に制限されています。後でもう一度試すか、リリースページをご確認ください。"
+
+msgid "无法检查更新，请检查网络连接后重试。"
+msgstr "更新を確認できません。ネットワーク接続を確認し、もう一度お試しください。"
+
+msgid "检查 GitHub 上发布的最新正式版本"
+msgstr "GitHub で最新の正式リリースを確認します"
+
+msgid "刚刚检查"
+msgstr "たった今確認しました"
+
+msgid "上次检查：{} 分钟前"
+msgstr "最終確認：{} 分前"
+
+msgid "前往发布页面"
+msgstr "リリースページを開く"
+
+msgid "关于"
+msgstr "バージョン情報"
+
+msgid "陪伴在桌面上的小小伙伴"
+msgstr "デスクトップで寄り添う小さな仲間"
+
+msgid "版本"
+msgstr "バージョン"
+
+msgid "作者"
+msgstr "作者"
+
+msgid "许可证"
+msgstr "ライセンス"
+
+msgid "项目主页"
+msgstr "プロジェクトのホームページ"
+
+msgid "反馈问题"
+msgstr "問題を報告"
