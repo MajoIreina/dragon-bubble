@@ -1,0 +1,16 @@
+{
+  "changed_meshes": [
+    "ContinuousDorsalFin",
+    "ContinuousDorsalFin.MicroPile",
+    "DorsalRidgeSeam"
+  ],
+  "unchanged_meshes": 115,
+  "unchanged_clips": [
+    "Happy",
+    "Idle",
+    "Land",
+    "PickedUp",
+    "Sleep",
+    "Walk"
+  ]
+}

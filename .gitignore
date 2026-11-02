@@ -1,0 +1,30 @@
+# Godot cache (keep .gd.uid and resource .import settings in Git)
+/.godot/
+
+# Local engines, scratch files, generated previews and release archives
+/work/
+/outputs/
+/archives/
+
+# Python cache and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.log
+
+# Local credentials and Godot export secrets
+.env
+.env.*
+!.env.example
+export_credentials.cfg
+*.pem
+*.key

@@ -1,0 +1,10 @@
+{
+  "Run": {
+    "seconds": 0.6666666666666666,
+    "stance_fraction": 0.25,
+    "stance_travel": 0.40609907346414326,
+    "nominal_speed_px": 112.0
+  },
+  "geometry_preserved": true,
+  "other_actions_preserved": 63
+}

@@ -1,0 +1,828 @@
+# My Dragon Bubble display translations.
+msgid ""
+msgstr "Language: ja\nContent-Type: text/plain; charset=UTF-8\nMIME-Version: 1.0\nContent-Transfer-Encoding: 8bit\n"
+
+msgid "设置"
+msgstr "設定"
+
+msgid "外观与模型"
+msgstr "外観とモデル"
+
+msgid "选择你的桌面伙伴，或带来新的模样。"
+msgstr "デスクトップの仲間の外観を選ぶか、新しいモデルを追加します。"
+
+msgid "行为与互动"
+msgstr "ふるまいと交流"
+
+msgid "调整小伙伴的活动习惯，了解互动方式。"
+msgstr "仲間の行動や、ふれあい方を設定します。"
+
+msgid "桌面与显示"
+msgstr "デスクトップと表示"
+
+msgid "让桌宠以合适的大小，待在合适的位置。"
+msgstr "仲間のサイズ、表示画面、ウィンドウ位置を設定します。"
+
+msgid "动作与适配"
+msgstr "モーションと適用"
+
+msgid "识别角色能力，让每个动作都有合适的表现。"
+msgstr "アニメーションを確認し、動作の割り当てを調整します。"
+
+msgid "性能与画质"
+msgstr "パフォーマンス"
+
+msgid "调整清晰度、帧率与画面细节。"
+msgstr "解像度、フレームレート、描画の細かさを調整します。"
+
+msgid "你的桌面伙伴"
+msgstr "デスクトップの仲間"
+
+msgid "查找设置"
+msgstr "設定を検索"
+
+msgid "搜索外观、置顶、分辨率等设置"
+msgstr "外観、最前面、解像度などの設定を検索"
+
+msgid "没有匹配的设置"
+msgstr "一致する設定がありません"
+
+msgid "界面语言"
+msgstr "表示言語"
+
+msgid "退出桌宠"
+msgstr "終了"
+
+msgid "更改自动保存"
+msgstr "変更は自動保存されます"
+
+msgid "没有找到匹配项。\n请尝试“置顶”“外观”或“帧率”。"
+msgstr "一致する設定がありません。\n「最前面」「外観」「FPS」などをお試しください。"
+
+msgid "设置即时生效"
+msgstr "設定はすぐに反映されます"
+
+msgid "当前伙伴"
+msgstr "現在の仲間"
+
+msgid "自定义桌宠外观，让它更合你的心意。"
+msgstr "仲間の外観を好みに合わせて変えられます。"
+
+msgid "选择外观"
+msgstr "外観を選択"
+
+msgid "导入新外观"
+msgstr "外観をインポート"
+
+msgid "外观文件夹"
+msgstr "外観フォルダー"
+
+msgid "直接选择 3D 模型、图片、GIF 或 skin.json。支持 GLB / glTF / FBX / OBJ / VRM；Blender、STL、PLY 文件可自动转换。"
+msgstr "3D モデル、画像、GIF、skin.json を選択できます。GLB / glTF / FBX / OBJ / VRM に対応し、Blender、STL、PLY は自動変換できます。"
+
+msgid "日常活动"
+msgstr "日常の行動"
+
+msgid "自由散步"
+msgstr "自由に散歩"
+
+msgid "开启后，桌宠会随机走路、小跑、停留和休息。"
+msgstr "オンにすると、仲間が自由に歩いたり、小走りしたり、休んだりします。"
+
+msgid "和它互动"
+msgstr "仲間とふれあう"
+
+msgid "轻点"
+msgstr "なでる"
+
+msgid "摸摸它，看看小小的回应。"
+msgstr "軽くなでると、小さな反応を見せてくれます。"
+
+msgid "左键单击"
+msgstr "左クリック"
+
+msgid "提起与抛出"
+msgstr "持ち上げる・投げる"
+
+msgid "松手后沿拖动方向滑行，再落到屏幕底部。"
+msgstr "ドラッグして離すと、その方向に滑り、画面の下へ着地します。"
+
+msgid "拖动后松手"
+msgstr "ドラッグして離す"
+
+msgid "快捷菜单"
+msgstr "クイック設定"
+
+msgid "快速切换外观、大小、散步和置顶。"
+msgstr "外観、サイズ、散歩、最前面表示をすばやく変更できます。"
+
+msgid "右键单击"
+msgstr "右クリック"
+
+msgid "关闭自由散步后，点击和拖动互动仍然可用。"
+msgstr "自由に散歩をオフにしても、クリックやドラッグでふれあえます。"
+
+msgid "桌宠始终置顶"
+msgstr "常に最前面に表示"
+
+msgid "开启后，桌宠显示在其他普通窗口上方；关闭后，其他窗口可以遮挡桌宠。"
+msgstr "オンにすると、仲間をほかの通常ウィンドウより前に表示します。オフにすると、ほかのウィンドウの後ろにも表示されます。"
+
+msgid "所在显示器"
+msgstr "表示するディスプレイ"
+
+msgid "选择显示器可立即移动桌宠。也可直接拖过屏幕边缘；相邻工作区之间支持惯性跨屏和散步。断开显示器后会自动找回。"
+msgstr "ディスプレイを選ぶと仲間を移動できます。画面端を越えてドラッグすることもでき、隣接する作業領域の間を散歩したり滑ったりできます。画面の接続が切れると自動で戻ります。"
+
+msgid "拖动滑块实时调节；也可输入百分比后按 Enter 应用。"
+msgstr "スライダーで調整するか、割合を入力して Enter キーで適用します。"
+
+msgid "窗口与位置"
+msgstr "ウィンドウと位置"
+
+msgid "找回桌宠"
+msgstr "仲間を呼び戻す"
+
+msgid "将它移回主屏幕右下角。"
+msgstr "仲間をメイン画面の右下へ戻します。"
+
+msgid "重置位置"
+msgstr "位置をリセット"
+
+msgid "位置会自动保存，下次启动时继续待在原来的地方。"
+msgstr "位置は自動保存され、次回起動時にも引き継がれます。"
+
+msgid "每种外观，独立适配"
+msgstr "外観ごとの設定"
+
+msgid "模型转换器"
+msgstr "モデル変換"
+
+msgid "GLB、glTF、FBX、OBJ 和 VRM 无需外部软件。导入 .blend、STL、PLY 需要本机安装 Blender 4.2+，程序会自动查找，也可手动选择。"
+msgstr "GLB、glTF、FBX、OBJ、VRM は外部ソフト不要です。.blend、STL、PLY のインポートには Blender 4.2 以降が必要です。自動検出されない場合は、下で選択できます。"
+
+msgid "blender.exe 路径"
+msgstr "blender.exe のパス"
+
+msgid "浏览"
+msgstr "参照"
+
+msgid "Blender 程序"
+msgstr "Blender アプリケーション"
+
+msgid "选择 Blender 程序"
+msgstr "Blender を選択"
+
+msgid "平面图片使用整体动作；骨骼与形态键使用模型自带动画。Live2D / Spine 工程请先导出为 GIF、精灵图或序列帧。VRM 当前保留基础网格、材质和骨架，不包含专用表情、MToon 和弹簧骨物理。"
+msgstr "画像には全体の動きを、ボーンやシェイプキーにはモデルのアニメーションを使用します。Live2D / Spine は GIF、スプライトシート、連番画像に書き出してください。VRM は基本メッシュ、マテリアル、ボーンに対応し、専用表情、MToon、スプリングボーン物理は含みません。"
+
+msgid "请选择有效的 blender.exe 文件。"
+msgstr "有効な blender.exe を選択してください。"
+
+msgid "%s · %d 个动画 · %d 根骨骼\n已匹配 %d / %d 个动作，其余由通用模组完成。\n在下方逐项预览或调整。"
+msgstr "%s · アニメーション %d 個 · ボーン %d 本\n%d / %d 動作を割り当て済み。残りは汎用モーションです。\n下で各動作を確認・調整できます。"
+
+msgid "外观"
+msgstr "外観"
+
+msgid "%s · %d 个动画 · %d 根骨骼\n已匹配 %d / %d 个动作，其余使用通用模组。"
+msgstr "%s · アニメーション %d 個 · ボーン %d 本\n%d / %d 動作を割り当て済み。残りは汎用モーションです。"
+
+msgid "已识别 %d 个骨骼部位，缺少专用动作时可叠加轻量肢体动作。"
+msgstr "%d か所のボーン部位を検出。専用アニメーションがない場合は、軽い手足の動きを補えます。"
+
+msgid "已启用 %d 处软体效果：身体自然下沉、腹部承托、移动惯性与弹性回稳。"
+msgstr "%d か所のソフトボディ効果が有効です。自然なたわみ、腹部の支え、慣性、弾力のある復元を表現します。"
+
+msgid "已识别 %d 个眨眼 / 微笑形态键，可在通用动作中使用。"
+msgstr "まばたき・笑顔のシェイプキーを %d 個検出。汎用モーションで使用できます。"
+
+msgid "动作风格"
+msgstr "モーションの種類"
+
+msgid "当前风格：%s。人物使用更轻的形变，软团使用更明显的弹性；自带动作播放时会减弱叠加形变。"
+msgstr "現在の種類：%s。キャラクターは控えめに、柔らかい形のモデルは弾力を強めに変形します。モデル固有のアニメーション再生中は、追加の変形を弱めます。"
+
+msgid "动作匹配与预览"
+msgstr "動作の割り当てとプレビュー"
+
+msgid "自动 · %s"
+msgstr "自動 · %s"
+
+msgid "通用动作"
+msgstr "汎用モーション"
+
+msgid "通用模组"
+msgstr "汎用モーション"
+
+msgid "%s：%s"
+msgstr "%s：%s"
+
+msgid "预览"
+msgstr "プレビュー"
+
+msgid "跟随行走方向翻转"
+msgstr "移動方向に合わせて反転"
+
+msgid "左右移动时，图片外观跟随方向翻转。"
+msgstr "左右へ移動すると、画像の外観も移動方向に合わせて反転します。"
+
+msgid "站立朝向（度）"
+msgstr "立ち姿の向き（度）"
+
+msgid "恢复此角色的默认适配"
+msgstr "この外観の設定をリセット"
+
+msgid "适配设置保存失败。"
+msgstr "動作の設定を保存できませんでした。"
+
+msgid "正在导入…"
+msgstr "インポート中…"
+
+msgid "正在读取模型 / 图片并匹配动作。转换期间桌宠可以继续互动。"
+msgstr "モデル・画像を読み込み、動作を割り当てています。変換中も仲間とふれあえます。"
+
+msgid "模型、图片或外观包"
+msgstr "モデル・画像・外観パック"
+
+msgid "3D 模型"
+msgstr "3D モデル"
+
+msgid "图片与动图"
+msgstr "画像とアニメーション"
+
+msgid "外观清单"
+msgstr "外観マニフェスト"
+
+msgid "选择模型、图片或外观包"
+msgstr "モデル・画像・外観パックを選択"
+
+msgid "搜索设置"
+msgstr "設定の検索"
+
+msgid "试试其他关键词，或清空搜索框查看全部设置。"
+msgstr "別のキーワードを試すか、検索欄を空にしてすべての設定を表示します。"
+
+msgid "%d 个可用外观"
+msgstr "%d 個の外観が利用可能"
+
+msgid "2D 图片 / 动画"
+msgstr "2D 画像・アニメーション"
+
+msgid "3D 模型外观"
+msgstr "3D モデル"
+
+msgid "部分外观未加载："
+msgstr "一部の外観を読み込めませんでした："
+
+msgid "一键方案"
+msgstr "プリセット"
+
+msgid "根据设备和使用场景选择，也可逐项调整。"
+msgstr "端末や使い方に合う設定を選び、各項目を調整できます。"
+
+msgid "省电 · 30 FPS / 低画质"
+msgstr "省電力 · 30 FPS / 低画質"
+
+msgid "均衡 · 60 FPS / 标准画质"
+msgstr "バランス · 60 FPS / 標準画質"
+
+msgid "高画质 · 60 FPS / 精细阴影"
+msgstr "高画質 · 60 FPS / 精細な影"
+
+msgid "自定义"
+msgstr "カスタム"
+
+msgid "渲染与帧率"
+msgstr "描画とフレームレート"
+
+msgid "内部渲染分辨率"
+msgstr "内部描画解像度"
+
+msgid "提高分辨率可改善大尺寸桌宠的细节；不会改变桌宠大小或脚底位置。"
+msgstr "解像度を上げると、仲間を大きく表示したときの細部が鮮明になります。仲間のサイズや足元の位置は変わりません。"
+
+msgid "帧率上限"
+msgstr "フレームレート上限"
+
+msgid "不限帧率"
+msgstr "制限なし"
+
+msgid "垂直同步"
+msgstr "垂直同期"
+
+msgid "垂直同步开启时，实际帧率还受显示器刷新率限制。"
+msgstr "垂直同期をオンにすると、実際のフレームレートは画面のリフレッシュレートにも制限されます。"
+
+msgid "画面细节"
+msgstr "描画の詳細"
+
+msgid "画质"
+msgstr "画質"
+
+msgid "低 · 简化短绒"
+msgstr "低 · 毛並みを簡略化"
+
+msgid "标准 · 完整短绒"
+msgstr "標準 · 毛並みをすべて表示"
+
+msgid "高 · 短绒与柔和阴影"
+msgstr "高 · 毛並みと柔らかい影"
+
+msgid "抗锯齿"
+msgstr "アンチエイリアス"
+
+msgid "关闭"
+msgstr "オフ"
+
+msgid "FXAA · 较低开销"
+msgstr "FXAA · 低負荷"
+
+msgid "环境光遮蔽（SSAO）"
+msgstr "環境遮蔽（SSAO）"
+
+msgid "增强脚部、背鳍根部及褶皱附近的接触层次，会增加 GPU 开销。"
+msgstr "足元、背びれの付け根、しわなどの陰影を強めます。GPU の負荷が増えます。"
+
+msgid "当前使用兼容渲染，环境光遮蔽不可用。Windows 高级渲染支持此效果。"
+msgstr "互換レンダラーでは環境遮蔽を使用できません。Windows の高度な描画で利用できます。"
+
+msgid "运行状态"
+msgstr "動作状況"
+
+msgid "所有选项即时应用并自动保存；外观预览共用相同画质设置。"
+msgstr "設定はすぐに反映され、自動保存されます。外観のプレビューにも同じ画質設定が適用されます。"
+
+msgid "当前 %d FPS · 渲染 %d × %d\n%s"
+msgstr "現在 %d FPS · 描画 %d × %d\n%s"
+
+msgid "高级渲染 · 支持环境光遮蔽"
+msgstr "高度な描画 · 環境遮蔽に対応"
+
+msgid "兼容渲染"
+msgstr "互換描画"
+
+msgid "开"
+msgstr "オン"
+
+msgid "关"
+msgstr "オフ"
+
+msgid "大小调节"
+msgstr "サイズ調整"
+
+msgid "桌宠大小"
+msgstr "仲間のサイズ"
+
+msgid "输入百分比后按 Enter，或点击其他位置应用"
+msgstr "割合を入力し、Enter キーを押すか、ほかの場所をクリックして適用"
+
+msgid "恢复 100%"
+msgstr "100% に戻す"
+
+msgid "打开设置"
+msgstr "設定を開く"
+
+msgid "切换外观"
+msgstr "外観を切り替え"
+
+msgid "移到显示器"
+msgstr "ディスプレイへ移動"
+
+msgid "桌宠大小 · %d%%…"
+msgstr "仲間のサイズ · %d%%…"
+
+msgid "性能与画质…"
+msgstr "パフォーマンス…"
+
+msgid "左键打开设置，右键快速设置"
+msgstr "左クリックで設定、右クリックでクイック設定"
+
+msgid "当前状态："
+msgstr "現在の動作："
+
+msgid "发呆"
+msgstr "待機"
+
+msgid "走路"
+msgstr "歩く"
+
+msgid "跑步"
+msgstr "走る"
+
+msgid "打盹"
+msgstr "居眠り"
+
+msgid "被摸摸"
+msgstr "なでられ中"
+
+msgid "被提起"
+msgstr "持ち上げられ中"
+
+msgid "回弹"
+msgstr "着地の弾み"
+
+msgid "惯性 / 下落"
+msgstr "滑る・落下"
+
+msgid "显示器 %d%s · %d × %d"
+msgstr "ディスプレイ %d%s · %d × %d"
+
+msgid "（主屏）"
+msgstr "（メイン）"
+
+msgid "主屏幕"
+msgstr "メイン画面"
+
+msgid "正在导入外观，完成后即可退出。"
+msgstr "外観のインポート中です。完了後に終了できます。"
+
+msgid "找不到外观包："
+msgstr "外観パックが見つかりません："
+
+msgid "外观加载失败，保留当前外观："
+msgstr "外観を読み込めないため、現在の外観を維持します："
+
+msgid "外观加载失败："
+msgstr "外観を読み込めませんでした："
+
+msgid "无法启动导入任务："
+msgstr "インポートを開始できません："
+
+msgid "导入失败："
+msgstr "インポートに失敗しました："
+
+msgid "设置保存失败："
+msgstr "設定を保存できませんでした："
+
+msgid "待机"
+msgstr "待機"
+
+msgid "睡眠"
+msgstr "睡眠"
+
+msgid "摸摸回应"
+msgstr "なでたときの反応"
+
+msgid "提起"
+msgstr "持ち上げる"
+
+msgid "空中 / 下落"
+msgstr "空中・落下"
+
+msgid "落地"
+msgstr "着地"
+
+msgid "自动识别"
+msgstr "自動検出"
+
+msgid "龙泡泡 / 软团"
+msgstr "ドラゴン・ぬいぐるみ"
+
+msgid "Q 版人物"
+msgstr "デフォルメキャラ"
+
+msgid "图片 / 平面角色"
+msgstr "画像・平面キャラ"
+
+msgid "手动指定"
+msgstr "手動で指定"
+
+msgid "黍泡泡"
+msgstr "シューバブル"
+
+msgid "奶白团子 · 3D 框架演示"
+msgstr "ミルクもち · 3D デモ"
+
+msgid "薄荷团子 · 3D 框架演示"
+msgstr "ミントもち · 3D デモ"
+
+msgid "橘子团子 · PNG 外观演示"
+msgstr "みかんもち · PNG デモ"
+
+msgid "蓝莓球 · GLB 动画演示"
+msgstr "ブルーベリー · GLB デモ"
+
+msgid "2D 动画"
+msgstr "2D アニメーション"
+
+msgid "静态图片"
+msgstr "静止画像"
+
+msgid "无法创建外观目录"
+msgstr "外観フォルダーを作成できません"
+
+msgid "文件不包含可显示的网格"
+msgstr "表示できるメッシュがありません"
+
+msgid "找不到图片："
+msgstr "画像が見つかりません："
+
+msgid "图片文件合计超过 256 MB"
+msgstr "画像の合計サイズが 256 MB を超えています"
+
+msgid "图片复制失败"
+msgstr "画像をコピーできません"
+
+msgid "清单写入失败"
+msgstr "マニフェストを書き込めません"
+
+msgid "无法读取资源或文件超过 256 MB"
+msgstr "リソースを読み込めないか、256 MB を超えています"
+
+msgid "需要 glTF 2.0 二进制文件"
+msgstr "glTF 2.0 バイナリ形式が必要です"
+
+msgid "GLB 头部或 JSON 块无效"
+msgstr "GLB ヘッダーまたは JSON チャンクが無効です"
+
+msgid "glTF JSON 无效"
+msgstr "glTF の JSON が無効です"
+
+msgid "glTF 资源列表无效"
+msgstr "glTF のリソース一覧が無効です"
+
+msgid "glTF 资源条目无效"
+msgstr "glTF のリソース項目が無効です"
+
+msgid "glTF URI 必须是字符串"
+msgstr "glTF の URI は文字列で指定してください"
+
+msgid "纹理与缓冲区需位于模型目录内，不支持绝对路径、上级目录或网络 URI"
+msgstr "テクスチャとバッファはモデルのフォルダー内に置いてください。絶対パス、上位フォルダー、ネットワーク URI には対応していません"
+
+msgid "缺少模型依赖："
+msgstr "モデルの依存ファイルがありません："
+
+msgid "模型与依赖合计超过 256 MB"
+msgstr "モデルと依存ファイルの合計が 256 MB を超えています"
+
+msgid "模型解码失败："
+msgstr "モデルをデコードできません："
+
+msgid "未生成有效模型场景"
+msgstr "有効なモデルシーンを生成できませんでした"
+
+msgid "模型标准化失败："
+msgstr "モデルを標準化できません："
+
+msgid "glTF 缓冲区被截断"
+msgstr "glTF のバッファが途中で切れています"
+
+msgid "glTF 缓冲视图越界"
+msgstr "glTF のバッファビューが範囲外です"
+
+msgid "标准化模型超过 256 MB"
+msgstr "標準化後のモデルが 256 MB を超えています"
+
+msgid "无法写入模型文件"
+msgstr "モデルファイルを書き込めません"
+
+msgid "FBX 读取失败："
+msgstr "FBX を読み込めません："
+
+msgid "FBX 未生成有效场景"
+msgstr "FBX から有効なシーンを生成できませんでした"
+
+msgid "带形态键的 FBX 需要图形渲染器进行转换，请正常启动桌宠后导入。"
+msgstr "シェイプキーを含む FBX の変換には、グラフィカルレンダラーが必要です。通常起動したアプリでインポートしてください。"
+
+msgid "此格式需要 Blender 4.2+。请在“动作与适配”中设置 blender.exe 路径，或导出为 GLB 后导入。"
+msgstr "この形式には Blender 4.2 以降が必要です。「モーションと適用」で blender.exe のパスを設定するか、GLB に書き出してからインポートしてください。"
+
+msgid "无法写入模型转换脚本"
+msgstr "モデル変換スクリプトを書き込めません"
+
+msgid "Blender 转换失败，详情见运行数据目录中的 conversion-last.log"
+msgstr "Blender での変換に失敗しました。アプリのデータフォルダーにある conversion-last.log を確認してください。"
+
+msgid "GIF 头部无效"
+msgstr "GIF ヘッダーが無効です"
+
+msgid "GIF 尺寸需在 1–4096 内"
+msgstr "GIF のサイズは 1～4096 にしてください"
+
+msgid "GIF 控制块无效"
+msgstr "GIF の制御ブロックが無効です"
+
+msgid "GIF 图像块无效"
+msgstr "GIF の画像ブロックが無効です"
+
+msgid "GIF 帧超出画布"
+msgstr "GIF のフレームがキャンバスの範囲外です"
+
+msgid "GIF 超过 256 帧或解码后超过 128 MB，请先压缩"
+msgstr "GIF が 256 フレーム、または展開後 128 MB を超えています。先に圧縮してください。"
+
+msgid "GIF LZW 数据无效或被截断"
+msgstr "GIF の LZW データが無効か、途中で切れています"
+
+msgid "GIF 调色板索引越界"
+msgstr "GIF のパレット番号が範囲外です"
+
+msgid "GIF 文件不完整或没有图像帧"
+msgstr "GIF が不完全か、画像フレームがありません"
+
+msgid "OBJ 无法读取或超过 256 MB"
+msgstr "OBJ を読み込めないか、256 MB を超えています"
+
+msgid "OBJ 顶点格式无效"
+msgstr "OBJ の頂点形式が無効です"
+
+msgid "OBJ 包含无效坐标"
+msgstr "OBJ に無効な座標が含まれています"
+
+msgid "MTL 必须位于模型目录内"
+msgstr "MTL はモデルのフォルダー内に置いてください"
+
+msgid "OBJ 面顶点数量无效（3–512）"
+msgstr "OBJ の面の頂点数が無効です（3～512）"
+
+msgid "OBJ 索引越界"
+msgstr "OBJ の番号が範囲外です"
+
+msgid "OBJ 含无法三角化的面"
+msgstr "OBJ に三角形化できない面があります"
+
+msgid "OBJ 超过一百万顶点或三角面，请先简化"
+msgstr "OBJ が 100 万頂点または三角形を超えています。先に簡略化してください。"
+
+msgid "OBJ 没有可显示的面"
+msgstr "OBJ に表示できる面がありません"
+
+msgid "MTL 缺失或超过 1 MB"
+msgstr "MTL が見つからないか、1 MB を超えています"
+
+msgid "OBJ 贴图必须位于 MTL 目录内；暂不支持 map_Kd 命令选项"
+msgstr "OBJ のテクスチャは MTL のフォルダー内に置いてください。map_Kd のコマンドオプションには未対応です。"
+
+msgid "无法读取 OBJ 贴图或贴图尺寸超过 8192"
+msgstr "OBJ のテクスチャを読み込めないか、サイズが 8192 を超えています"
+
+msgid ": 外观 ID 重复"
+msgstr "：外観 ID が重複しています"
+
+msgid "缺少 skin.json"
+msgstr "skin.json がありません"
+
+msgid "清单超过 64 KB"
+msgstr "マニフェストが 64 KB を超えています"
+
+msgid "清单必须为 JSON 对象"
+msgstr "マニフェストは JSON オブジェクトにしてください"
+
+msgid "仅支持 schema_version: 1"
+msgstr "schema_version: 1 のみ対応しています"
+
+msgid " 必须是非空字符串"
+msgstr " は空でない文字列にしてください"
+
+msgid "id 仅允许小写字母、数字、点、横线、下划线，最长 80 字符"
+msgstr "ID は 80 文字以内の英小文字、数字、ピリオド、ハイフン、アンダースコアで指定してください"
+
+msgid "type 必须为 sprite 或 model3d"
+msgstr "type は sprite または model3d にしてください"
+
+msgid "procedural 仅供内置演示使用"
+msgstr "procedural は内蔵デモ専用です"
+
+msgid "animations 必须为对象"
+msgstr "animations はオブジェクトにしてください"
+
+msgid "动画映射值必须是字符串"
+msgstr "アニメーションの割り当ては文字列で指定してください"
+
+msgid "asset 必须为包内相对路径，不允许 .. 或绝对路径"
+msgstr "asset はパック内の相対パスにしてください。.. や絶対パスは使用できません"
+
+msgid "不支持的外观资源格式"
+msgstr "対応していない外観リソース形式です"
+
+msgid "找不到资源: "
+msgstr "リソースが見つかりません："
+
+msgid "资源超过 256 MB"
+msgstr "リソースが 256 MB を超えています"
+
+msgid "rotation_degrees 必须为三个数"
+msgstr "rotation_degrees には 3 つの数値を指定してください"
+
+msgid "rotation_degrees 必须为有限数值"
+msgstr "rotation_degrees は有限の数値にしてください"
+
+msgid "不支持此文件格式。Live2D / Spine 专用工程暂需导出为精灵图或 GIF。"
+msgstr "この形式には対応していません。Live2D / Spine のプロジェクトは、先にスプライトシートや GIF に書き出してください。"
+
+msgid "无法读取文件或文件超过 256 MB"
+msgstr "ファイルを読み込めないか、256 MB を超えています"
+
+msgid "外观 ID 已存在，请修改 ID 后导入"
+msgstr "外観 ID がすでに存在します。ID を変更してからインポートしてください。"
+
+msgid "目标文件夹已存在，请在外观目录检查同名包"
+msgstr "保存先フォルダーがすでに存在します。同名の外観パックを確認してください。"
+
+msgid "profile 必须为 auto、blob、character 或 flat"
+msgstr "profile は auto、blob、character、flat のいずれかにしてください"
+
+msgid "flip_with_direction 必须为布尔值"
+msgstr "flip_with_direction は真偽値にしてください"
+
+msgid "grid 必须为 [列数, 行数]"
+msgstr "grid は [列数, 行数] にしてください"
+
+msgid "精灵网格必须为 1–256 的整数"
+msgstr "スプライトの行数・列数は 1～256 の整数にしてください"
+
+msgid "精灵网格最多 256 帧"
+msgstr "スプライトグリッドは最大 256 フレームです"
+
+msgid "frames 需要 1–256 个相对图片路径"
+msgstr "frames には 1～256 個の相対画像パスを指定してください"
+
+msgid "序列帧必须使用包内相对图片路径"
+msgstr "連番画像はパック内の相対パスで指定してください"
+
+msgid "clips 必须为动作定义对象（最多 128 个）"
+msgstr "clips は動作定義のオブジェクトにしてください（最大 128 項目）"
+
+msgid "每个 2D 动作需要 frames 整数索引列表"
+msgstr "各 2D 動作には、整数番号の frames リストが必要です"
+
+msgid "2D 帧索引必须为 0–255 的整数"
+msgstr "2D フレーム番号は 0～255 の整数にしてください"
+
+msgid "2D 动作 fps 需要在 0–120 之间"
+msgstr "2D 動作の fps は 0～120 にしてください"
+
+msgid "loop 必须为布尔值"
+msgstr "loop は真偽値にしてください"
+
+msgid "durations 必须与动作帧数一致"
+msgstr "durations の数は動作のフレーム数に合わせてください"
+
+msgid "帧时长必须为 0–60 秒之间的有限数"
+msgstr "フレームの長さは 0～60 秒の有限数にしてください"
+
+msgid "physics 需要对象，soft_bodies 最多 8 个软体部件"
+msgstr "physics はオブジェクトにしてください。soft_bodies は最大 8 部位です"
+
+msgid "软体部件需要对象"
+msgstr "ソフトボディの部位はオブジェクトにしてください"
+
+msgid "软体 %s 需要模型内部名称或相对节点路径"
+msgstr "ソフトボディの %s には、モデル内の名前または相対ノードパスが必要です"
+
+msgid "软体 node 必须为不重复的模型内部路径"
+msgstr "ソフトボディの node は、重複しないモデル内部のパスにしてください"
+
+msgid "软体 anchors 最多 32 个承托节点"
+msgstr "ソフトボディの anchors は最大 32 ノードです"
+
+msgid "软体 anchors 需要模型内部名称或相对节点路径"
+msgstr "ソフトボディの anchors には、モデル内の名前または相対ノードパスが必要です"
+
+msgid "软体 axis 需要三个有限数值"
+msgstr "ソフトボディの axis には、3 つの有限数値が必要です"
+
+msgid "软体 axis 需要非零的水平向量（模型局部 Y 向上）"
+msgstr "ソフトボディの axis はゼロでない水平ベクトルにしてください（モデルのローカル Y が上方向）"
+
+msgid "软体 sections 需要 4–48 的整数"
+msgstr "ソフトボディの sections は 4～48 の整数にしてください"
+
+msgid "软体缺少 %s"
+msgstr "ソフトボディに %s がありません"
+
+msgid "软体 %s 超出允许范围"
+msgstr "ソフトボディの %s が許容範囲外です"
+
+msgid "软体 floor_height 不能高于 support_height"
+msgstr "ソフトボディの floor_height は support_height 以下にしてください"
+
+msgid "内置 GLB 场景读取失败"
+msgstr "内蔵 GLB シーンを読み込めません"
+
+msgid "GLB 未生成有效的 3D 场景"
+msgstr "GLB から有効な 3D シーンを生成できませんでした"
+
+msgid "GLB 缺少有效网格尺寸"
+msgstr "GLB に有効なメッシュの寸法がありません"
+
+msgid "序列帧无法读取或尺寸超过 8192："
+msgstr "連番画像を読み込めないか、サイズが 8192 を超えています："
+
+msgid "图片无法读取、内容为空或尺寸超过 8192 × 8192"
+msgstr "画像を読み込めないか、内容が空か、8192 × 8192 を超えています"
+
+msgid "精灵图尺寸必须能被网格列数和行数整除"
+msgstr "スプライトシートのサイズは、グリッドの行数・列数で割り切れる値にしてください"
+
+msgid "需要 1–256 张图片帧"
+msgstr "1～256 枚の画像フレームが必要です"
+
+msgid "序列帧为空或解码后超过 128 MB"
+msgstr "連番画像が空か、展開後 128 MB を超えています"
+
+msgid "动作 %s 的帧索引超出图片范围"
+msgstr "動作 %s のフレーム番号が画像の範囲外です"

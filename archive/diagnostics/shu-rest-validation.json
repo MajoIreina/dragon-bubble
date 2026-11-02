@@ -1,0 +1,16 @@
+{
+  "Idle": {
+    "seconds": 6.0,
+    "planted_feet": true
+  },
+  "Sleep": {
+    "seconds": 5.5,
+    "planted_feet": true
+  },
+  "Turn": {
+    "seconds": 0.7916666666666666,
+    "planted_feet": true
+  },
+  "geometry_preserved": true,
+  "other_actions_preserved": 45
+}

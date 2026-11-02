@@ -1,0 +1,726 @@
+{
+  "source": "L:\\LPP\\source_models\\shu-plush\\shu-plush.blend",
+  "source_sha256": "6db5528c05d4bf756fce7398873d1b4e72a2b07dc933cac1d95d8db07dbc09f1",
+  "source_preserved": true,
+  "measured_at_utc": "2026-11-01T13:58:43.801777+00:00",
+  "blender_version": "5.2.3 LTS",
+  "method": "Signed nearest-face distance from every world-space braided-cord vertex to structural body/right-horn BVH; open microfibers excluded. Negative means inside. Sleep/Walk strip-linked action/slots sampled in isolation in memory relative to right horn, without the muted preview NLA mixer suppressing channels.",
+  "tolerance": 1e-05,
+  "required_objects": {
+    "body": true,
+    "right_horn": true,
+    "braided_cord": true,
+    "attachment_group": true,
+    "silver_clamp": true,
+    "clasp_eyelets": true,
+    "thirteen_clamp_teeth": true,
+    "ribbon": true,
+    "pendant_sway": true
+  },
+  "cords": [
+    {
+      "name": "BraidedHornCord.0",
+      "ancestors": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "body": {
+        "vertex_count": 7208,
+        "minimum": 0.022714665159583092,
+        "maximum": 0.06642590463161469,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 4120,
+          "world_position": [
+            0.43384596705436707,
+            -0.06550333648920059,
+            0.8080605864524841
+          ],
+          "signed_clearance": 0.022714665159583092,
+          "nearest_point": [
+            0.42514702677726746,
+            -0.06592945009469986,
+            0.7870819568634033
+          ],
+          "nearest_normal": [
+            0.42919081449508667,
+            0.018603507429361343,
+            0.9030222296714783
+          ],
+          "normal_dot": 0.022685600933073147,
+          "face": 4611
+        }
+      },
+      "horn": {
+        "vertex_count": 7208,
+        "minimum": 0.011719160713255405,
+        "maximum": 0.06350667774677277,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 2654,
+          "world_position": [
+            0.6382660269737244,
+            0.12850789725780487,
+            0.6828203797340393
+          ],
+          "signed_clearance": 0.011719160713255405,
+          "nearest_point": [
+            0.6379926800727844,
+            0.11679794639348984,
+            0.683195948600769
+          ],
+          "nearest_normal": [
+            0.0326521135866642,
+            0.9986100792884827,
+            -0.041374571621418
+          ],
+          "normal_dot": 0.011718139426193375,
+          "face": 4916
+        }
+      }
+    },
+    {
+      "name": "BraidedHornCord.1",
+      "ancestors": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "body": {
+        "vertex_count": 7208,
+        "minimum": 0.02271486073732376,
+        "maximum": 0.06302767246961594,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 3976,
+          "world_position": [
+            0.4394630491733551,
+            -0.03258471563458443,
+            0.8047041296958923
+          ],
+          "signed_clearance": 0.02271486073732376,
+          "nearest_point": [
+            0.429717093706131,
+            -0.03329278528690338,
+            0.784198522567749
+          ],
+          "nearest_normal": [
+            0.42905643582344055,
+            0.031171591952443123,
+            0.9027396440505981
+          ],
+          "normal_dot": 0.02271486098106834,
+          "face": 4723
+        }
+      },
+      "horn": {
+        "vertex_count": 7208,
+        "minimum": 0.011729261837899685,
+        "maximum": 0.06729540228843689,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 1757,
+          "world_position": [
+            0.7737672328948975,
+            0.04603729024529457,
+            0.5625211596488953
+          ],
+          "signed_clearance": 0.011729261837899685,
+          "nearest_point": [
+            0.765450656414032,
+            0.03843211382627487,
+            0.565772533416748
+          ],
+          "nearest_normal": [
+            0.7047281265258789,
+            0.6513740420341492,
+            -0.28119421005249023
+          ],
+          "normal_dot": 0.011729007354006171,
+          "face": 5273
+        }
+      }
+    },
+    {
+      "name": "BraidedHornCord.2",
+      "ancestors": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "body": {
+        "vertex_count": 7208,
+        "minimum": 0.02271897904574871,
+        "maximum": 0.06607666611671448,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 4048,
+          "world_position": [
+            0.43614715337753296,
+            -0.048901960253715515,
+            0.8066617846488953
+          ],
+          "signed_clearance": 0.02271897904574871,
+          "nearest_point": [
+            0.42639636993408203,
+            -0.04932462424039841,
+            0.7861460447311401
+          ],
+          "nearest_normal": [
+            0.42919081449508667,
+            0.018603507429361343,
+            0.9030222296714783
+          ],
+          "normal_dot": 0.022718978456396144,
+          "face": 4611
+        }
+      },
+      "horn": {
+        "vertex_count": 7208,
+        "minimum": 0.011736753396689892,
+        "maximum": 0.06303361058235168,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 4288,
+          "world_position": [
+            0.44013649225234985,
+            -0.10450927168130875,
+            0.8125563859939575
+          ],
+          "signed_clearance": 0.011736753396689892,
+          "nearest_point": [
+            0.450449138879776,
+            -0.10383094102144241,
+            0.8069939613342285
+          ],
+          "nearest_normal": [
+            -0.8861023187637329,
+            0.013630776666104794,
+            0.46328914165496826
+          ],
+          "normal_dot": 0.01170582463601022,
+          "face": 448
+        }
+      }
+    }
+  ],
+  "hierarchy": {
+    "attachment_ancestors": [
+      "PlushBody",
+      "ShuRoot"
+    ],
+    "clamps": {
+      "SilverRectangularRibbonClamp": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ]
+    },
+    "eyelets": {
+      "ClaspEyelet.0": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClaspEyelet.1": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ]
+    },
+    "teeth": {
+      "ClampTooth.0": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.1": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.10": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.11": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.12": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.2": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.3": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.4": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.5": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.6": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.7": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.8": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClampTooth.9": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ]
+    },
+    "ribbons": {
+      "LongOrangeRedFabricRibbon": [
+        "PendantSway",
+        "PlushBody",
+        "ShuRoot"
+      ]
+    },
+    "clamp_and_eyelets_in_static_attachment": true,
+    "cord_in_static_attachment": true,
+    "teeth_in_static_attachment": true,
+    "ribbon_in_pendant_sway": true
+  },
+  "animations": {
+    "Sleep": {
+      "frame_range": [
+        1.0,
+        116.0
+      ],
+      "samples": [
+        {
+          "fraction": 0.0,
+          "frame": 1.0,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0,
+            "ClampTooth.0": 5.960464477539063e-08,
+            "ClampTooth.1": 5.960464477539063e-08,
+            "ClampTooth.10": 5.960464477539063e-08,
+            "ClampTooth.11": 5.960464477539063e-08,
+            "ClampTooth.12": 5.960464477539063e-08,
+            "ClampTooth.2": 5.960464477539063e-08,
+            "ClampTooth.3": 5.960464477539063e-08,
+            "ClampTooth.4": 5.960464477539063e-08,
+            "ClampTooth.5": 5.960464477539063e-08,
+            "ClampTooth.6": 5.960464477539063e-08,
+            "ClampTooth.7": 5.960464477539063e-08,
+            "ClampTooth.8": 5.960464477539063e-08,
+            "ClampTooth.9": 5.960464477539063e-08
+          },
+          "pendant_relative_quaternion": [
+            0.9999964237213135,
+            0.001264377380721271,
+            0.0023324841167777777,
+            -0.00018639685004018247
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.005319358248098639
+        },
+        {
+          "fraction": 0.2,
+          "frame": 24.0,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 1.1920928955078125e-07,
+            "BraidedHornCord.0": 1.1920928955078125e-07,
+            "BraidedHornCord.1": 1.1920928955078125e-07,
+            "BraidedHornCord.2": 1.1920928955078125e-07,
+            "SilverRectangularRibbonClamp": 1.1920928955078125e-07,
+            "ClaspEyelet.0": 1.1920928955078125e-07,
+            "ClaspEyelet.1": 1.1920928955078125e-07,
+            "ClampTooth.0": 1.1920928955078125e-07,
+            "ClampTooth.1": 1.1920928955078125e-07,
+            "ClampTooth.10": 1.1920928955078125e-07,
+            "ClampTooth.11": 1.1920928955078125e-07,
+            "ClampTooth.12": 1.1920928955078125e-07,
+            "ClampTooth.2": 1.1920928955078125e-07,
+            "ClampTooth.3": 1.1920928955078125e-07,
+            "ClampTooth.4": 1.1920928955078125e-07,
+            "ClampTooth.5": 1.1920928955078125e-07,
+            "ClampTooth.6": 1.1920928955078125e-07,
+            "ClampTooth.7": 1.1920928955078125e-07,
+            "ClampTooth.8": 1.1920928955078125e-07,
+            "ClampTooth.9": 1.1920928955078125e-07
+          },
+          "pendant_relative_quaternion": [
+            0.9999598860740662,
+            0.00425975164398551,
+            0.007858258672058582,
+            -0.0006279805093072355
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.017921408057469692
+        },
+        {
+          "fraction": 0.5,
+          "frame": 58.5,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0,
+            "ClampTooth.0": 5.960464477539063e-08,
+            "ClampTooth.1": 5.960464477539063e-08,
+            "ClampTooth.10": 5.960464477539063e-08,
+            "ClampTooth.11": 5.960464477539063e-08,
+            "ClampTooth.12": 5.960464477539063e-08,
+            "ClampTooth.2": 5.960464477539063e-08,
+            "ClampTooth.3": 5.960464477539063e-08,
+            "ClampTooth.4": 5.960464477539063e-08,
+            "ClampTooth.5": 5.960464477539063e-08,
+            "ClampTooth.6": 5.960464477539063e-08,
+            "ClampTooth.7": 5.960464477539063e-08,
+            "ClampTooth.8": 5.960464477539063e-08,
+            "ClampTooth.9": 5.960464477539063e-08
+          },
+          "pendant_relative_quaternion": [
+            0.9999964237213135,
+            -0.001264377380721271,
+            -0.0023324841167777777,
+            0.00018639683548826724
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.005319358246058976
+        },
+        {
+          "fraction": 0.8,
+          "frame": 93.0,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0,
+            "ClampTooth.0": 7.450580596923828e-09,
+            "ClampTooth.1": 2.9802322387695312e-08,
+            "ClampTooth.10": 2.9802322387695312e-08,
+            "ClampTooth.11": 2.9802322387695312e-08,
+            "ClampTooth.12": 5.960464477539063e-08,
+            "ClampTooth.2": 2.9802322387695312e-08,
+            "ClampTooth.3": 2.9802322387695312e-08,
+            "ClampTooth.4": 2.9802322387695312e-08,
+            "ClampTooth.5": 2.9802322387695312e-08,
+            "ClampTooth.6": 2.9802322387695312e-08,
+            "ClampTooth.7": 2.9802322387695312e-08,
+            "ClampTooth.8": 7.450580596923828e-09,
+            "ClampTooth.9": 2.9802322387695312e-08
+          },
+          "pendant_relative_quaternion": [
+            0.999972939491272,
+            -0.003497237805277109,
+            -0.006451594177633524,
+            0.0005155717954039574
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.01471333174815548
+        }
+      ],
+      "maximum_static_relative_matrix_delta": 1.1920928955078125e-07,
+      "static_parts_stay_at_horn": true,
+      "pendant_rotation_span_radians": 0.03263474158527774,
+      "pendant_rotates": true
+    },
+    "Walk": {
+      "frame_range": [
+        1.0,
+        30.0
+      ],
+      "samples": [
+        {
+          "fraction": 0.0,
+          "frame": 1.0,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 5.960464477539063e-08,
+            "BraidedHornCord.0": 5.960464477539063e-08,
+            "BraidedHornCord.1": 5.960464477539063e-08,
+            "BraidedHornCord.2": 5.960464477539063e-08,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 5.960464477539063e-08,
+            "ClaspEyelet.1": 5.960464477539063e-08,
+            "ClampTooth.0": 5.960464477539063e-08,
+            "ClampTooth.1": 2.9802322387695312e-08,
+            "ClampTooth.10": 5.960464477539063e-08,
+            "ClampTooth.11": 2.9802322387695312e-08,
+            "ClampTooth.12": 2.9802322387695312e-08,
+            "ClampTooth.2": 2.9802322387695312e-08,
+            "ClampTooth.3": 2.9802322387695312e-08,
+            "ClampTooth.4": 2.9802322387695312e-08,
+            "ClampTooth.5": 3.725290298461914e-09,
+            "ClampTooth.6": 2.9802322387695312e-08,
+            "ClampTooth.7": 2.9802322387695312e-08,
+            "ClampTooth.8": 2.9802322387695312e-08,
+            "ClampTooth.9": 2.9802322387695312e-08
+          },
+          "pendant_relative_quaternion": [
+            0.9999386072158813,
+            0.005268164444714785,
+            0.009718545712530613,
+            -0.0007766425260342658
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.022164104802374393
+        },
+        {
+          "fraction": 0.2,
+          "frame": 6.800000000000001,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 1.862645149230957e-09,
+            "BraidedHornCord.0": 1.862645149230957e-09,
+            "BraidedHornCord.1": 1.862645149230957e-09,
+            "BraidedHornCord.2": 1.862645149230957e-09,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 1.862645149230957e-09,
+            "ClaspEyelet.1": 1.862645149230957e-09,
+            "ClampTooth.0": 5.960464477539063e-08,
+            "ClampTooth.1": 5.960464477539063e-08,
+            "ClampTooth.10": 5.960464477539063e-08,
+            "ClampTooth.11": 5.960464477539063e-08,
+            "ClampTooth.12": 5.960464477539063e-08,
+            "ClampTooth.2": 5.960464477539063e-08,
+            "ClampTooth.3": 5.960464477539063e-08,
+            "ClampTooth.4": 5.960464477539063e-08,
+            "ClampTooth.5": 5.960464477539063e-08,
+            "ClampTooth.6": 5.960464477539063e-08,
+            "ClampTooth.7": 5.960464477539063e-08,
+            "ClampTooth.8": 5.960464477539063e-08,
+            "ClampTooth.9": 5.960464477539063e-08
+          },
+          "pendant_relative_quaternion": [
+            0.9993031024932861,
+            0.01774514466524124,
+            0.03273569419980049,
+            -0.0026160217821598053
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.07467280537313953
+        },
+        {
+          "fraction": 0.5,
+          "frame": 15.5,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 5.960464477539063e-08,
+            "BraidedHornCord.0": 5.960464477539063e-08,
+            "BraidedHornCord.1": 5.960464477539063e-08,
+            "BraidedHornCord.2": 5.960464477539063e-08,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 5.960464477539063e-08,
+            "ClaspEyelet.1": 5.960464477539063e-08,
+            "ClampTooth.0": 5.960464477539063e-08,
+            "ClampTooth.1": 2.9802322387695312e-08,
+            "ClampTooth.10": 5.960464477539063e-08,
+            "ClampTooth.11": 2.9802322387695312e-08,
+            "ClampTooth.12": 2.9802322387695312e-08,
+            "ClampTooth.2": 2.9802322387695312e-08,
+            "ClampTooth.3": 2.9802322387695312e-08,
+            "ClampTooth.4": 2.9802322387695312e-08,
+            "ClampTooth.5": 3.725290298461914e-09,
+            "ClampTooth.6": 2.9802322387695312e-08,
+            "ClampTooth.7": 2.9802322387695312e-08,
+            "ClampTooth.8": 2.9802322387695312e-08,
+            "ClampTooth.9": 2.9802322387695312e-08
+          },
+          "pendant_relative_quaternion": [
+            0.9999386072158813,
+            -0.005268164444714785,
+            -0.009718545712530613,
+            0.0007766424678266048
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.02216410479421621
+        },
+        {
+          "fraction": 0.8,
+          "frame": 24.200000000000003,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 1.1920928955078125e-07,
+            "BraidedHornCord.0": 1.1920928955078125e-07,
+            "BraidedHornCord.1": 1.1920928955078125e-07,
+            "BraidedHornCord.2": 1.1920928955078125e-07,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 1.1920928955078125e-07,
+            "ClaspEyelet.1": 1.1920928955078125e-07,
+            "ClampTooth.0": 5.960464477539063e-08,
+            "ClampTooth.1": 5.960464477539063e-08,
+            "ClampTooth.10": 5.960464477539063e-08,
+            "ClampTooth.11": 5.960464477539063e-08,
+            "ClampTooth.12": 5.960464477539063e-08,
+            "ClampTooth.2": 5.960464477539063e-08,
+            "ClampTooth.3": 5.960464477539063e-08,
+            "ClampTooth.4": 5.960464477539063e-08,
+            "ClampTooth.5": 5.960464477539063e-08,
+            "ClampTooth.6": 5.960464477539063e-08,
+            "ClampTooth.7": 5.960464477539063e-08,
+            "ClampTooth.8": 5.960464477539063e-08,
+            "ClampTooth.9": 5.960464477539063e-08
+          },
+          "pendant_relative_quaternion": [
+            0.9995302557945251,
+            -0.014569712802767754,
+            -0.02687772922217846,
+            0.002147938823327422
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.06130568363993567
+        }
+      ],
+      "maximum_static_relative_matrix_delta": 1.1920928955078125e-07,
+      "static_parts_stay_at_horn": true,
+      "pendant_rotation_span_radians": 0.13597848900408513,
+      "pendant_rotates": true
+    }
+  },
+  "source_nla_strips": {
+    "Sleep": {
+      "PlushBody": {
+        "action": "Sleep.PlushBody",
+        "slot": "OBPlushBody",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "FrontFoot.L": {
+        "action": "Sleep.FrontFoot.L",
+        "slot": "OBFrontFoot.L",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "RearFoot.L": {
+        "action": "Sleep.RearFoot.L",
+        "slot": "OBRearFoot.L",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "FrontFoot.R": {
+        "action": "Sleep.FrontFoot.R",
+        "slot": "OBFrontFoot.R",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "RearFoot.R": {
+        "action": "Sleep.RearFoot.R",
+        "slot": "OBRearFoot.R",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "BlinkBothEyes": {
+        "action": "Sleep.BlinkBothEyes",
+        "slot": "OBBlinkBothEyes",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "ClosedEyelids": {
+        "action": "Sleep.ClosedEyelids",
+        "slot": "OBClosedEyelids",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "PendantSway": {
+        "action": "Sleep.PendantSway",
+        "slot": "OBPendantSway",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "TailWag": {
+        "action": "Sleep.TailWag",
+        "slot": "OBTailWag",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      }
+    },
+    "Walk": {
+      "PlushBody": {
+        "action": "Walk.PlushBody",
+        "slot": "OBPlushBody",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "FrontFoot.L": {
+        "action": "Walk.FrontFoot.L",
+        "slot": "OBFrontFoot.L",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "RearFoot.L": {
+        "action": "Walk.RearFoot.L",
+        "slot": "OBRearFoot.L",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "FrontFoot.R": {
+        "action": "Walk.FrontFoot.R",
+        "slot": "OBFrontFoot.R",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "RearFoot.R": {
+        "action": "Walk.RearFoot.R",
+        "slot": "OBRearFoot.R",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "BlinkBothEyes": {
+        "action": "Walk.BlinkBothEyes",
+        "slot": "OBBlinkBothEyes",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "ClosedEyelids": {
+        "action": "Walk.ClosedEyelids",
+        "slot": "OBClosedEyelids",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "PendantSway": {
+        "action": "Walk.PendantSway",
+        "slot": "OBPendantSway",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      },
+      "TailWag": {
+        "action": "Walk.TailWag",
+        "slot": "OBTailWag",
+        "saved_influence": 0.0,
+        "saved_track_muted": true
+      }
+    }
+  },
+  "minimum_body_clearance": 0.022714665159583092,
+  "minimum_horn_clearance": 0.011719160713255405,
+  "body_penetrating_vertices": 0,
+  "horn_penetrating_vertices": 0,
+  "passed": true
+}

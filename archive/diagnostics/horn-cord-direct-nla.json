@@ -1,0 +1,439 @@
+{
+  "source": "L:\\LPP\\source_models\\shu-plush\\shu-plush.blend",
+  "source_sha256": "6db5528c05d4bf756fce7398873d1b4e72a2b07dc933cac1d95d8db07dbc09f1",
+  "source_preserved": true,
+  "measured_at_utc": "2026-11-01T13:56:00.803813+00:00",
+  "blender_version": "5.2.3 LTS",
+  "method": "Signed nearest-face distance from every world-space braided-cord vertex to structural body/right-horn BVH; open microfibers excluded. Negative means inside. Sleep/Walk NLA sampled in memory relative to right horn.",
+  "tolerance": 1e-05,
+  "required_objects": {
+    "body": true,
+    "right_horn": true,
+    "braided_cord": true,
+    "attachment_group": true,
+    "silver_clamp": true,
+    "clasp_eyelets": true,
+    "ribbon": true,
+    "pendant_sway": true
+  },
+  "cords": [
+    {
+      "name": "BraidedHornCord.0",
+      "ancestors": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "body": {
+        "vertex_count": 7208,
+        "minimum": 0.022714665159583092,
+        "maximum": 0.06642590463161469,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 4120,
+          "world_position": [
+            0.43384596705436707,
+            -0.06550333648920059,
+            0.8080605864524841
+          ],
+          "signed_clearance": 0.022714665159583092,
+          "nearest_point": [
+            0.42514702677726746,
+            -0.06592945009469986,
+            0.7870819568634033
+          ],
+          "nearest_normal": [
+            0.42919081449508667,
+            0.018603507429361343,
+            0.9030222296714783
+          ],
+          "normal_dot": 0.022685600933073147,
+          "face": 4611
+        }
+      },
+      "horn": {
+        "vertex_count": 7208,
+        "minimum": 0.011719160713255405,
+        "maximum": 0.06350667774677277,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 2654,
+          "world_position": [
+            0.6382660269737244,
+            0.12850789725780487,
+            0.6828203797340393
+          ],
+          "signed_clearance": 0.011719160713255405,
+          "nearest_point": [
+            0.6379926800727844,
+            0.11679794639348984,
+            0.683195948600769
+          ],
+          "nearest_normal": [
+            0.0326521135866642,
+            0.9986100792884827,
+            -0.041374571621418
+          ],
+          "normal_dot": 0.011718139426193375,
+          "face": 4916
+        }
+      }
+    },
+    {
+      "name": "BraidedHornCord.1",
+      "ancestors": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "body": {
+        "vertex_count": 7208,
+        "minimum": 0.02271486073732376,
+        "maximum": 0.06302767246961594,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 3976,
+          "world_position": [
+            0.4394630491733551,
+            -0.03258471563458443,
+            0.8047041296958923
+          ],
+          "signed_clearance": 0.02271486073732376,
+          "nearest_point": [
+            0.429717093706131,
+            -0.03329278528690338,
+            0.784198522567749
+          ],
+          "nearest_normal": [
+            0.42905643582344055,
+            0.031171591952443123,
+            0.9027396440505981
+          ],
+          "normal_dot": 0.02271486098106834,
+          "face": 4723
+        }
+      },
+      "horn": {
+        "vertex_count": 7208,
+        "minimum": 0.011729261837899685,
+        "maximum": 0.06729540228843689,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 1757,
+          "world_position": [
+            0.7737672328948975,
+            0.04603729024529457,
+            0.5625211596488953
+          ],
+          "signed_clearance": 0.011729261837899685,
+          "nearest_point": [
+            0.765450656414032,
+            0.03843211382627487,
+            0.565772533416748
+          ],
+          "nearest_normal": [
+            0.7047281265258789,
+            0.6513740420341492,
+            -0.28119421005249023
+          ],
+          "normal_dot": 0.011729007354006171,
+          "face": 5273
+        }
+      }
+    },
+    {
+      "name": "BraidedHornCord.2",
+      "ancestors": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "body": {
+        "vertex_count": 7208,
+        "minimum": 0.02271897904574871,
+        "maximum": 0.06607666611671448,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 4048,
+          "world_position": [
+            0.43614715337753296,
+            -0.048901960253715515,
+            0.8066617846488953
+          ],
+          "signed_clearance": 0.02271897904574871,
+          "nearest_point": [
+            0.42639636993408203,
+            -0.04932462424039841,
+            0.7861460447311401
+          ],
+          "nearest_normal": [
+            0.42919081449508667,
+            0.018603507429361343,
+            0.9030222296714783
+          ],
+          "normal_dot": 0.022718978456396144,
+          "face": 4611
+        }
+      },
+      "horn": {
+        "vertex_count": 7208,
+        "minimum": 0.011736753396689892,
+        "maximum": 0.06303361058235168,
+        "negative_count": 0,
+        "penetrating_count_beyond_tolerance": 0,
+        "worst_vertex": {
+          "vertex_index": 4288,
+          "world_position": [
+            0.44013649225234985,
+            -0.10450927168130875,
+            0.8125563859939575
+          ],
+          "signed_clearance": 0.011736753396689892,
+          "nearest_point": [
+            0.450449138879776,
+            -0.10383094102144241,
+            0.8069939613342285
+          ],
+          "nearest_normal": [
+            -0.8861023187637329,
+            0.013630776666104794,
+            0.46328914165496826
+          ],
+          "normal_dot": 0.01170582463601022,
+          "face": 448
+        }
+      }
+    }
+  ],
+  "hierarchy": {
+    "attachment_ancestors": [
+      "PlushBody",
+      "ShuRoot"
+    ],
+    "clamps": {
+      "SilverRectangularRibbonClamp": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ]
+    },
+    "eyelets": {
+      "ClaspEyelet.0": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ],
+      "ClaspEyelet.1": [
+        "HornCordAttachment",
+        "PlushBody",
+        "ShuRoot"
+      ]
+    },
+    "ribbons": {
+      "LongOrangeRedFabricRibbon": [
+        "PendantSway",
+        "PlushBody",
+        "ShuRoot"
+      ]
+    },
+    "clamp_and_eyelets_in_static_attachment": true,
+    "cord_in_static_attachment": true,
+    "ribbon_in_pendant_sway": true
+  },
+  "animations": {
+    "Sleep": {
+      "frame_range": [
+        1.0,
+        116.0
+      ],
+      "samples": [
+        {
+          "fraction": 0.0,
+          "frame": 1.0,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 0.0,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0
+          },
+          "pendant_relative_quaternion": [
+            0.9999964833259583,
+            0.001264377380721271,
+            0.0023324841167777777,
+            -0.0001863968645920977
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.005319358044058162
+        },
+        {
+          "fraction": 0.2,
+          "frame": 24.0,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 0.0,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0
+          },
+          "pendant_relative_quaternion": [
+            0.9999964833259583,
+            0.001264377380721271,
+            0.0023324841167777777,
+            -0.0001863968645920977
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.005319358044058162
+        },
+        {
+          "fraction": 0.5,
+          "frame": 58.5,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 0.0,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0
+          },
+          "pendant_relative_quaternion": [
+            0.9999964833259583,
+            0.001264377380721271,
+            0.0023324841167777777,
+            -0.0001863968645920977
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.005319358044058162
+        },
+        {
+          "fraction": 0.8,
+          "frame": 93.0,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 0.0,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0
+          },
+          "pendant_relative_quaternion": [
+            0.9999964833259583,
+            0.001264377380721271,
+            0.0023324841167777777,
+            -0.0001863968645920977
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.005319358044058162
+        }
+      ],
+      "maximum_static_relative_matrix_delta": 0.0,
+      "static_parts_stay_at_horn": true,
+      "pendant_rotation_span_radians": 0.0,
+      "pendant_rotates": false
+    },
+    "Walk": {
+      "frame_range": [
+        1.0,
+        30.0
+      ],
+      "samples": [
+        {
+          "fraction": 0.0,
+          "frame": 1.0,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0
+          },
+          "pendant_relative_quaternion": [
+            0.9999386072158813,
+            0.005268164444714785,
+            0.009718545712530613,
+            -0.0007766424678266048
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.02216410479421621
+        },
+        {
+          "fraction": 0.2,
+          "frame": 6.800000000000001,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0
+          },
+          "pendant_relative_quaternion": [
+            0.9999386072158813,
+            0.005268164444714785,
+            0.009718545712530613,
+            -0.0007766424678266048
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.02216410479421621
+        },
+        {
+          "fraction": 0.5,
+          "frame": 15.5,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0
+          },
+          "pendant_relative_quaternion": [
+            0.9999386072158813,
+            0.005268164444714785,
+            0.009718545712530613,
+            -0.0007766424678266048
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.02216410479421621
+        },
+        {
+          "fraction": 0.8,
+          "frame": 24.200000000000003,
+          "static_part_relative_matrix_max_delta": {
+            "HornCordAttachment": 0.0,
+            "BraidedHornCord.0": 0.0,
+            "BraidedHornCord.1": 0.0,
+            "BraidedHornCord.2": 0.0,
+            "SilverRectangularRibbonClamp": 5.960464477539063e-08,
+            "ClaspEyelet.0": 0.0,
+            "ClaspEyelet.1": 0.0
+          },
+          "pendant_relative_quaternion": [
+            0.9999386072158813,
+            0.005268164444714785,
+            0.009718545712530613,
+            -0.0007766424678266048
+          ],
+          "pendant_relative_rotation_from_static_rest": 0.02216410479421621
+        }
+      ],
+      "maximum_static_relative_matrix_delta": 5.960464477539063e-08,
+      "static_parts_stay_at_horn": true,
+      "pendant_rotation_span_radians": 9.094948101931455e-13,
+      "pendant_rotates": false
+    }
+  },
+  "minimum_body_clearance": 0.022714665159583092,
+  "minimum_horn_clearance": 0.011719160713255405,
+  "body_penetrating_vertices": 0,
+  "horn_penetrating_vertices": 0,
+  "passed": false
+}

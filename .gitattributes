@@ -1,0 +1,23 @@
+* text=auto
+*.gd text eol=lf
+*.uid text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.godot text eol=lf
+*.cfg text eol=lf
+*.import text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.po text eol=lf
+*.svg text eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.blend* binary
+*.glb binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
