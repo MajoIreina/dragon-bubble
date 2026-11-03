@@ -1,0 +1,70 @@
+name: macOS validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ["macos/**", "crates/**", "i18n/**", "tools/**", "Cargo.toml", ".github/workflows/**"]
+
+jobs:
+  apple-silicon:
+    runs-on: macos-15
+    timeout-minutes: 100
+    defaults:
+      run:
+        working-directory: macos
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      CARGO_BUILD_JOBS: "3"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python3 ../tools/release.py check
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: macos
+          cache-on-failure: true
+      # Restore the identical model already present in retained port history.
+      # These files are never added to the new source tree or release ZIP.
+      - name: Restore retained release model for embedding
+        run: |
+          git fetch origin 5feb7dffc1382a66ef3b041e6b7b53fd74a47c15 --depth=1
+          mkdir -p skins/shu
+          git show FETCH_HEAD:macos/skins/shu/shu.glb > skins/shu/shu.glb
+          git show FETCH_HEAD:macos/skins/shu/skin.json > skins/shu/skin.json
+          test "$(git hash-object skins/shu/shu.glb)" = 0f62f1c513807f76ce3bcd42bb946b316199015d
+          test "$(git hash-object skins/shu/skin.json)" = d6f09b3ba26fb748cdf368386be4cd4372bb49a6
+      - name: Format and Clippy
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --locked --workspace --all-targets --features embedded-shu -- -D warnings
+      - name: Regression tests
+        run: cargo test --locked --release --target aarch64-apple-darwin --workspace --features embedded-shu
+      - name: Build and sign app
+        run: bash build.sh --skip-checks --skip-tests --target aarch64-apple-darwin
+      - name: Launch packaged app and verify Metal rendering
+        run: python3 tests/launch_app.py "outputs/aarch64-apple-darwin/My Dragon Bubble.zip"
+      - name: Exercise graphics modes and physical rebounds
+        run: python3 tests/graphics.py "outputs/aarch64-apple-darwin/My Dragon Bubble.app"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-startup-diagnostics
+          path: |
+            macos/outputs/aarch64-apple-darwin/launch-check/result.json
+            macos/outputs/aarch64-apple-darwin/launch-check/direct/
+            macos/outputs/aarch64-apple-darwin/launch-check/finder/
+            macos/outputs/aarch64-apple-darwin/graphics-check/
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dragon-bubble-macos-arm64-validation
+          path: macos/outputs/aarch64-apple-darwin/My Dragon Bubble.zip
+          if-no-files-found: error

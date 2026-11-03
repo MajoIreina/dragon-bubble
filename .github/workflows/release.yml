@@ -1,0 +1,177 @@
+name: Release Windows and macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version increment (none uses the current version)
+        required: true
+        default: patch
+        type: choice
+        options: [patch, minor, major, none]
+
+concurrency:
+  group: paired-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.version.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          test "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ "$BUMP" != none ]; then
+            python tools/release.py bump "$BUMP"
+          fi
+          python -m unittest discover -s tools -p test_release.py
+          python tools/release.py check
+          version=$(python tools/release.py version)
+          if [ "$BUMP" != none ]; then
+            git add Cargo.toml Cargo.lock macos/Cargo.toml macos/Cargo.lock macos/Info.plist
+            git commit -m "Release v$version for Windows and macOS"
+          fi
+          if ! git rev-parse "v$version" >/dev/null 2>&1; then
+            git tag "v$version"
+            git push --atomic origin "HEAD:$DEFAULT_BRANCH" "refs/tags/v$version"
+          fi
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "v$version^{commit}")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+            workspace: '.'
+          - os: macos-15
+            platform: macos-arm64
+            workspace: macos
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 100
+    env:
+      CARGO_BUILD_JOBS: '3'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.workspace }}
+      - name: Validate source and restore retained embedded model
+        working-directory: ${{ matrix.workspace }}
+        run: |
+          python "$GITHUB_WORKSPACE/tools/release.py" check
+          python "$GITHUB_WORKSPACE/tools/check_public_files.py"
+          git fetch origin 5feb7dffc1382a66ef3b041e6b7b53fd74a47c15 --depth=1
+          mkdir -p skins/shu
+          git show FETCH_HEAD:macos/skins/shu/shu.glb > skins/shu/shu.glb
+          git show FETCH_HEAD:macos/skins/shu/skin.json > skins/shu/skin.json
+          test "$(git hash-object skins/shu/shu.glb)" = 0f62f1c513807f76ce3bcd42bb946b316199015d
+          test "$(git hash-object skins/shu/skin.json)" = d6f09b3ba26fb748cdf368386be4cd4372bb49a6
+      - name: Format, Clippy and regression tests
+        working-directory: ${{ matrix.workspace }}
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --locked --workspace --all-targets --features embedded-shu -- -D warnings
+          cargo test --locked --workspace --features embedded-shu
+      - name: Package Windows and verify rendering
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          ./build.ps1 -SkipTests
+          $smoke = Start-Process -FilePath './outputs/rust/My Dragon Bubble.exe' -ArgumentList '--smoke-test' -Wait -PassThru -WindowStyle Hidden
+          if ($smoke.ExitCode -ne 0) { throw 'Windows rendering smoke test failed' }
+          $menu = Start-Process -FilePath './outputs/rust/My Dragon Bubble.exe' -ArgumentList '--menu-test' -Wait -PassThru -WindowStyle Hidden
+          if ($menu.ExitCode -ne 0) { throw 'Windows menu regression failed' }
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          Compress-Archive -Path outputs/rust/* -DestinationPath "release/dragon-bubble-v$env:RELEASE_VERSION-windows-x64.zip"
+          python tools/check_public_files.py --zip "release/dragon-bubble-v$env:RELEASE_VERSION-windows-x64.zip"
+      - name: Package macOS and verify Metal rendering
+        if: runner.os == 'macOS'
+        working-directory: macos
+        env:
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          bash build.sh --skip-checks --skip-tests --target aarch64-apple-darwin
+          python3 tests/launch_app.py "outputs/aarch64-apple-darwin/My Dragon Bubble.zip"
+          python3 tests/graphics.py "outputs/aarch64-apple-darwin/My Dragon Bubble.app"
+          mkdir -p ../release
+          cp "outputs/aarch64-apple-darwin/My Dragon Bubble.zip" "../release/dragon-bubble-v$RELEASE_VERSION-macos-arm64.zip"
+          python3 ../tools/check_public_files.py --zip "../release/dragon-bubble-v$RELEASE_VERSION-macos-arm64.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: release/*.zip
+          if-no-files-found: error
+
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          test -f "release/dragon-bubble-v$VERSION-windows-x64.zip"
+          test -f "release/dragon-bubble-v$VERSION-macos-arm64.zip"
+          (cd release && sha256sum *.zip > SHA256SUMS.txt)
+          if gh release view "v$VERSION" --json isDraft > release-state.json 2>/dev/null; then
+            test "$(python3 -c 'import json; print(json.load(open("release-state.json"))["isDraft"])')" = True
+            gh release upload "v$VERSION" release/* --clobber
+          else
+            if [ -f "docs/releases/v$VERSION.md" ]; then
+              gh release create "v$VERSION" --draft --verify-tag --title "v$VERSION · Windows & macOS" --notes-file "docs/releases/v$VERSION.md" release/*
+            else
+              gh release create "v$VERSION" --draft --verify-tag --title "v$VERSION · Windows & macOS" --generate-notes release/*
+            fi
+          fi
+          gh release edit "v$VERSION" --draft=false --latest
