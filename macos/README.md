@@ -28,7 +28,11 @@ bash build.sh --universal
 - CI 分别执行格式/Clippy、回归测试、Release 构建与签名，再将最终 ZIP 解压到带空格路径，从 `/` 目录直接启动和通过 LaunchServices 启动，检查 Metal 渲染非透明桌宠截图。后一次启动覆盖超出屏幕的旧位置配置。
 - `python3 tests/launch_app.py "outputs/aarch64-apple-darwin/My Dragon Bubble.zip"` 可在 Mac 上复验打包启动。
 
-旧版 ZIP 和校验结果仅说明旧代码的编译/签名成功，不代表此次 0.1.2a 的启动验证结果；新构建结果另存于 `outputs/` 下。
+2026-11-03 已在 Apple Silicon macOS 构建机复现并修复启动崩溃：旧版请求 `PreMultiplied`，但 wgpu Metal 表面仅支持 `Opaque` 和 `PostMultiplied`，导致 `Surface::configure` 校验失败并退出。现使用受支持的 `PostMultiplied`。
+
+修复版源码提交 `ac0c31320180175ad64e28d7a8eda867fbfa6ccf`；Actions run `41650761138` 已全部成功。45 项原生 Release 测试通过，1 项可选 Blender 样本测试跳过。最终 ZIP 解压后通过严格签名检查；从 `/` 目录直接运行和经 LaunchServices 启动均通过 Metal 渲染检查，分别记录 231 和 335 帧。后一次还覆盖旧配置位置超出屏幕、设置窗口已关闭的情况。测试完成后签名仍有效。
+
+新测试包和启动截图、日志、校验信息保存于 `outputs/v0.1.2a/`。这些自动检查验证启动和渲染；多屏、实际鼠标交互及不同 macOS 版本仍需实机验收。
 
 ## macOS 集成
 
