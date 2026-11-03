@@ -433,3 +433,26 @@ fn soft_body_unloads_during_freefall_and_hanging() {
     }
     assert!((held.load - supported.load).abs() < 0.001);
 }
+
+#[test]
+fn five_levels_and_autostart_migrate_without_losing_custom_resolution() {
+    use pet_core::preferences::RenderOptions;
+    let old = Preferences::from_value(&json!({"performance":{"resolution":816,"quality":2}}));
+    assert!(!old.autostart);
+    assert_eq!(old.performance.resolution, 816);
+    assert_eq!(old.performance.quality, 2);
+    for level in 0..5 {
+        let prefs = Preferences::from_value(&json!({"autostart":true,"performance":{
+            "resolution":RenderOptions::RESOLUTIONS[level],"quality":level}}));
+        assert_eq!(prefs.performance.quality as usize, level);
+        assert_eq!(prefs.performance.resolution_level(), level);
+        let value = serde_json::to_value(&prefs).unwrap();
+        assert_eq!(Preferences::from_value(&value), prefs);
+    }
+    for invalid in [json!(-1), json!(5), json!(2.5), json!("4")] {
+        assert_eq!(
+            RenderOptions::from_value(&json!({"quality":invalid})).quality,
+            1
+        );
+    }
+}

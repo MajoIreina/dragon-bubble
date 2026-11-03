@@ -8,11 +8,7 @@ use pet_core::{
     behavior::State,
     desktop::{Desktop, Rect},
 };
-use std::collections::HashMap;
-use tray_icon::{
-    MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent,
-    menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu},
-};
+use tray_icon::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 #[derive(Component)]
 pub struct SettingsWindow;
 #[derive(Component)]
@@ -137,10 +133,8 @@ fn display_refresh_rate(_: &Vec2) -> Option<u32> {
 }
 pub struct Tray {
     _icon: TrayIcon,
-    menu: Menu,
-    actions: HashMap<String, Action>,
-    signature: String,
 }
+
 #[cfg(windows)]
 pub fn desktop() -> Desktop {
     use windows_sys::Win32::{Foundation::*, Graphics::Gdi::*};
@@ -318,81 +312,7 @@ fn pointer() -> (Vec2, bool, bool) {
 fn pointer() -> (Vec2, bool, bool) {
     (Vec2::ZERO, false, false)
 }
-fn menu(rt: &Runtime) -> (Menu, HashMap<String, Action>) {
-    let menu = Menu::new();
-    let mut actions = HashMap::new();
-    let tr = |s: &str| pet_core::i18n::tr(&rt.prefs.locale, s);
-    let mut add = |m: &Menu, label: String, action: Action| {
-        let item = MenuItem::new(label, true, None);
-        actions.insert(item.id().0.clone(), action);
-        let _ = m.append(&item);
-    };
-    add(&menu, tr("设置"), Action::ShowSettings(0));
-    add(
-        &menu,
-        tr(if rt.brain.forced_sleep || rt.brain.state == State::Sleep {
-            "唤醒"
-        } else {
-            "一键睡觉"
-        }),
-        Action::Sleep(!(rt.brain.forced_sleep || rt.brain.state == State::Sleep)),
-    );
-    add(&menu, tr("检查更新"), Action::CheckUpdates);
-    add(
-        &menu,
-        format!(
-            "{} {}",
-            if rt.prefs.always_on_top { "✓" } else { "" },
-            tr("始终置顶")
-        ),
-        Action::Top(!rt.prefs.always_on_top),
-    );
-    add(
-        &menu,
-        format!(
-            "{} {}",
-            if rt.prefs.roaming { "✓" } else { "" },
-            tr("自由走动")
-        ),
-        Action::Roam(!rt.prefs.roaming),
-    );
-    add(&menu, tr("性能与画质"), Action::ShowSettings(4));
-    add(&menu, tr("重置位置"), Action::Reset);
-    let skins = Submenu::new(tr("外观"), true);
-    for skin in &rt.skins {
-        let item = MenuItem::new(
-            format!(
-                "{} {}",
-                if skin.id == rt.prefs.skin_id {
-                    "✓"
-                } else {
-                    ""
-                },
-                tr(&skin.name)
-            ),
-            true,
-            None,
-        );
-        actions.insert(item.id().0.clone(), Action::SelectSkin(skin.id.clone()));
-        let _ = skins.append(&item);
-    }
-    let _ = menu.append(&skins);
-    let monitors = Submenu::new(tr("移动到屏幕"), true);
-    for i in 0..rt.desktop.areas.len() {
-        let item = MenuItem::new(format!("{} {}", tr("屏幕"), i + 1), true, None);
-        actions.insert(item.id().0.clone(), Action::MoveScreen(i));
-        let _ = monitors.append(&item);
-    }
-    let _ = menu.append(&monitors);
-    let _ = menu.append(&PredefinedMenuItem::separator());
-    let exit = MenuItem::new(tr("退出"), true, None);
-    actions.insert(exit.id().0.clone(), Action::Quit);
-    let _ = menu.append(&exit);
-    (menu, actions)
-}
 pub fn setup_tray(world: &mut World) {
-    let rt = world.resource::<Runtime>();
-    let (menu, actions) = menu(rt);
     let bytes = include_bytes!("../../../assets/tray.ico");
     let result = (|| -> anyhow::Result<TrayIcon> {
         let img = image::load_from_memory(bytes)?.to_rgba8();
@@ -405,12 +325,7 @@ pub fn setup_tray(world: &mut World) {
             .build()?)
     })();
     match result {
-        Ok(icon) => world.insert_non_send_resource(Tray {
-            _icon: icon,
-            menu,
-            actions,
-            signature: String::new(),
-        }),
+        Ok(icon) => world.insert_non_send_resource(Tray { _icon: icon }),
         Err(e) => eprintln!("Tray initialization failed: {e}"),
     }
 }
@@ -428,7 +343,7 @@ pub fn input(
     mut rt: ResMut<Runtime>,
     mut pet: Query<(Entity, &Window, &mut bevy::window::CursorOptions), With<PrimaryWindow>>,
 
-    tray: Option<NonSend<Tray>>,
+    mut popup: ResMut<crate::popup::MenuState>,
     #[cfg(windows)] native: NonSend<crate::layered::NativePet>,
     _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
@@ -512,14 +427,7 @@ pub fn input(
             rt.dirty = true;
         }
         if right && !rt.last_right && inside && over_pet {
-            if let Some(tray) = tray {
-                #[cfg(windows)]
-                {
-                    crate::menu_font::show(&tray.menu, native.hwnd);
-                }
-            } else {
-                rt.actions.push(Action::ShowSettings(0));
-            }
+            popup.open(cursor);
         }
         rt.last_left = left;
         rt.last_right = right;
@@ -538,11 +446,11 @@ fn drag_direction(cursor_x: f32, anchor: &mut f32, previous: i32) -> i32 {
 
 pub fn events(
     mut rt: ResMut<Runtime>,
-    mut tray: Option<NonSendMut<Tray>>,
+    mut popup: ResMut<crate::popup::MenuState>,
     mut close: MessageReader<WindowCloseRequested>,
     settings: Query<Entity, With<SettingsWindow>>,
+    menus: Query<Entity, With<crate::popup::MenuWindow>>,
     mut exit: MessageWriter<AppExit>,
-    #[cfg(windows)] native: NonSend<crate::layered::NativePet>,
 ) {
     #[cfg(windows)]
     if crate::layered::close_requested() {
@@ -551,54 +459,29 @@ pub fn events(
     for e in close.read() {
         if settings.contains(e.window) {
             rt.show_settings = false;
+        } else if menus.contains(e.window) {
+            popup.visible = false;
         } else {
             rt.actions.push(Action::Quit);
         }
     }
-    if let Some(tray) = tray.as_mut() {
-        while let Ok(e) = MenuEvent::receiver().try_recv() {
-            if let Some(action) = tray.actions.get(&e.id.0) {
-                rt.actions.push(action.clone());
+    while let Ok(event) = TrayIconEvent::receiver().try_recv() {
+        match event {
+            TrayIconEvent::Click {
+                button: MouseButton::Right,
+                button_state: MouseButtonState::Up,
+                ..
+            } => {
+                popup.open(pointer().0);
             }
-        }
-        while let Ok(e) = TrayIconEvent::receiver().try_recv() {
-            #[cfg(windows)]
-            if matches!(
-                e,
-                TrayIconEvent::Click {
-                    button: MouseButton::Right,
-                    button_state: MouseButtonState::Up,
-                    ..
-                }
-            ) {
-                crate::menu_font::show(&tray.menu, native.hwnd);
-            }
-            if matches!(
-                e,
-                TrayIconEvent::Click {
-                    button: MouseButton::Left,
-                    button_state: MouseButtonState::Up,
-                    ..
-                }
-            ) {
+            TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } => {
                 rt.actions.push(Action::ShowSettings(0));
             }
-        }
-        let signature = format!(
-            "{}{}{}{}{}{}{}",
-            rt.prefs.locale,
-            rt.prefs.skin_id,
-            rt.prefs.roaming,
-            rt.prefs.always_on_top,
-            rt.skins.len(),
-            rt.desktop.areas.len(),
-            rt.brain.forced_sleep || rt.brain.state == State::Sleep
-        );
-        if signature != tray.signature {
-            let (m, a) = menu(&rt);
-            tray.menu = m;
-            tray.actions = a;
-            tray.signature = signature;
+            _ => {}
         }
     }
     if rt.quit {

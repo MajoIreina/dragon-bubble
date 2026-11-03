@@ -1,4 +1,5 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+mod autostart;
 mod avatar;
 mod bundled;
 mod composite;
@@ -6,9 +7,8 @@ mod effects;
 mod expressions;
 mod face;
 mod layered;
-#[cfg(windows)]
-mod menu_font;
 mod platform;
+mod popup;
 mod runtime;
 mod soft_body;
 mod suspension;
@@ -52,8 +52,9 @@ fn project_root() -> std::path::PathBuf {
     current
 }
 fn main() -> AppExit {
+    let menu_test = std::env::args().any(|arg| arg == "--menu-test");
     let bounce_test = std::env::args().any(|s| s == "--bounce-test");
-    let smoke = bounce_test || std::env::args().any(|s| s == "--smoke-test");
+    let smoke = menu_test || bounce_test || std::env::args().any(|s| s == "--smoke-test");
     let root = project_root();
     let mut runtime = runtime::Runtime::new(root.clone(), smoke);
     runtime.loading = Some(runtime.prefs.skin_id.clone());
@@ -69,6 +70,7 @@ fn main() -> AppExit {
     );
     app.insert_resource(runtime)
         .init_resource::<layered::DesktopFrame>()
+        .init_resource::<popup::MenuState>()
         .insert_resource(ClearColor(Color::NONE))
         .insert_resource(AmbientLight {
             color: Color::srgb(0.91, 0.93, 1.),
@@ -125,6 +127,7 @@ fn main() -> AppExit {
         (
             avatar::setup,
             ui::setup,
+            popup::setup,
             platform::setup_tray,
             layered::setup,
         ),
@@ -146,6 +149,7 @@ fn main() -> AppExit {
             avatar::resize_output,
             avatar::performance,
             platform::sync_windows,
+            popup::sync,
             platform::frame_pacing,
         )
             .chain(),
@@ -164,8 +168,11 @@ fn main() -> AppExit {
             .after(bevy::transform::TransformSystems::Propagate),
     )
     .add_systems(EguiPrimaryContextPass, ui::draw)
+    .add_systems(popup::MenuPass, popup::draw)
     .add_systems(Last, layered::present);
-    if bounce_test {
+    if menu_test {
+        app.add_systems(Update, popup::probe.after(avatar::animate));
+    } else if bounce_test {
         app.add_systems(Update, runtime::bounce_smoke.after(avatar::animate));
     } else {
         // Inspect final animated transforms, after the per-frame reset and pose layers.

@@ -4,6 +4,7 @@
 # Local engines, scratch files, generated previews and release archives
 /work/
 /outputs/
+/release/
 /archives/
 
 # Private Shu model, sources and textures stay on this computer.
@@ -15,9 +16,7 @@
 *.blend[0-9]*
 *.import
 
-# Independent macOS work is maintained on its existing port branch.
-/macos/
-/.github/workflows/macos.yml
+# Both Rust platforms are released from this repository.
 
 # Python cache and local environments
 __pycache__/

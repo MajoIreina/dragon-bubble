@@ -70,7 +70,12 @@ pub(super) fn appearance_page(
             if ui.button(tr("打开目录")).clicked() {
                 let dir = rt.data.join("skins");
                 let _ = std::fs::create_dir_all(&dir);
-                let _ = std::process::Command::new("explorer.exe").arg(dir).spawn();
+                let opener = if cfg!(target_os = "macos") {
+                    "open"
+                } else {
+                    "explorer.exe"
+                };
+                let _ = std::process::Command::new(opener).arg(dir).spawn();
             }
         },
     );
@@ -476,9 +481,13 @@ pub(super) fn performance_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut 
                 egui::Layout::left_to_right(egui::Align::Center).with_main_wrap(true),
                 |ui| {
                     ui.spacing_mut().button_padding.x = 8.;
-                    for (key, label) in
-                        [("power", "省电"), ("balanced", "均衡"), ("high", "高画质")]
-                    {
+                    for (key, label) in [
+                        ("power", "低"),
+                        ("balanced", "中"),
+                        ("high", "高"),
+                        ("ultra", "超高"),
+                        ("extreme", "极致"),
+                    ] {
                         let preset = RenderOptions::preset(key);
                         if ui
                             .selectable_label(rt.prefs.performance == preset, tr(label))
@@ -499,12 +508,7 @@ pub(super) fn performance_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut 
         ui.horizontal(|ui| {
             ui.label(tr("渲染分辨率"));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.add(
-                    egui::DragValue::new(&mut p.resolution)
-                        .range(256..=1536)
-                        .speed(16.)
-                        .suffix(" px"),
-                );
+                ui.label(tr(RenderOptions::LEVELS[p.resolution_level()]));
             });
         });
         ui.label(
@@ -512,11 +516,26 @@ pub(super) fn performance_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut 
                 .small()
                 .weak(),
         );
-        ui.add(
-            egui::Slider::new(&mut p.resolution, 256..=1536)
-                .step_by(16.)
-                .show_value(false),
-        );
+        let mut level = p.resolution_level();
+        if ui
+            .add(
+                egui::Slider::new(&mut level, 0..=4)
+                    .show_value(false)
+                    .step_by(1.)
+                    .custom_formatter(|value, _| {
+                        tr(RenderOptions::LEVELS[value.round().clamp(0., 4.) as usize])
+                    })
+                    .custom_parser(|text| {
+                        RenderOptions::LEVELS
+                            .iter()
+                            .position(|label| tr(label) == text)
+                            .map(|n| n as f64)
+                    }),
+            )
+            .changed()
+        {
+            p.resolution = RenderOptions::RESOLUTIONS[level];
+        }
     });
     card(ui).show(ui, |ui| {
         ui.set_min_width(ui.available_width());
@@ -601,10 +620,16 @@ pub(super) fn performance_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut 
         240.,
         |ui| {
             ui.add(
-                egui::Slider::new(&mut p.quality, 0..=2)
+                egui::Slider::new(&mut p.quality, 0..=4)
                     .step_by(1.)
                     .custom_formatter(|n, _| {
-                        tr(["省电", "均衡", "高画质"][n.round().clamp(0., 2.) as usize])
+                        tr(RenderOptions::LEVELS[n.round().clamp(0., 4.) as usize])
+                    })
+                    .custom_parser(|text| {
+                        RenderOptions::LEVELS
+                            .iter()
+                            .position(|label| tr(label) == text)
+                            .map(|n| n as f64)
                     }),
             );
         },
@@ -667,6 +692,19 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
             }
         },
     );
+    setting_row(
+        ui,
+        "↗",
+        &tr("开机自启"),
+        &tr("登录电脑后自动启动龙泡泡"),
+        80.,
+        |ui| {
+            let mut enabled = rt.prefs.autostart;
+            if toggle(ui, &mut enabled, &tr("开机自启")).changed() {
+                rt.actions.push(Action::Autostart(enabled));
+            }
+        },
+    );
     section(ui, &tr("应用更新"));
     card(ui).show(ui, |ui| {
         ui.set_min_width(ui.available_width());
@@ -715,7 +753,14 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
                 ui.horizontal_wrapped(|ui| {
                     ui.hyperlink_to(tr("查看此版本"), &release.url);
                     if let Some(url) = &release.download {
-                        ui.hyperlink_to(tr("下载 Windows 版本"), url);
+                        ui.hyperlink_to(
+                            tr(if cfg!(target_os = "macos") {
+                                "下载 macOS 版本"
+                            } else {
+                                "下载 Windows 版本"
+                            }),
+                            url,
+                        );
                     }
                 });
                 if !release.notes.is_empty() {

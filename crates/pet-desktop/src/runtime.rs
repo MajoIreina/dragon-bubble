@@ -23,6 +23,7 @@ pub enum Action {
     Quit,
     Sleep(bool),
     CheckUpdates,
+    Autostart(bool),
 }
 #[derive(Resource)]
 pub struct Runtime {
@@ -95,6 +96,10 @@ impl Runtime {
         };
         let _ = std::fs::create_dir_all(&data);
         let mut prefs = Preferences::load(&data.join("preferences.json"));
+        // Read the OS registration so changes made in system settings are reflected.
+        if !smoke {
+            prefs.autostart = crate::autostart::enabled().unwrap_or(prefs.autostart);
+        }
         let (mut skins, diagnostics) =
             pet_core::assets::scan(&[root.join("skins"), data.join("skins")]);
         crate::bundled::add_skin(&mut skins);
@@ -124,7 +129,8 @@ impl Runtime {
         Self {
             root,
             data: data.clone(),
-            show_settings: !data.join("welcome_seen").exists(),
+            show_settings: !std::env::args().any(|arg| arg == "--autostart")
+                && !data.join("welcome_seen").exists(),
             prefs,
             skins,
             diagnostics,
@@ -301,6 +307,19 @@ pub fn actions(mut rt: ResMut<Runtime>) {
                 rt.need_preview = true;
                 let _ = std::fs::write(rt.data.join("welcome_seen"), "1");
             }
+            Action::Autostart(enabled) => match crate::autostart::set_enabled(enabled) {
+                Ok(()) => {
+                    rt.prefs.autostart = enabled;
+                    rt.dirty = true;
+                    rt.status.clear();
+                }
+                Err(error) => {
+                    rt.status = format!(
+                        "{}：{error}",
+                        pet_core::i18n::tr(&rt.prefs.locale, "开机自启设置失败")
+                    )
+                }
+            },
             Action::CheckUpdates => {
                 rt.show_settings = true;
                 rt.page = 5;

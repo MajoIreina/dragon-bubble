@@ -1228,3 +1228,27 @@ msgstr "GitHub project"
 
 msgid "鼠标悬停在桌宠上滚动滚轮，或拖动滑条调整"
 msgstr "Hover over the pet and scroll the wheel, or drag the slider"
+
+msgid "低"
+msgstr "Low"
+
+msgid "中"
+msgstr "Medium"
+
+msgid "高"
+msgstr "High"
+
+msgid "超高"
+msgstr "Ultra"
+
+msgid "极致"
+msgstr "Extreme"
+
+msgid "开机自启"
+msgstr "Launch at login"
+
+msgid "登录电脑后自动启动龙泡泡"
+msgstr "Start Dragon Bubble automatically when you sign in"
+
+msgid "开机自启设置失败"
+msgstr "Could not change launch at login"

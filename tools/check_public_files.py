@@ -8,23 +8,30 @@ ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--zip', type=Path, help='also verify a release ZIP')
 args = parser.parse_args()
-allowed_binary = {'assets/tray.ico'}
+allowed_binary = {'assets/tray.ico', 'macos/assets/tray.ico', 'macos/assets/AppIcon.icns'}
 model_extensions = {'.glb', '.gltf', '.fbx', '.obj', '.vrm', '.stl', '.ply', '.blend'}
-binary_extensions = model_extensions | {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tga', '.ico', '.exe', '.dll', '.zip', '.7z', '.pck', '.bundle'}
-private_roots = {'archives', 'archive', 'source_models', 'skins', 'work', 'outputs', 'target', 'macos', '.godot'}
-tracked = subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).decode('utf-8').split('\0')
+binary_extensions = model_extensions | {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tga', '.ico', '.exe', '.dll', '.zip', '.7z', '.pck', '.bundle', '.icns'}
+private_roots = {'archives', 'archive', 'source_models', 'skins', 'work', 'outputs', 'release', 'target', '.godot'}
+tracked = subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], cwd=ROOT).decode('utf-8').split('\0')
 errors = []
 for name in filter(None, tracked):
     path = PurePosixPath(name)
-    if (path.parts[0] in private_roots or '.blend' in path.suffix.lower()
+    if (any(part in private_roots for part in path.parts[:-1]) or '.blend' in path.suffix.lower()
             or path.suffix.lower() in binary_extensions and name not in allowed_binary):
         errors.append(name)
 if args.zip:
     resources = {line.strip() for line in (ROOT / 'tools/public-resources.txt').read_text().splitlines()
                  if line.strip() and not line.startswith('#')}
-    expected = resources | {'My Dragon Bubble.exe', 'LICENSE-RENDERING.txt'}
+    if 'macos-' in args.zip.name:
+        bundle = 'My Dragon Bubble.app/Contents/'
+        expected = {bundle + name for name in ['MacOS/dragon-bubble', 'Info.plist', 'Resources/AppIcon.icns',
+                    'Resources/LICENSE-RENDERING.txt', '_CodeSignature/CodeResources']}
+        expected |= {bundle + 'Resources/' + name for name in resources}
+    else:
+        expected = resources | {'My Dragon Bubble.exe', 'LICENSE-RENDERING.txt'}
     with zipfile.ZipFile(args.zip) as package:
-        files = [item.filename for item in package.infolist() if not item.is_dir()]
+        files = [item.filename for item in package.infolist() if not item.is_dir()
+                 and not item.filename.startswith("__MACOSX/")]
         if len(files) != len(set(files)) or set(files) != expected:
             errors.append('ZIP file list differs from the explicit release resource list')
         if package.testzip():

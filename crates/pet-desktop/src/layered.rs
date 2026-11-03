@@ -63,9 +63,6 @@ unsafe extern "system" fn window_proc(
     lparam: isize,
 ) -> isize {
     use windows_sys::Win32::UI::WindowsAndMessaging::*;
-    if let Some(result) = unsafe { crate::menu_font::handle(hwnd, message, lparam) } {
-        return result;
-    }
     if message == WM_CLOSE {
         CLOSE_REQUESTED.store(true, std::sync::atomic::Ordering::Relaxed);
         return 0;

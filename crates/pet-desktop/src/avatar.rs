@@ -954,8 +954,8 @@ pub fn animate(
                     let settle = (t / 0.8).clamp(0., 1.);
                     let breath = (t * std::f32::consts::TAU / 4.4).sin();
                     (
-                        1. + settle * (0.1 - breath * 0.018),
-                        1. - settle * (0.18 - breath * 0.035),
+                        1. + settle * (0.025 - breath * 0.006),
+                        1. - settle * (0.06 - breath * 0.012),
                         0.,
                         settle * (0.025 + breath * 0.012),
                     )
@@ -1038,6 +1038,7 @@ pub fn performance(
         Option<&mut crate::temporal::TemporalAntiAliasing>,
     )>,
     mut lights: Query<&mut DirectionalLight>,
+    mut shadow_map: ResMut<bevy::light::DirectionalLightShadowMap>,
     mut meshes: Query<(&Name, &mut Visibility, Option<&crate::toon::ToonStyled>)>,
     avatars: Query<(Entity, &Avatar)>,
     mut previous: Local<Option<(u32, bool, Option<Entity>, Option<Entity>, i32, State, State)>>,
@@ -1087,10 +1088,19 @@ pub fn performance(
         // SSAO requires single-sample prepasses; TAA also smooths coverage alpha.
         let use_taa = p.aa == "taa" || (p.ao && p.aa.starts_with("msaa"));
         msaa.set_if_neq(if p.ao { Msaa::Off } else { next_msaa });
-        if p.ao && ao.is_none() {
+        let ao_quality = match p.quality {
+            0 => bevy::pbr::ScreenSpaceAmbientOcclusionQualityLevel::Low,
+            1 => bevy::pbr::ScreenSpaceAmbientOcclusionQualityLevel::Medium,
+            2 => bevy::pbr::ScreenSpaceAmbientOcclusionQualityLevel::High,
+            _ => bevy::pbr::ScreenSpaceAmbientOcclusionQualityLevel::Ultra,
+        };
+        if p.ao && ao.is_none_or(|ao| ao.quality_level != ao_quality) {
             commands
                 .entity(e)
-                .insert(bevy::pbr::ScreenSpaceAmbientOcclusion::default());
+                .insert(bevy::pbr::ScreenSpaceAmbientOcclusion {
+                    quality_level: ao_quality,
+                    ..default()
+                });
         }
         if !p.ao && ao.is_some() {
             commands.entity(e).remove::<(
@@ -1127,8 +1137,11 @@ pub fn performance(
             });
         }
     }
+    if shadow_map.size != p.shadow_map_size() {
+        shadow_map.size = p.shadow_map_size();
+    }
     for mut light in &mut lights {
-        light.shadows_enabled = p.quality == 2;
+        light.shadows_enabled = p.quality >= 2;
     }
     for (name, mut visibility, toon) in &mut meshes {
         if name.as_str().contains("MicroPile") {
@@ -1287,6 +1300,7 @@ mod tests {
         app.insert_resource(rt)
             .init_resource::<Assets<Image>>()
             .init_resource::<Assets<crate::composite::PetComposite>>()
+            .init_resource::<bevy::light::DirectionalLightShadowMap>()
             .insert_resource(RenderViews {
                 output: default(),
                 pet: default(),

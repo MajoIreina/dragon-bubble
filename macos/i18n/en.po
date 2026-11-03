@@ -1,0 +1,1254 @@
+# My Dragon Bubble display translations.
+msgid ""
+msgstr "Language: en\nContent-Type: text/plain; charset=UTF-8\nMIME-Version: 1.0\nContent-Transfer-Encoding: 8bit\n"
+
+msgid "设置"
+msgstr "Settings"
+
+msgid "外观与模型"
+msgstr "Appearance"
+
+msgid "选择你的桌面伙伴，或带来新的模样。"
+msgstr "Choose your companion's look or import a new one."
+
+msgid "行为与互动"
+msgstr "Behavior"
+
+msgid "调整小伙伴的活动习惯，了解互动方式。"
+msgstr "Choose how your companion behaves and interacts."
+
+msgid "桌面与显示"
+msgstr "Desktop & display"
+
+msgid "让桌宠以合适的大小，待在合适的位置。"
+msgstr "Set your companion's size, screen and window position."
+
+msgid "动作与适配"
+msgstr "Motion & mapping"
+
+msgid "识别角色能力，让每个动作都有合适的表现。"
+msgstr "Preview animations and customize action mappings."
+
+msgid "性能与画质"
+msgstr "Performance"
+
+msgid "调整清晰度、帧率与画面细节。"
+msgstr "Adjust resolution, frame rate and visual detail."
+
+msgid "你的桌面伙伴"
+msgstr "Your desktop companion"
+
+msgid "查找设置"
+msgstr "Find a setting"
+
+msgid "搜索外观、置顶、分辨率等设置"
+msgstr "Search appearance, always on top, resolution and more"
+
+msgid "没有匹配的设置"
+msgstr "No matching settings"
+
+msgid "界面语言"
+msgstr "Display language"
+
+msgid "退出桌宠"
+msgstr "Exit"
+
+msgid "更改自动保存"
+msgstr "Changes saved automatically"
+
+msgid "没有找到匹配项。\n请尝试“置顶”“外观”或“帧率”。"
+msgstr "No matching settings.\nTry \"top\", \"appearance\" or \"FPS\"."
+
+msgid "设置即时生效"
+msgstr "Settings apply immediately"
+
+msgid "当前伙伴"
+msgstr "Your companion"
+
+msgid "自定义桌宠外观，让它更合你的心意。"
+msgstr "Make your companion feel more like you."
+
+msgid "选择外观"
+msgstr "Choose appearance"
+
+msgid "导入新外观"
+msgstr "Import appearance"
+
+msgid "外观文件夹"
+msgstr "Open skins folder"
+
+msgid "直接选择 3D 模型、图片、GIF 或 skin.json。支持 GLB / glTF / FBX / OBJ / VRM；Blender、STL、PLY 文件可自动转换。"
+msgstr "Select a 3D model, image, GIF or skin.json. Supports GLB / glTF / FBX / OBJ / VRM, with automatic conversion for Blender, STL and PLY."
+
+msgid "日常活动"
+msgstr "Daily activity"
+
+msgid "自由散步"
+msgstr "Roaming"
+
+msgid "开启后，桌宠会随机走路、小跑、停留和休息。"
+msgstr "Let your companion walk, run, pause and rest on its own."
+
+msgid "和它互动"
+msgstr "Interact with your companion"
+
+msgid "轻点"
+msgstr "Pet"
+
+msgid "摸摸它，看看小小的回应。"
+msgstr "Give it a little pat and watch its response."
+
+msgid "左键单击"
+msgstr "Left click"
+
+msgid "提起与抛出"
+msgstr "Pick up & throw"
+
+msgid "松手后沿拖动方向滑行，再落到屏幕底部。"
+msgstr "Release after dragging to let it glide and fall to the bottom of the screen."
+
+msgid "拖动后松手"
+msgstr "Drag and release"
+
+msgid "快捷菜单"
+msgstr "Quick settings"
+
+msgid "快速切换外观、大小、散步和置顶。"
+msgstr "Quickly change appearance, size, roaming and always on top."
+
+msgid "右键单击"
+msgstr "Right click"
+
+msgid "关闭自由散步后，点击和拖动互动仍然可用。"
+msgstr "Clicking and dragging still work when roaming is off."
+
+msgid "桌宠始终置顶"
+msgstr "Always on top"
+
+msgid "开启后，桌宠显示在其他普通窗口上方；关闭后，其他窗口可以遮挡桌宠。"
+msgstr "Keep your companion above other normal windows. Turn off to let other windows cover it."
+
+msgid "所在显示器"
+msgstr "Display"
+
+msgid "选择显示器可立即移动桌宠。也可直接拖过屏幕边缘；相邻工作区之间支持惯性跨屏和散步。断开显示器后会自动找回。"
+msgstr "Choose a display to move your companion, or drag it across a screen edge. It can roam and glide between adjoining work areas, and returns automatically if a display disconnects."
+
+msgid "拖动滑块实时调节；也可输入百分比后按 Enter 应用。"
+msgstr "Drag the slider, or enter a percentage and press Enter."
+
+msgid "窗口与位置"
+msgstr "Window & position"
+
+msgid "找回桌宠"
+msgstr "Bring companion back"
+
+msgid "将它移回主屏幕右下角。"
+msgstr "Move your companion to the bottom right of the primary display."
+
+msgid "重置位置"
+msgstr "Reset position"
+
+msgid "位置会自动保存，下次启动时继续待在原来的地方。"
+msgstr "The position is saved automatically and restored next time."
+
+msgid "每种外观，独立适配"
+msgstr "Settings for each appearance"
+
+msgid "模型转换器"
+msgstr "Model converter"
+
+msgid "GLB、glTF、FBX、OBJ 和 VRM 无需外部软件。导入 .blend、STL、PLY 需要本机安装 Blender 4.2+，程序会自动查找，也可手动选择。"
+msgstr "GLB, glTF, FBX, OBJ and VRM need no external software. Importing .blend, STL or PLY requires Blender 4.2+; it is detected automatically or can be selected below."
+
+msgid "blender.exe 路径"
+msgstr "Path to blender.exe"
+
+msgid "浏览"
+msgstr "Browse"
+
+msgid "Blender 程序"
+msgstr "Blender application"
+
+msgid "选择 Blender 程序"
+msgstr "Select Blender"
+
+msgid "平面图片使用整体动作；骨骼与形态键使用模型自带动画。Live2D / Spine 工程请先导出为 GIF、精灵图或序列帧。VRM 当前保留基础网格、材质和骨架，不包含专用表情、MToon 和弹簧骨物理。"
+msgstr "Images use whole-body motion; rigs and shape keys use the model's animations. Export Live2D / Spine projects as GIFs, sprite sheets or image sequences first. VRM keeps basic meshes, materials and rigs, without dedicated expressions, MToon or spring-bone physics."
+
+msgid "请选择有效的 blender.exe 文件。"
+msgstr "Select a valid blender.exe file."
+
+msgid "%s · %d 个动画 · %d 根骨骼\n已匹配 %d / %d 个动作，其余由通用模组完成。\n在下方逐项预览或调整。"
+msgstr "%s · %d animations · %d bones\n%d / %d actions mapped; the rest use generic motion.\nPreview or adjust each action below."
+
+msgid "外观"
+msgstr "Appearance"
+
+msgid "%s · %d 个动画 · %d 根骨骼\n已匹配 %d / %d 个动作，其余使用通用模组。"
+msgstr "%s · %d animations · %d bones\n%d / %d actions mapped; the rest use generic motion."
+
+msgid "已识别 %d 个骨骼部位，缺少专用动作时可叠加轻量肢体动作。"
+msgstr "%d rig parts detected. Lightweight limb motion can fill in missing animations."
+
+msgid "已启用 %d 处软体效果：身体自然下沉、腹部承托、移动惯性与弹性回稳。"
+msgstr "%d soft-body effects enabled: natural sag, belly support, inertia and elastic settling."
+
+msgid "已识别 %d 个眨眼 / 微笑形态键，可在通用动作中使用。"
+msgstr "%d blink / smile shape keys detected for generic motion."
+
+msgid "动作风格"
+msgstr "Motion style"
+
+msgid "当前风格：%s。人物使用更轻的形变，软团使用更明显的弹性；自带动作播放时会减弱叠加形变。"
+msgstr "Current style: %s. Characters use subtle deformation; plush shapes use more elasticity. Extra deformation is reduced while native animations play."
+
+msgid "动作匹配与预览"
+msgstr "Action mapping & preview"
+
+msgid "自动 · %s"
+msgstr "Auto · %s"
+
+msgid "通用动作"
+msgstr "Generic motion"
+
+msgid "通用模组"
+msgstr "Generic motion"
+
+msgid "%s：%s"
+msgstr "%s: %s"
+
+msgid "预览"
+msgstr "Preview"
+
+msgid "跟随行走方向翻转"
+msgstr "Flip with movement direction"
+
+msgid "左右移动时，图片外观跟随方向翻转。"
+msgstr "Flip an image appearance when the companion changes direction."
+
+msgid "站立朝向（度）"
+msgstr "Standing orientation (degrees)"
+
+msgid "恢复此角色的默认适配"
+msgstr "Reset this appearance's mapping"
+
+msgid "适配设置保存失败。"
+msgstr "Could not save action mapping."
+
+msgid "正在导入…"
+msgstr "Importing…"
+
+msgid "正在读取模型 / 图片并匹配动作。转换期间桌宠可以继续互动。"
+msgstr "Reading the model / image and mapping actions. You can keep interacting while it converts."
+
+msgid "模型、图片或外观包"
+msgstr "Models, images or skin packs"
+
+msgid "3D 模型"
+msgstr "3D model"
+
+msgid "图片与动图"
+msgstr "Images and animations"
+
+msgid "外观清单"
+msgstr "Skin manifest"
+
+msgid "选择模型、图片或外观包"
+msgstr "Select a model, image or skin pack"
+
+msgid "搜索设置"
+msgstr "Search settings"
+
+msgid "试试其他关键词，或清空搜索框查看全部设置。"
+msgstr "Try another keyword, or clear the search to see all settings."
+
+msgid "%d 个可用外观"
+msgstr "%d appearances available"
+
+msgid "2D 图片 / 动画"
+msgstr "2D image / animation"
+
+msgid "3D 模型外观"
+msgstr "3D model"
+
+msgid "部分外观未加载："
+msgstr "Some appearances could not load: "
+
+msgid "一键方案"
+msgstr "Presets"
+
+msgid "根据设备和使用场景选择，也可逐项调整。"
+msgstr "Choose a preset for your device, then fine-tune individual options."
+
+msgid "省电 · 30 FPS / 低画质"
+msgstr "Power saving · 30 FPS / Low"
+
+msgid "均衡 · 60 FPS / 标准画质"
+msgstr "Balanced · 60 FPS / Standard"
+
+msgid "高画质 · 60 FPS / 精细阴影"
+msgstr "High quality · 60 FPS / Shadows"
+
+msgid "自定义"
+msgstr "Custom"
+
+msgid "渲染与帧率"
+msgstr "Rendering & frame rate"
+
+msgid "内部渲染分辨率"
+msgstr "Render resolution"
+
+msgid "提高分辨率可改善大尺寸桌宠的细节；不会改变桌宠大小或脚底位置。"
+msgstr "Higher resolution adds detail at larger sizes. It does not change the companion's size or foot position."
+
+msgid "帧率上限"
+msgstr "Frame rate limit"
+
+msgid "不限帧率"
+msgstr "Unlimited"
+
+msgid "垂直同步"
+msgstr "VSync"
+
+msgid "垂直同步开启时，实际帧率还受显示器刷新率限制。"
+msgstr "VSync also limits frame rate to the display's refresh rate."
+
+msgid "画面细节"
+msgstr "Visual detail"
+
+msgid "画质"
+msgstr "Quality"
+
+msgid "低 · 简化短绒"
+msgstr "Low · Reduced fur"
+
+msgid "标准 · 完整短绒"
+msgstr "Standard · Full fur"
+
+msgid "高 · 短绒与柔和阴影"
+msgstr "High · Fur and soft shadows"
+
+msgid "抗锯齿"
+msgstr "Antialiasing"
+
+msgid "关闭"
+msgstr "Off"
+
+msgid "FXAA · 较低开销"
+msgstr "FXAA · Low overhead"
+
+msgid "环境光遮蔽（SSAO）"
+msgstr "Ambient occlusion (SSAO)"
+
+msgid "增强脚部、背鳍根部及褶皱附近的接触层次，会增加 GPU 开销。"
+msgstr "Adds contact shading around feet, fin roots and folds, at additional GPU cost."
+
+msgid "当前使用兼容渲染，环境光遮蔽不可用。Windows 高级渲染支持此效果。"
+msgstr "Ambient occlusion is unavailable in Compatibility rendering. Advanced rendering on Windows supports this effect."
+
+msgid "运行状态"
+msgstr "Runtime status"
+
+msgid "所有选项即时应用并自动保存；外观预览共用相同画质设置。"
+msgstr "All options apply immediately and save automatically. Previews use the same quality settings."
+
+msgid "当前 %d FPS · 渲染 %d × %d\n%s"
+msgstr "%d FPS · Rendering at %d × %d\n%s"
+
+msgid "高级渲染 · 支持环境光遮蔽"
+msgstr "Advanced rendering · Ambient occlusion supported"
+
+msgid "兼容渲染"
+msgstr "Compatibility rendering"
+
+msgid "开"
+msgstr "On"
+
+msgid "关"
+msgstr "Off"
+
+msgid "大小调节"
+msgstr "Adjust size"
+
+msgid "桌宠大小"
+msgstr "Companion size"
+
+msgid "输入百分比后按 Enter，或点击其他位置应用"
+msgstr "Enter a percentage and press Enter, or click elsewhere to apply"
+
+msgid "恢复 100%"
+msgstr "Reset to 100%"
+
+msgid "打开设置"
+msgstr "Open settings"
+
+msgid "切换外观"
+msgstr "Change appearance"
+
+msgid "移到显示器"
+msgstr "Move to display"
+
+msgid "桌宠大小 · %d%%…"
+msgstr "Companion size · %d%%…"
+
+msgid "性能与画质…"
+msgstr "Performance…"
+
+msgid "左键打开设置，右键快速设置"
+msgstr "Left click for settings; right click for quick settings"
+
+msgid "当前状态："
+msgstr "Current activity: "
+
+msgid "发呆"
+msgstr "Idle"
+
+msgid "走路"
+msgstr "Walking"
+
+msgid "跑步"
+msgstr "Running"
+
+msgid "打盹"
+msgstr "Sleeping"
+
+msgid "被摸摸"
+msgstr "Being petted"
+
+msgid "被提起"
+msgstr "Picked up"
+
+msgid "回弹"
+msgstr "Bouncing"
+
+msgid "惯性 / 下落"
+msgstr "Gliding / falling"
+
+msgid "显示器 %d%s · %d × %d"
+msgstr "Display %d%s · %d × %d"
+
+msgid "（主屏）"
+msgstr " (Primary)"
+
+msgid "主屏幕"
+msgstr "Primary display"
+
+msgid "正在导入外观，完成后即可退出。"
+msgstr "An appearance is being imported. You can exit when it finishes."
+
+msgid "找不到外观包："
+msgstr "Skin pack not found: "
+
+msgid "外观加载失败，保留当前外观："
+msgstr "Could not load appearance; keeping the current one: "
+
+msgid "外观加载失败："
+msgstr "Could not load appearance: "
+
+msgid "无法启动导入任务："
+msgstr "Could not start import: "
+
+msgid "导入失败："
+msgstr "Import failed: "
+
+msgid "设置保存失败："
+msgstr "Could not save settings: "
+
+msgid "待机"
+msgstr "Idle"
+
+msgid "睡眠"
+msgstr "Sleep"
+
+msgid "摸摸回应"
+msgstr "Pet response"
+
+msgid "提起"
+msgstr "Pick up"
+
+msgid "空中 / 下落"
+msgstr "Airborne / falling"
+
+msgid "落地"
+msgstr "Landing"
+
+msgid "自动识别"
+msgstr "Auto-detect"
+
+msgid "龙泡泡 / 软团"
+msgstr "Dragon / plush"
+
+msgid "Q 版人物"
+msgstr "Chibi character"
+
+msgid "图片 / 平面角色"
+msgstr "Image / flat character"
+
+msgid "手动指定"
+msgstr "Manual mapping"
+
+msgid "黍泡泡"
+msgstr "Shu Bubble"
+
+msgid "奶白团子 · 3D 框架演示"
+msgstr "Milky Mochi · 3D demo"
+
+msgid "薄荷团子 · 3D 框架演示"
+msgstr "Mint Mochi · 3D demo"
+
+msgid "橘子团子 · PNG 外观演示"
+msgstr "Orange Mochi · PNG demo"
+
+msgid "蓝莓球 · GLB 动画演示"
+msgstr "Blueberry · GLB demo"
+
+msgid "2D 动画"
+msgstr "2D animation"
+
+msgid "静态图片"
+msgstr "Still image"
+
+msgid "无法创建外观目录"
+msgstr "Could not create the skin folder"
+
+msgid "文件不包含可显示的网格"
+msgstr "The file contains no visible mesh"
+
+msgid "找不到图片："
+msgstr "Image not found: "
+
+msgid "图片文件合计超过 256 MB"
+msgstr "Image files exceed 256 MB in total"
+
+msgid "图片复制失败"
+msgstr "Could not copy images"
+
+msgid "清单写入失败"
+msgstr "Could not write the manifest"
+
+msgid "无法读取资源或文件超过 256 MB"
+msgstr "The asset could not be read or exceeds 256 MB"
+
+msgid "需要 glTF 2.0 二进制文件"
+msgstr "A binary glTF 2.0 file is required"
+
+msgid "GLB 头部或 JSON 块无效"
+msgstr "Invalid GLB header or JSON chunk"
+
+msgid "glTF JSON 无效"
+msgstr "Invalid glTF JSON"
+
+msgid "glTF 资源列表无效"
+msgstr "Invalid glTF asset list"
+
+msgid "glTF 资源条目无效"
+msgstr "Invalid glTF asset entry"
+
+msgid "glTF URI 必须是字符串"
+msgstr "glTF URI must be a string"
+
+msgid "纹理与缓冲区需位于模型目录内，不支持绝对路径、上级目录或网络 URI"
+msgstr "Textures and buffers must be inside the model folder; absolute paths, parent folders and network URIs are not supported"
+
+msgid "缺少模型依赖："
+msgstr "Missing model dependency: "
+
+msgid "模型与依赖合计超过 256 MB"
+msgstr "The model and its dependencies exceed 256 MB"
+
+msgid "模型解码失败："
+msgstr "Could not decode the model: "
+
+msgid "未生成有效模型场景"
+msgstr "No valid model scene was created"
+
+msgid "模型标准化失败："
+msgstr "Could not normalize the model: "
+
+msgid "glTF 缓冲区被截断"
+msgstr "The glTF buffer is truncated"
+
+msgid "glTF 缓冲视图越界"
+msgstr "The glTF buffer view is out of bounds"
+
+msgid "标准化模型超过 256 MB"
+msgstr "The normalized model exceeds 256 MB"
+
+msgid "无法写入模型文件"
+msgstr "Could not write the model file"
+
+msgid "FBX 读取失败："
+msgstr "Could not read FBX: "
+
+msgid "FBX 未生成有效场景"
+msgstr "FBX did not produce a valid scene"
+
+msgid "带形态键的 FBX 需要图形渲染器进行转换，请正常启动桌宠后导入。"
+msgstr "FBX files with shape keys require a graphical renderer. Start the companion normally before importing."
+
+msgid "此格式需要 Blender 4.2+。请在“动作与适配”中设置 blender.exe 路径，或导出为 GLB 后导入。"
+msgstr "This format requires Blender 4.2+. Set the blender.exe path under Motion & mapping, or export to GLB first."
+
+msgid "无法写入模型转换脚本"
+msgstr "Could not write the model conversion script"
+
+msgid "Blender 转换失败，详情见运行数据目录中的 conversion-last.log"
+msgstr "Blender conversion failed. See conversion-last.log in the app data folder."
+
+msgid "GIF 头部无效"
+msgstr "Invalid GIF header"
+
+msgid "GIF 尺寸需在 1–4096 内"
+msgstr "GIF dimensions must be between 1 and 4096"
+
+msgid "GIF 控制块无效"
+msgstr "Invalid GIF control block"
+
+msgid "GIF 图像块无效"
+msgstr "Invalid GIF image block"
+
+msgid "GIF 帧超出画布"
+msgstr "A GIF frame is outside the canvas"
+
+msgid "GIF 超过 256 帧或解码后超过 128 MB，请先压缩"
+msgstr "The GIF exceeds 256 frames or 128 MB decoded. Compress it first."
+
+msgid "GIF LZW 数据无效或被截断"
+msgstr "Invalid or truncated GIF LZW data"
+
+msgid "GIF 调色板索引越界"
+msgstr "The GIF palette index is out of bounds"
+
+msgid "GIF 文件不完整或没有图像帧"
+msgstr "The GIF is incomplete or contains no frames"
+
+msgid "OBJ 无法读取或超过 256 MB"
+msgstr "The OBJ could not be read or exceeds 256 MB"
+
+msgid "OBJ 顶点格式无效"
+msgstr "Invalid OBJ vertex format"
+
+msgid "OBJ 包含无效坐标"
+msgstr "The OBJ contains invalid coordinates"
+
+msgid "MTL 必须位于模型目录内"
+msgstr "The MTL must be inside the model folder"
+
+msgid "OBJ 面顶点数量无效（3–512）"
+msgstr "Invalid OBJ face vertex count (3–512)"
+
+msgid "OBJ 索引越界"
+msgstr "An OBJ index is out of bounds"
+
+msgid "OBJ 含无法三角化的面"
+msgstr "The OBJ has a face that cannot be triangulated"
+
+msgid "OBJ 超过一百万顶点或三角面，请先简化"
+msgstr "The OBJ exceeds one million vertices or triangles. Simplify it first."
+
+msgid "OBJ 没有可显示的面"
+msgstr "The OBJ contains no visible faces"
+
+msgid "MTL 缺失或超过 1 MB"
+msgstr "The MTL is missing or exceeds 1 MB"
+
+msgid "OBJ 贴图必须位于 MTL 目录内；暂不支持 map_Kd 命令选项"
+msgstr "OBJ textures must be inside the MTL folder. map_Kd command options are not supported."
+
+msgid "无法读取 OBJ 贴图或贴图尺寸超过 8192"
+msgstr "An OBJ texture could not be read or exceeds 8192 pixels"
+
+msgid ": 外观 ID 重复"
+msgstr ": Duplicate skin ID"
+
+msgid "缺少 skin.json"
+msgstr "Missing skin.json"
+
+msgid "清单超过 64 KB"
+msgstr "The manifest exceeds 64 KB"
+
+msgid "清单必须为 JSON 对象"
+msgstr "The manifest must be a JSON object"
+
+msgid "仅支持 schema_version: 1"
+msgstr "Only schema_version: 1 is supported"
+
+msgid " 必须是非空字符串"
+msgstr " must be a non-empty string"
+
+msgid "id 仅允许小写字母、数字、点、横线、下划线，最长 80 字符"
+msgstr "The ID must be at most 80 characters: lowercase letters, numbers, dots, hyphens or underscores"
+
+msgid "type 必须为 sprite 或 model3d"
+msgstr "type must be sprite or model3d"
+
+msgid "procedural 仅供内置演示使用"
+msgstr "procedural is reserved for built-in demos"
+
+msgid "animations 必须为对象"
+msgstr "animations must be an object"
+
+msgid "动画映射值必须是字符串"
+msgstr "Animation mappings must be strings"
+
+msgid "asset 必须为包内相对路径，不允许 .. 或绝对路径"
+msgstr "asset must be a relative path inside the pack; .. and absolute paths are not allowed"
+
+msgid "不支持的外观资源格式"
+msgstr "Unsupported skin asset format"
+
+msgid "找不到资源: "
+msgstr "Asset not found: "
+
+msgid "资源超过 256 MB"
+msgstr "The asset exceeds 256 MB"
+
+msgid "rotation_degrees 必须为三个数"
+msgstr "rotation_degrees must contain three numbers"
+
+msgid "rotation_degrees 必须为有限数值"
+msgstr "rotation_degrees must contain finite numbers"
+
+msgid "不支持此文件格式。Live2D / Spine 专用工程暂需导出为精灵图或 GIF。"
+msgstr "Unsupported format. Export Live2D / Spine projects as sprite sheets or GIFs first."
+
+msgid "无法读取文件或文件超过 256 MB"
+msgstr "The file could not be read or exceeds 256 MB"
+
+msgid "外观 ID 已存在，请修改 ID 后导入"
+msgstr "This skin ID already exists. Change the ID before importing."
+
+msgid "目标文件夹已存在，请在外观目录检查同名包"
+msgstr "The destination folder already exists. Check for a pack with the same name."
+
+msgid "profile 必须为 auto、blob、character 或 flat"
+msgstr "profile must be auto, blob, character or flat"
+
+msgid "flip_with_direction 必须为布尔值"
+msgstr "flip_with_direction must be a boolean"
+
+msgid "grid 必须为 [列数, 行数]"
+msgstr "grid must be [columns, rows]"
+
+msgid "精灵网格必须为 1–256 的整数"
+msgstr "Sprite grid dimensions must be integers from 1 to 256"
+
+msgid "精灵网格最多 256 帧"
+msgstr "A sprite grid may contain at most 256 frames"
+
+msgid "frames 需要 1–256 个相对图片路径"
+msgstr "frames requires 1–256 relative image paths"
+
+msgid "序列帧必须使用包内相对图片路径"
+msgstr "Image sequence paths must be relative to the pack"
+
+msgid "clips 必须为动作定义对象（最多 128 个）"
+msgstr "clips must be an action definition object (at most 128 entries)"
+
+msgid "每个 2D 动作需要 frames 整数索引列表"
+msgstr "Each 2D action requires a frames list of integer indices"
+
+msgid "2D 帧索引必须为 0–255 的整数"
+msgstr "2D frame indices must be integers from 0 to 255"
+
+msgid "2D 动作 fps 需要在 0–120 之间"
+msgstr "2D animation fps must be between 0 and 120"
+
+msgid "loop 必须为布尔值"
+msgstr "loop must be a boolean"
+
+msgid "durations 必须与动作帧数一致"
+msgstr "durations must match the number of animation frames"
+
+msgid "帧时长必须为 0–60 秒之间的有限数"
+msgstr "Frame durations must be finite values from 0 to 60 seconds"
+
+msgid "physics 需要对象，soft_bodies 最多 8 个软体部件"
+msgstr "physics must be an object; soft_bodies supports at most 8 parts"
+
+msgid "软体部件需要对象"
+msgstr "A soft-body part must be an object"
+
+msgid "软体 %s 需要模型内部名称或相对节点路径"
+msgstr "Soft-body %s requires an internal model name or relative node path"
+
+msgid "软体 node 必须为不重复的模型内部路径"
+msgstr "Soft-body node paths must be unique and inside the model"
+
+msgid "软体 anchors 最多 32 个承托节点"
+msgstr "Soft-body anchors supports at most 32 support nodes"
+
+msgid "软体 anchors 需要模型内部名称或相对节点路径"
+msgstr "Soft-body anchors requires internal names or relative node paths"
+
+msgid "软体 axis 需要三个有限数值"
+msgstr "Soft-body axis requires three finite numbers"
+
+msgid "软体 axis 需要非零的水平向量（模型局部 Y 向上）"
+msgstr "Soft-body axis must be a nonzero horizontal vector (model-local Y is up)"
+
+msgid "软体 sections 需要 4–48 的整数"
+msgstr "Soft-body sections must be an integer from 4 to 48"
+
+msgid "软体缺少 %s"
+msgstr "Soft-body is missing %s"
+
+msgid "软体 %s 超出允许范围"
+msgstr "Soft-body %s is outside the allowed range"
+
+msgid "软体 floor_height 不能高于 support_height"
+msgstr "Soft-body floor_height must not exceed support_height"
+
+msgid "内置 GLB 场景读取失败"
+msgstr "Could not read the built-in GLB scene"
+
+msgid "GLB 未生成有效的 3D 场景"
+msgstr "The GLB did not produce a valid 3D scene"
+
+msgid "GLB 缺少有效网格尺寸"
+msgstr "The GLB has no valid mesh bounds"
+
+msgid "序列帧无法读取或尺寸超过 8192："
+msgstr "An image frame could not be read or exceeds 8192 pixels: "
+
+msgid "图片无法读取、内容为空或尺寸超过 8192 × 8192"
+msgstr "The image could not be read, is empty or exceeds 8192 × 8192"
+
+msgid "精灵图尺寸必须能被网格列数和行数整除"
+msgstr "Sprite sheet dimensions must be divisible by the grid's columns and rows"
+
+msgid "需要 1–256 张图片帧"
+msgstr "Between 1 and 256 image frames are required"
+
+msgid "序列帧为空或解码后超过 128 MB"
+msgstr "The image sequence is empty or exceeds 128 MB decoded"
+
+msgid "动作 %s 的帧索引超出图片范围"
+msgstr "The frame index for action %s is outside the image range"
+
+msgid "行为"
+msgstr "Behavior"
+
+msgid "显示"
+msgstr "Display"
+
+msgid "语言"
+msgstr "Language"
+
+msgid "退出"
+msgstr "Quit"
+
+msgid "大小"
+msgstr "Size"
+
+msgid "屏幕"
+msgstr "Monitor"
+
+msgid "当前状态"
+msgstr "Current state"
+
+msgid "自由走动"
+msgstr "Free roaming"
+
+msgid "始终置顶"
+msgstr "Always on top"
+
+msgid "调整大小"
+msgstr "Resize"
+
+msgid "完成"
+msgstr "Done"
+
+msgid "不限"
+msgstr "Unlimited"
+
+msgid "保存"
+msgstr "Save"
+
+msgid "龙泡泡"
+msgstr "Dragon Bubble"
+
+msgid "导入外观"
+msgstr "Import appearance"
+
+msgid "打开外观目录"
+msgstr "Open appearance folder"
+
+msgid "移动到屏幕"
+msgstr "Move to monitor"
+
+msgid "模型朝向"
+msgstr "Model orientation"
+
+msgid "重置适配"
+msgstr "Reset adaptation"
+
+msgid "随方向翻转"
+msgstr "Flip with direction"
+
+msgid "Blender 路径"
+msgstr "Blender path"
+
+msgid "渲染分辨率"
+msgstr "Render resolution"
+
+msgid "环境遮蔽"
+msgstr "Ambient occlusion"
+
+msgid "环境遮蔽开启时使用 TAA 平滑边缘。"
+msgstr "TAA smooths edges while ambient occlusion is enabled."
+
+msgid "隐藏窗口"
+msgstr "Hide window"
+
+msgid "预览仅在设置窗口可见时更新。"
+msgstr "Preview updates only while the settings window is visible."
+
+msgid "点击：摸摸回应"
+msgstr "Click: pet your companion"
+
+msgid "拖动：提起桌宠"
+msgstr "Drag: pick up your companion"
+
+msgid "松手：惯性抛掷、重力与落地反弹"
+msgstr "Release: throw, fall and bounce"
+
+msgid "右键：打开快捷菜单"
+msgstr "Right-click: open quick menu"
+
+msgid "关闭设置窗口后，桌宠继续在托盘运行。"
+msgstr "Your companion keeps running after closing settings."
+
+msgid "支持 GLB、glTF、VRM、FBX、OBJ、Blender、STL、PLY 和图片外观。"
+msgstr "Supports GLB, glTF, VRM, FBX, OBJ, Blender, STL, PLY and images."
+
+msgid "正在导入外观…"
+msgstr "Importing appearance…"
+
+msgid "正在导入外观，完成后自动退出。"
+msgstr "Importing appearance; the app will quit when finished."
+
+msgid "模型中没有场景"
+msgstr "The model contains no scene"
+
+msgid "模型缺少有效网格尺寸"
+msgstr "The model has no valid mesh bounds"
+
+msgid "省电"
+msgstr "Power saving"
+
+msgid "高画质"
+msgstr "High quality"
+
+msgid "均衡"
+msgstr "Balanced"
+
+msgid "动作类型"
+msgstr "Motion profile"
+
+msgid "找不到外观："
+msgstr "Appearance not found: "
+
+msgid "模型加载失败："
+msgstr "Model loading failed: "
+
+msgid "为桌面选择一位伙伴"
+msgstr "Choose a companion for your desktop"
+
+msgid "让每一次互动都有回应"
+msgstr "Bring every interaction to life"
+
+msgid "适合你的桌面与屏幕"
+msgstr "Make it fit your desktop"
+
+msgid "预览动作，适配你的模型"
+msgstr "Preview animations and adapt your model"
+
+msgid "平衡清晰度、流畅度与功耗"
+msgstr "Balance detail, smoothness and power use"
+
+msgid "更高的分辨率呈现更多细节，也会增加显卡负载。"
+msgstr "Higher resolution adds detail and increases GPU usage."
+
+msgid "其他"
+msgstr "Other"
+
+msgid "语言、更新与应用信息"
+msgstr "Language, updates and app information"
+
+msgid "清除"
+msgstr "Clear"
+
+msgid "搜索结果"
+msgstr "Search results"
+
+msgid "选择结果以打开对应的设置页面"
+msgstr "Choose a result to open its settings page"
+
+msgid "未找到相关设置"
+msgstr "No matching settings"
+
+msgid "试试其他关键词，例如语言、更新、帧率或外观。"
+msgstr "Try language, updates, frame rate or appearance."
+
+msgid "打开"
+msgstr "Open"
+
+msgid "点击外观即可切换，设置会自动保存。"
+msgstr "Choose an appearance. Changes are saved automatically."
+
+msgid "管理外观"
+msgstr "Manage appearances"
+
+msgid "选择文件"
+msgstr "Choose a file"
+
+msgid "查看和管理已导入的外观文件"
+msgstr "View and manage imported appearances"
+
+msgid "打开目录"
+msgstr "Open folder"
+
+msgid "允许桌宠在屏幕上散步、奔跑和休息"
+msgstr "Let your companion walk, run and rest on your screen"
+
+msgid "桌宠会根据互动和时间自然切换状态"
+msgstr "Your companion responds to interaction and time"
+
+msgid "互动指南"
+msgstr "Interaction guide"
+
+msgid "点击"
+msgstr "Click"
+
+msgid "拖动"
+msgstr "Drag"
+
+msgid "松手"
+msgstr "Release"
+
+msgid "右键"
+msgstr "Right-click"
+
+msgid "让桌宠显示在其他普通窗口上方"
+msgstr "Keep your companion above other windows"
+
+msgid "按桌面比例调整，拖动滑条即时预览"
+msgstr "Drag the slider to preview the size immediately"
+
+msgid "屏幕与位置"
+msgstr "Screens and position"
+
+msgid "移动到此屏幕"
+msgstr "Move here"
+
+msgid "将桌宠找回到当前可用的屏幕内"
+msgstr "Bring your companion back onto an available screen"
+
+msgid "重置"
+msgstr "Reset"
+
+msgid "动作预览"
+msgstr "Animation preview"
+
+msgid "选择状态以查看对应动作"
+msgstr "Choose a state to preview its animation"
+
+msgid "模型适配"
+msgstr "Model setup"
+
+msgid "未映射的状态使用对应风格的通用动作"
+msgstr "Unmapped states use animations for the selected style"
+
+msgid "调整模型三个坐标轴的旋转角度"
+msgstr "Adjust the model rotation on each axis"
+
+msgid "平面外观跟随移动方向左右翻转"
+msgstr "Flip flat appearances to face the direction of travel"
+
+msgid "状态动作映射"
+msgstr "State animation mapping"
+
+msgid "恢复当前外观的默认动作与朝向"
+msgstr "Restore default animations and orientation"
+
+msgid "用于导入 Blender、STL 与 PLY 模型，可按需配置"
+msgstr "Optional converter for Blender, STL and PLY models"
+
+msgid "画质方案"
+msgstr "Graphics preset"
+
+msgid "快速选择适合你的性能与功耗方案"
+msgstr "Choose a balance of quality, performance and power"
+
+msgid "渲染与流畅度"
+msgstr "Rendering and motion"
+
+msgid "更高的帧率带来更流畅的动作，也会增加功耗。"
+msgstr "Higher frame rates make motion smoother and use more power."
+
+msgid "图像质量"
+msgstr "Image quality"
+
+msgid "平滑模型轮廓，减少边缘锯齿与闪烁"
+msgstr "Smooth outlines and reduce jagged edges and shimmer"
+
+msgid "调整模型细节与阴影质量"
+msgstr "Adjust model detail and shadow quality"
+
+msgid "增强接触部位的阴影与立体感"
+msgstr "Add depth and shading where surfaces meet"
+
+msgid "让呈现节奏与显示器刷新同步"
+msgstr "Synchronize presentation with the display refresh"
+
+msgid "常规"
+msgstr "General"
+
+msgid "设置、托盘与菜单的显示语言，切换后立即生效"
+msgstr "Display language for settings, tray and menus. Applies immediately."
+
+msgid "应用更新"
+msgstr "App updates"
+
+msgid "检查更新"
+msgstr "Check for updates"
+
+msgid "当前版本"
+msgstr "Current version"
+
+msgid "正在检查更新…"
+msgstr "Checking for updates…"
+
+msgid "当前已是最新版本"
+msgstr "You are up to date"
+
+msgid "发现新版本：{}"
+msgstr "New version available: {}"
+
+msgid "项目尚未发布公开版本，可前往发布页面查看。"
+msgstr "No public release is available yet. Visit the releases page for details."
+
+msgid "更新服务暂时受限，请稍后重试或查看发布页面。"
+msgstr "The update service is temporarily limited. Try again later or visit releases."
+
+msgid "无法检查更新，请检查网络连接后重试。"
+msgstr "Could not check for updates. Check your connection and try again."
+
+msgid "检查 GitHub 上发布的最新正式版本"
+msgstr "Check the latest stable release on GitHub"
+
+msgid "刚刚检查"
+msgstr "Just checked"
+
+msgid "上次检查：{} 分钟前"
+msgstr "Last checked: {} minutes ago"
+
+msgid "前往发布页面"
+msgstr "View releases"
+
+msgid "关于"
+msgstr "About"
+
+msgid "陪伴在桌面上的小小伙伴"
+msgstr "A little companion for your desktop"
+
+msgid "版本"
+msgstr "Version"
+
+msgid "作者"
+msgstr "Author"
+
+msgid "许可证"
+msgstr "License"
+
+msgid "项目主页"
+msgstr "Project home"
+
+msgid "反馈问题"
+msgstr "Report an issue"
+
+msgid "唤醒"
+msgstr "Wake up"
+
+msgid "一键睡觉"
+msgstr "Sleep now"
+
+msgid "一键睡觉后持续休息，点击、拖动或唤醒即可结束"
+msgstr "Keep sleeping until clicked, dragged, or woken up"
+
+msgid "桌面窗口捕捉"
+msgstr "Stand on windows"
+
+msgid "落在可见窗口顶边；窗口关闭或最小化后自然下落"
+msgstr "Land on visible window tops; fall when a window closes or minimizes"
+
+msgid "待机原地转圈"
+msgstr "Idle twirl"
+
+msgid "待机时偶尔转一圈，保持原地站立"
+msgstr "Occasionally turn around in place while idle"
+
+msgid "动作时间"
+msgstr "Activity timing"
+
+msgid "各动作持续时间（秒），自动活动有少量随机变化"
+msgstr "Duration in seconds, with slight variation during autonomous activity"
+
+msgid "待机间隔"
+msgstr "Idle interval"
+
+msgid "走路时长"
+msgstr "Walking duration"
+
+msgid "跑步时长"
+msgstr "Running duration"
+
+msgid "自动睡眠时长"
+msgstr "Automatic sleep duration"
+
+msgid "转圈间隔"
+msgstr "Twirl interval"
+
+msgid "恢复默认动作时间"
+msgstr "Reset activity timing"
+
+msgid "查看此版本"
+msgstr "View this release"
+
+msgid "下载 Windows 版本"
+msgstr "Download for Windows"
+
+msgid "更新说明"
+msgstr "Release notes"
+
+msgid "GitHub 项目"
+msgstr "GitHub project"
+
+msgid "鼠标悬停在桌宠上滚动滚轮，或拖动滑条调整"
+msgstr "Hover over the pet and scroll the wheel, or drag the slider"
+
+msgid "低"
+msgstr "Low"
+
+msgid "中"
+msgstr "Medium"
+
+msgid "高"
+msgstr "High"
+
+msgid "超高"
+msgstr "Ultra"
+
+msgid "极致"
+msgstr "Extreme"
+
+msgid "开机自启"
+msgstr "Launch at login"
+
+msgid "登录电脑后自动启动龙泡泡"
+msgstr "Start Dragon Bubble automatically when you sign in"
+
+msgid "开机自启设置失败"
+msgstr "Could not change launch at login"

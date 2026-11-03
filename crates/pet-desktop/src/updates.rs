@@ -4,9 +4,8 @@ use std::time::Duration;
 
 pub const PROJECT_URL: &str = "https://github.com/MajoIreina/dragon-bubble";
 pub const RELEASES_URL: &str = "https://github.com/MajoIreina/dragon-bubble/releases";
-/// Public release label. Cargo uses a SemVer prerelease internally; the
-/// project publishes the compact patch suffix used by its GitHub tag.
-pub const VERSION: &str = "0.1.2a";
+/// The workspace package version is the release label on both platforms.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Debug, PartialEq)]
 pub struct Release {
     pub version: String,
@@ -195,7 +194,7 @@ mod tests {
             Some(Outcome::Current)
         );
         assert_eq!(
-            classify_release(&release("v0.1.2b"), VERSION),
+            classify_release(&release("v0.1.2b"), "0.1.2a"),
             Some(Outcome::Available(Release {
                 version: "0.1.2b".into(),
                 url: RELEASES_URL.into(),

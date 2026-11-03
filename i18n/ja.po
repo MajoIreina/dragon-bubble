@@ -1228,3 +1228,27 @@ msgstr "GitHub プロジェクト"
 
 msgid "鼠标悬停在桌宠上滚动滚轮，或拖动滑条调整"
 msgstr "ペットの上でホイールを回すか、スライダーで調整"
+
+msgid "低"
+msgstr "低"
+
+msgid "中"
+msgstr "中"
+
+msgid "高"
+msgstr "高"
+
+msgid "超高"
+msgstr "超高"
+
+msgid "极致"
+msgstr "最高"
+
+msgid "开机自启"
+msgstr "ログイン時に起動"
+
+msgid "登录电脑后自动启动龙泡泡"
+msgstr "ログイン時に龍泡泡を自動的に起動します"
+
+msgid "开机自启设置失败"
+msgstr "ログイン時の起動設定を変更できませんでした"

@@ -8,17 +8,17 @@
 
 博士处理文书的时候，她也有自己的小日常。轻轻点一下，看看这次是开心笑眼、惊讶，还是一个俏皮的单眼表情；提起来挪个位置，四只脚和尾巴也会跟着晃动。
 
-**当前版本：v0.1.2a · Windows x64 · Rust / Vulkan**
+**Rust 双平台版 · Windows x64 / macOS Apple Silicon**
 
-[接黍泡泡回桌面](https://github.com/MajoIreina/dragon-bubble/releases/tag/v0.1.2a) · [本次更新记录](docs/releases/v0.1.2a.md) · [向工程部反馈问题](https://github.com/MajoIreina/dragon-bubble/issues)
+[接黍泡泡回桌面](https://github.com/MajoIreina/dragon-bubble/releases/latest) · [更新记录](https://github.com/MajoIreina/dragon-bubble/releases) · [向工程部反馈问题](https://github.com/MajoIreina/dragon-bubble/issues)
 
 ## 终端接入 · 下载与启动
 
-1. 前往 [Releases](https://github.com/MajoIreina/dragon-bubble/releases/tag/v0.1.2a)，下载 `dragon-bubble-v0.1.2a-windows-x64.zip`。
-2. 完整解压，运行 `My Dragon Bubble.exe`，保留包内许可证及辅助资源。
+1. 前往 [Releases](https://github.com/MajoIreina/dragon-bubble/releases/latest)，按系统下载同一版本的 `windows-x64.zip` 或 `macos-arm64.zip`，可使用 `SHA256SUMS.txt` 校验。
+2. Windows 完整解压后运行 `My Dragon Bubble.exe`；macOS 解压后将 `My Dragon Bubble.app` 放入应用程序目录。
 3. 右键黍泡泡或系统托盘图标，即可打开设置，安排她的桌面日常。
 
-运行环境为 **Windows x64**，显卡及驱动需要支持 **Vulkan**。升级时先从托盘退出旧版，再将新版解压到独立目录；已有设置继续保留。
+Windows 版需要 **Windows x64** 与支持 **Vulkan** 的显卡及驱动；macOS 版需要 **macOS 11 或更新版本、Apple Silicon 与 Metal**。升级时先从托盘退出旧版，再将新版解压到独立目录；已有设置继续保留。
 
 **黍泡泡模型、贴图和外观清单已内嵌 EXE**，运行无需外置 `skins/shu/`。当前发行包仅保留黍泡泡，自定义外观可在设置中导入。
 
@@ -52,7 +52,7 @@
 
 ## 工程部档案 · 本地开发
 
-当前默认开发版本为 **Rust Windows**，使用 Bevy 0.17 / wgpu Vulkan、egui、Win32 透明窗口和系统托盘，运行与构建不再依赖 Godot。
+当前以 Rust 同步开发 Windows 与 macOS。Windows 使用 Bevy 0.17 / wgpu Vulkan、egui、Win32 透明窗口和系统托盘；macOS 使用 Metal 与 AppKit。运行与构建不依赖 Godot。
 
 开发需要 Rust stable MSVC（至少 1.88）、Visual Studio C++ Build Tools，以及支持 Vulkan 的显卡驱动。
 
@@ -88,7 +88,7 @@ cargo test --locked --workspace
 | `archives/` | 本地统一归档，Git 忽略；见 [归档说明](docs/archive.md) |
 | `target/`、`work/`、`outputs/` | Cargo 缓存、当前临时验证和当前产物，Git 忽略 |
 
-macOS 独立移植工作保留在本地 `macos/`，其工作流和源码由 `codex/macos-app-build-20261103` 分支单独维护。
+macOS Rust / Metal 源码位于 `macos/`，与 Windows 从同一仓库、同一提交同步发版。版本自动管理与双平台发布要求见 [发版规则](docs/releasing.md)。
 
 ### 出勤检查 · 验证与发布
 

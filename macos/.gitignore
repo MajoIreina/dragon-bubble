@@ -1,0 +1,12 @@
+/target/
+/outputs/
+/work/
+/skins/
+.DS_Store
+*.log
+
+# These modules are shared from the root workspace through explicit #[path].
+/crates/pet-desktop/src/ui.rs
+/crates/pet-desktop/src/ui/
+/crates/pet-desktop/src/menu_font.rs
+/crates/pet-core/src/preferences.rs

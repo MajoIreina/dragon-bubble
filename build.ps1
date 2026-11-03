@@ -1,6 +1,8 @@
 param([switch]$SkipTests, [switch]$WithoutBundledModel)
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
+& python tools/release.py check
+if ($LASTEXITCODE -ne 0) { throw 'Version consistency check failed' }
 $featureArgs = @()
 if (-not $WithoutBundledModel) {
     if (-not (Test-Path -LiteralPath 'skins/shu/shu.glb')) {

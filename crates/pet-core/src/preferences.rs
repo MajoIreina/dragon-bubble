@@ -27,6 +27,22 @@ impl Default for RenderOptions {
     }
 }
 impl RenderOptions {
+    pub const LEVELS: [&'static str; 5] = ["低", "中", "高", "超高", "极致"];
+    pub const RESOLUTIONS: [u32; 5] = [256, 512, 768, 1024, 1536];
+
+    /// Existing custom resolutions remain valid; show their closest named level.
+    pub fn resolution_level(&self) -> usize {
+        Self::RESOLUTIONS
+            .iter()
+            .enumerate()
+            .min_by_key(|(_, value)| value.abs_diff(self.resolution))
+            .map_or(1, |(index, _)| index)
+    }
+
+    pub fn shadow_map_size(&self) -> usize {
+        [512, 512, 1024, 2048, 4096][self.quality.min(4) as usize]
+    }
+
     pub fn from_value(v: &Value) -> Self {
         let mut d = Self::default();
         if let Some(n) = v["resolution"].as_f64()
@@ -42,7 +58,7 @@ impl RenderOptions {
             d.fps = n as u32
         }
         if let Some(n) = v["quality"].as_f64()
-            && [0., 1., 2.].contains(&n)
+            && [0., 1., 2., 3., 4.].contains(&n)
         {
             d.quality = n as u8
         }
@@ -69,8 +85,21 @@ impl RenderOptions {
                 ..Self::default()
             },
             "high" => Self {
-                resolution: 1024,
+                resolution: 768,
                 quality: 2,
+                ao: true,
+                ..Self::default()
+            },
+            "ultra" => Self {
+                resolution: 1024,
+                quality: 3,
+                ao: true,
+                ..Self::default()
+            },
+            "extreme" => Self {
+                resolution: 1536,
+                quality: 4,
+                aa: "msaa8".into(),
                 ao: true,
                 ..Self::default()
             },
@@ -84,6 +113,8 @@ pub struct Preferences {
     pub appearance_revision: u32,
     pub zoom: f32,
     pub roaming: bool,
+    #[serde(default)]
+    pub autostart: bool,
     pub always_on_top: bool,
     pub locale: String,
     pub position: [i32; 2],
@@ -98,6 +129,7 @@ impl Default for Preferences {
             appearance_revision: 1,
             zoom: 1.,
             roaming: true,
+            autostart: false,
             always_on_top: true,
             locale: "zh_CN".into(),
             position: [-99999, -99999],
@@ -116,6 +148,12 @@ pub fn zoom(v: f32) -> f32 {
 pub fn user_dir() -> PathBuf {
     if let Some(p) = std::env::var_os("LPP_DATA_DIR") {
         return p.into();
+    }
+    if cfg!(target_os = "macos") {
+        return std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("Library/Application Support/LPPDesktopPet");
     }
     std::env::var_os("APPDATA")
         .map(PathBuf::from)
@@ -156,6 +194,7 @@ impl Preferences {
         if let Some(b) = v["always_on_top"].as_bool() {
             p.always_on_top = b
         }
+        p.autostart = v["autostart"].as_bool().unwrap_or(false);
         p.locale = crate::i18n::normalize(v["locale"].as_str().unwrap_or("zh_CN"));
         p.performance = RenderOptions::from_value(&v["performance"]);
         p.behavior = crate::behavior::BehaviorOptions::from_value(&v["behavior"]);

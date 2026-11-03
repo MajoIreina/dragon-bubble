@@ -1,3 +1,6 @@
+#[path = "ui/icons.rs"]
+mod icons;
+#[path = "ui/pages.rs"]
 mod pages;
 use pages::*;
 
@@ -45,7 +48,12 @@ impl UiState {
         });
     }
 }
-pub fn setup(mut commands: Commands, mut settings: ResMut<EguiGlobalSettings>, rt: Res<Runtime>) {
+pub fn setup(
+    mut commands: Commands,
+    mut settings: ResMut<EguiGlobalSettings>,
+    rt: Res<Runtime>,
+    #[cfg(target_os = "macos")] _main_thread: bevy::ecs::system::NonSendMarker,
+) {
     settings.auto_create_primary_context = false;
     let window = commands
         .spawn((
@@ -114,6 +122,7 @@ pub fn draw(
     mut textures: ResMut<EguiUserTextures>,
     avatars: Query<&Avatar>,
     mut state: Local<UiState>,
+    #[cfg(target_os = "macos")] _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
     if rt.check_updates_requested {
         rt.check_updates_requested = false;
@@ -179,40 +188,7 @@ pub fn draw(
     let ctx = context.get_mut();
     if !state.font_loaded {
         state.font_loaded = true;
-        let mut fonts = egui::FontDefinitions::default();
-        let mut system_fonts = Vec::new();
-        for file in [
-            "C:/Windows/Fonts/msyh.ttc",
-            "C:/Windows/Fonts/segoeui.ttf",
-            "C:/Windows/Fonts/YuGothM.ttc",
-            "C:/Windows/Fonts/simhei.ttf",
-        ] {
-            if let Ok(bytes) = std::fs::read(file) {
-                fonts.font_data.insert(
-                    file.into(),
-                    std::sync::Arc::new(egui::FontData::from_owned(bytes)),
-                );
-                system_fonts.push(file.to_string());
-            }
-        }
-        fonts
-            .families
-            .entry(egui::FontFamily::Proportional)
-            .or_default()
-            .splice(0..0, system_fonts);
-        let mut bold = fonts.families[&egui::FontFamily::Proportional].clone();
-        if let Ok(bytes) = std::fs::read("C:/Windows/Fonts/msyhbd.ttc") {
-            fonts.font_data.insert(
-                "yahei-bold".into(),
-                std::sync::Arc::new(egui::FontData::from_owned(bytes)),
-            );
-            bold.insert(0, "yahei-bold".into());
-        }
-        fonts
-            .families
-            .insert(egui::FontFamily::Name("YaHeiBold".into()), bold);
-        ctx.set_fonts(fonts);
-        apply_theme(ctx, crate::platform::prefers_dark_theme());
+        configure_context(ctx);
         if let Ok(logo) = image::load_from_memory(include_bytes!("../../../assets/tray.ico")) {
             let logo = logo.to_rgba8();
             state.logo = Some(ctx.load_texture(
@@ -474,7 +450,7 @@ fn search_pages(query: &str, locale: &str) -> Vec<usize> {
         "window scale monitor display top 显示 大小 置顶 屏幕 位置 画面",
         "animation mapping converter blender 动作 适配 转换 朝向 翻转 アニメーション",
         "fps aa taa resolution quality performance vsync 性能 画质 帧率 分辨率 抗锯齿 同步 環境遮蔽",
-        "other language update about version その他 言語 更新 バージョン 其他 语言 关于 版本 简体中文 english 日本語",
+        "other autostart startup login language update about version その他 言語 更新 バージョン 其他 开机 自启 启动 登录 语言 关于 版本 简体中文 english 日本語",
     ];
     (0..PAGES.len())
         .filter(|&i| {
@@ -490,7 +466,7 @@ fn search_pages(query: &str, locale: &str) -> Vec<usize> {
         })
         .collect()
 }
-fn apply_theme(ctx: &egui::Context, dark: bool) {
+pub(crate) fn apply_theme(ctx: &egui::Context, dark: bool) {
     let mut style = (*ctx.style()).clone();
     style.visuals = if dark {
         egui::Visuals::dark()
@@ -751,11 +727,13 @@ fn navigation_item(ui: &mut egui::Ui, index: usize, selected: bool, label: &str)
             ui.visuals().hyperlink_color,
         );
     }
-    ui.painter().text(
-        egui::pos2(rect.left() + 24., rect.center().y),
-        egui::Align2::CENTER_CENTER,
-        ICONS[index],
-        egui::FontId::proportional(21.),
+    icons::paint(
+        ui.painter(),
+        egui::Rect::from_center_size(
+            egui::pos2(rect.left() + 24., rect.center().y),
+            egui::vec2(24., 24.),
+        ),
+        index,
         ui.visuals().hyperlink_color,
     );
     ui.painter().text(
@@ -777,7 +755,11 @@ fn open_picker(state: &mut UiState, converter: bool) {
     std::thread::spawn(move || {
         let dialog = rfd::FileDialog::new();
         let path = if converter {
-            dialog.add_filter("Blender", &["exe"]).pick_file()
+            if cfg!(target_os = "macos") {
+                dialog.set_directory("/Applications").pick_file()
+            } else {
+                dialog.add_filter("Blender", &["exe"]).pick_file()
+            }
         } else {
             dialog
                 .add_filter(
@@ -791,6 +773,46 @@ fn open_picker(state: &mut UiState, converter: bool) {
         };
         let _ = send.send((converter, path));
     });
+}
+
+pub(crate) fn configure_context(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+    let mut system_fonts = Vec::new();
+    for file in [
+        "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+        "/System/Library/Fonts/PingFang.ttc",
+        "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+        "C:/Windows/Fonts/msyh.ttc",
+        "C:/Windows/Fonts/segoeui.ttf",
+        "C:/Windows/Fonts/YuGothM.ttc",
+        "C:/Windows/Fonts/simhei.ttf",
+    ] {
+        if let Ok(bytes) = std::fs::read(file) {
+            fonts.font_data.insert(
+                file.into(),
+                std::sync::Arc::new(egui::FontData::from_owned(bytes)),
+            );
+            system_fonts.push(file.to_string());
+        }
+    }
+    fonts
+        .families
+        .entry(egui::FontFamily::Proportional)
+        .or_default()
+        .splice(0..0, system_fonts);
+    let mut bold = fonts.families[&egui::FontFamily::Proportional].clone();
+    if let Ok(bytes) = std::fs::read("C:/Windows/Fonts/msyhbd.ttc") {
+        fonts.font_data.insert(
+            "yahei-bold".into(),
+            std::sync::Arc::new(egui::FontData::from_owned(bytes)),
+        );
+        bold.insert(0, "yahei-bold".into());
+    }
+    fonts
+        .families
+        .insert(egui::FontFamily::Name("YaHeiBold".into()), bold);
+    ctx.set_fonts(fonts);
+    apply_theme(ctx, crate::platform::prefers_dark_theme());
 }
 
 #[cfg(test)]
