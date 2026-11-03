@@ -720,7 +720,7 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
                 ui.horizontal_wrapped(|ui| {
                     ui.hyperlink_to(tr("查看此版本"), &release.url);
                     if let Some(url) = &release.download {
-                        ui.hyperlink_to(tr("下载 Windows 版本"), url);
+                        ui.hyperlink_to(tr("下载 macOS 版本"), url);
                     }
                 });
                 if !release.notes.is_empty() {

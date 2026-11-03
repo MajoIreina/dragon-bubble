@@ -42,7 +42,7 @@ jobs:
           cargo fmt --all -- --check
           cargo clippy --locked --workspace --all-targets --features embedded-shu -- -D warnings
       - name: Regression tests
-        run: cargo test --locked --workspace --features embedded-shu
+        run: cargo test --locked --release --target aarch64-apple-darwin --workspace --features embedded-shu
       - name: Build and sign app
         run: bash build.sh --skip-checks --skip-tests --target aarch64-apple-darwin
       - name: Launch packaged app and verify Metal rendering

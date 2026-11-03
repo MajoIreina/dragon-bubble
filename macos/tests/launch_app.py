@@ -25,7 +25,9 @@ def main():
     executable = app / "Contents/MacOS/dragon-bubble"
     run(["codesign", "--verify", "--deep", "--strict", str(app)])
     with (app / "Contents/Info.plist").open("rb") as stream:
-        assert plistlib.load(stream)["CFBundleShortVersionString"] == "0.1.2a"
+        info = plistlib.load(stream)
+        assert info["CFBundleShortVersionString"] == "0.1.2"
+        assert info["LPPReleaseVersion"] == "0.1.2a"
     assert not list(app.rglob("*.glb")), "Shu must be embedded, not a separate model"
     results = []
     for mode in ["direct", "finder"]:
