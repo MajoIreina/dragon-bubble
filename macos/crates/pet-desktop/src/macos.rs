@@ -118,6 +118,13 @@ pub fn prefers_dark_theme() -> bool {
 
 /// Quartz reports window bounds in global logical points, top-left origin.
 /// Read geometry only; no screen capture, window titles, or accessibility hooks.
+fn desktop_window_layer(layer: i64) -> bool {
+    // Dock (20), Notification Center (23), and menu-bar (24) windows can have
+    // full-screen bounds even while visually transparent. They must not hide
+    // normal window tops. Keep ordinary and floating application windows.
+    (0..20).contains(&layer)
+}
+
 pub fn visible_windows() -> Vec<(isize, Rect, bool)> {
     use core_foundation::{
         base::{CFType, TCFType},
@@ -167,6 +174,9 @@ pub fn visible_windows() -> Vec<(isize, Rect, bool)> {
                 return None;
             }
             let layer = number(&entry, "kCGWindowLayer")?;
+            if !desktop_window_layer(layer) {
+                return None;
+            }
             let id = number(&entry, "kCGWindowNumber")? as isize;
             Some((
                 id,
@@ -180,4 +190,19 @@ pub fn visible_windows() -> Vec<(isize, Rect, bool)> {
             ))
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn system_overlay_bounds_do_not_occlude_perching_surfaces() {
+        for layer in [0, 3, 8] {
+            assert!(desktop_window_layer(layer));
+        }
+        for layer in [-2147483623, -1, 20, 23, 24, 101] {
+            assert!(!desktop_window_layer(layer));
+        }
+    }
 }
