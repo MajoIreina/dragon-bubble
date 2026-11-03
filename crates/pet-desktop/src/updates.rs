@@ -4,7 +4,9 @@ use std::time::Duration;
 
 pub const PROJECT_URL: &str = "https://github.com/MajoIreina/dragon-bubble";
 pub const RELEASES_URL: &str = "https://github.com/MajoIreina/dragon-bubble/releases";
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Public release label. Cargo uses a SemVer prerelease internally; the
+/// project publishes the compact patch suffix used by its GitHub tag.
+pub const VERSION: &str = "0.1.2a";
 #[derive(Debug, PartialEq)]
 pub struct Release {
     pub version: String,
@@ -22,17 +24,53 @@ pub enum Outcome {
     Failed,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct ComparableVersion {
+    base: Version,
+    suffix: Option<String>,
+}
+
+impl ComparableVersion {
+    fn parse(raw: &str) -> Option<Self> {
+        let raw = raw.trim().strip_prefix(['v', 'V']).unwrap_or(raw.trim());
+        if let Ok(base) = Version::parse(raw) {
+            return Some(Self { base, suffix: None });
+        }
+        let split = raw.find(|ch: char| !ch.is_ascii_digit() && ch != '.')?;
+        let (numeric, suffix) = raw.split_at(split);
+        if suffix.is_empty() || !suffix.chars().all(|ch| ch.is_ascii_alphanumeric()) {
+            return None;
+        }
+        let base = Version::parse(numeric).ok()?;
+        Some(Self {
+            base,
+            suffix: Some(suffix.to_ascii_lowercase()),
+        })
+    }
+
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.base
+            .cmp(&other.base)
+            .then_with(|| match (&self.suffix, &other.suffix) {
+                (None, None) => std::cmp::Ordering::Equal,
+                (None, Some(_)) => std::cmp::Ordering::Less,
+                (Some(_), None) => std::cmp::Ordering::Greater,
+                (Some(a), Some(b)) => a.cmp(b),
+            })
+    }
+}
+
 fn classify_release(body: &str, current: &str) -> Option<Outcome> {
     let release: serde_json::Value = serde_json::from_str(body).ok()?;
     if release.get("draft")?.as_bool()? || release.get("prerelease")?.as_bool()? {
         return None;
     }
     let tag = release.get("tag_name")?.as_str()?.trim();
-    let latest = Version::parse(tag.strip_prefix(['v', 'V']).unwrap_or(tag)).ok()?;
-    let current = Version::parse(current).ok()?;
-    Some(if latest > current {
+    let latest = ComparableVersion::parse(tag)?;
+    let current = ComparableVersion::parse(current)?;
+    Some(if latest.cmp(&current).is_gt() {
         Outcome::Available(Release {
-            version: latest.to_string(),
+            version: tag.strip_prefix(['v', 'V']).unwrap_or(tag).to_string(),
             url: release["html_url"]
                 .as_str()
                 .filter(|u| u.starts_with(&format!("{RELEASES_URL}/tag/")))
@@ -142,6 +180,28 @@ mod tests {
         assert_eq!(
             classify_release(&release("0.0.9"), VERSION),
             Some(Outcome::Current)
+        );
+        assert_eq!(
+            classify_release(&release("v0.1.2a"), "0.1.2"),
+            Some(Outcome::Available(Release {
+                version: "0.1.2a".into(),
+                url: RELEASES_URL.into(),
+                notes: String::new(),
+                download: None
+            }))
+        );
+        assert_eq!(
+            classify_release(&release("v0.1.2a"), VERSION),
+            Some(Outcome::Current)
+        );
+        assert_eq!(
+            classify_release(&release("v0.1.2b"), VERSION),
+            Some(Outcome::Available(Release {
+                version: "0.1.2b".into(),
+                url: RELEASES_URL.into(),
+                notes: String::new(),
+                download: None
+            }))
         );
         assert_eq!(classify_release(&release("bad tag"), VERSION), None);
         assert_eq!(classify_release("not json", VERSION), None);

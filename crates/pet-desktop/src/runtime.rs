@@ -414,7 +414,7 @@ pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate:
         };
     }
     rt.poll += dt;
-    if rt.poll >= 0.15 {
+    if rt.poll >= 0.15 && !(rt.pressed && rt.dragging) {
         rt.poll = 0.;
         let support = rt.desktop.support(rt.position);
         let surfaces = if rt.prefs.behavior.window_perching {

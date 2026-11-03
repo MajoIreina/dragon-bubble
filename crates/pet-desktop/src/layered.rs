@@ -3,10 +3,15 @@
 use bevy::{prelude::*, render::gpu_readback::ReadbackComplete};
 
 #[cfg(windows)]
-pub struct NativePet(
-    pub windows_sys::Win32::Foundation::HWND,
-    windows_sys::Win32::UI::WindowsAndMessaging::HHOOK,
-);
+pub struct NativePet {
+    pub hwnd: windows_sys::Win32::Foundation::HWND,
+    hook: windows_sys::Win32::UI::WindowsAndMessaging::HHOOK,
+    dc: windows_sys::Win32::Graphics::Gdi::HDC,
+    bitmap: windows_sys::Win32::Graphics::Gdi::HBITMAP,
+    old_bitmap: windows_sys::Win32::Graphics::Gdi::HGDIOBJ,
+    bits: *mut std::ffi::c_void,
+    size: u32,
+}
 #[cfg(windows)]
 static PET_WINDOW: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
 #[cfg(windows)]
@@ -87,10 +92,19 @@ impl Drop for NativePet {
     fn drop(&mut self) {
         unsafe {
             PET_WINDOW.store(0, std::sync::atomic::Ordering::Relaxed);
-            if !self.1.is_null() {
-                windows_sys::Win32::UI::WindowsAndMessaging::UnhookWindowsHookEx(self.1);
+            if !self.hook.is_null() {
+                windows_sys::Win32::UI::WindowsAndMessaging::UnhookWindowsHookEx(self.hook);
             }
-            windows_sys::Win32::UI::WindowsAndMessaging::DestroyWindow(self.0);
+            if !self.dc.is_null() {
+                if !self.old_bitmap.is_null() {
+                    windows_sys::Win32::Graphics::Gdi::SelectObject(self.dc, self.old_bitmap);
+                }
+                if !self.bitmap.is_null() {
+                    windows_sys::Win32::Graphics::Gdi::DeleteObject(self.bitmap);
+                }
+                windows_sys::Win32::Graphics::Gdi::DeleteDC(self.dc);
+            }
+            windows_sys::Win32::UI::WindowsAndMessaging::DestroyWindow(self.hwnd);
         }
     }
 }
@@ -135,7 +149,15 @@ pub fn setup(world: &mut World) {
         if hook.is_null() {
             warn!("Hover wheel hook unavailable; using window wheel messages");
         }
-        world.insert_non_send_resource(NativePet(hwnd, hook));
+        world.insert_non_send_resource(NativePet {
+            hwnd,
+            hook,
+            dc: std::ptr::null_mut(),
+            bitmap: std::ptr::null_mut(),
+            old_bitmap: std::ptr::null_mut(),
+            bits: std::ptr::null_mut(),
+            size: 0,
+        });
     }
 }
 #[cfg(not(windows))]
@@ -152,6 +174,7 @@ pub struct FrameSize(pub u32);
 pub fn output_size(zoom: f32) -> u32 {
     (320. * pet_core::preferences::zoom(zoom)).round() as u32
 }
+#[cfg(test)]
 fn unpack_rows(data: &[u8], size: u32) -> Option<Vec<u8>> {
     let row = size as usize * 4;
     let pitch = row.div_ceil(256) * 256;
@@ -164,6 +187,31 @@ fn unpack_rows(data: &[u8], size: u32) -> Option<Vec<u8>> {
             .collect(),
     )
 }
+fn unpack_rows_into(data: &[u8], size: u32, output: &mut Vec<u8>) -> Option<(bool, Option<Vec2>)> {
+    let row = size as usize * 4;
+    let pitch = row.div_ceil(256) * 256;
+    if size == 0 || data.len() != pitch * size as usize {
+        return None;
+    }
+    output.resize(row * size as usize, 0);
+    let mut has_alpha = false;
+    let mut left = size;
+    let mut right = 0;
+    for (y, line) in data.chunks_exact(pitch).enumerate() {
+        let line = &line[..row];
+        output[y * row..(y + 1) * row].copy_from_slice(line);
+        for (x, pixel) in line.chunks_exact(4).enumerate() {
+            has_alpha |= pixel[3] != 0;
+            if pixel[3] > 32 {
+                left = left.min(x as u32);
+                right = right.max(x as u32 + 1);
+            }
+        }
+    }
+    let insets = (left < right).then_some(Vec2::new(left as f32, (size - right) as f32));
+    Some((has_alpha, insets))
+}
+#[cfg(test)]
 fn side_insets(pixels: &[u8], size: u32) -> Option<Vec2> {
     if size == 0 || pixels.len() != size as usize * size as usize * 4 {
         return None;
@@ -189,23 +237,22 @@ pub fn receive(
     let Ok(size) = sizes.get(event.entity) else {
         return;
     };
-    let Some(pixels) = unpack_rows(&event.data, size.0) else {
+    let Some((has_alpha, insets)) = unpack_rows_into(&event.data, size.0, &mut frame.rgba) else {
         return;
     };
-    if frame.serial == 0 && event.data.chunks_exact(4).any(|p| p[3] > 0) {
+    if frame.serial == 0 && has_alpha {
         info!(
             "Readback {} bytes, max alpha {}",
             event.data.len(),
             event.data.chunks_exact(4).map(|p| p[3]).max().unwrap_or(0)
         );
     }
-    if pixels.chunks_exact(4).any(|p| p[3] > 0) {
+    if has_alpha {
         if size.0 == output_size(rt.prefs.zoom)
-            && let Some(insets) = side_insets(&pixels, size.0)
+            && let Some(insets) = insets
         {
             rt.desktop.side_insets = insets;
         }
-        frame.rgba = pixels;
         frame.size = size.0;
         frame.serial += 1;
     }
@@ -215,7 +262,7 @@ pub fn receive(
 pub fn present(
     frame: Res<DesktopFrame>,
     rt: Res<crate::runtime::Runtime>,
-    native: NonSend<NativePet>,
+    mut native: NonSendMut<NativePet>,
     _main_thread: bevy::ecs::system::NonSendMarker,
     mut last: Local<(u64, u32)>,
     mut top: Local<Option<bool>>,
@@ -226,61 +273,70 @@ pub fn present(
         return;
     }
     {
-        let hwnd = native.0;
-        let mut pixels = frame.rgba.clone();
-        for pixel in pixels.chunks_exact_mut(4) {
-            if pixel[3] == 0 {
-                pixel.fill(0);
-                continue;
-            }
-            if pixel[3] == 255 {
-                pixel.swap(0, 2);
-                continue;
-            }
-            // The GPU blends in linear light; UpdateLayeredWindow expects sRGB premultiplication.
-            let alpha = pixel[3] as f32 / 255.;
-            for channel in &mut pixel[..3] {
-                let encoded = *channel as f32 / 255.;
-                let linear = if encoded <= 0.04045 {
-                    encoded / 12.92
-                } else {
-                    ((encoded + 0.055) / 1.055).powf(2.4)
-                };
-                let straight = (linear / alpha.max(1. / 255.)).clamp(0., 1.);
-                let encoded = if straight <= 0.0031308 {
-                    straight * 12.92
-                } else {
-                    1.055 * straight.powf(1. / 2.4) - 0.055
-                };
-                *channel = (encoded * alpha * 255.).round() as u8;
-            }
-            pixel.swap(0, 2);
-        }
+        let hwnd = native.hwnd;
         unsafe {
             // Layered-window alpha hit testing already passes transparent pixels
             // through. Toggling WS_EX_TRANSPARENT from the previous cursor
             // position can lose the first click after moving onto the pet.
             let screen = GetDC(std::ptr::null_mut());
-            let dc = CreateCompatibleDC(screen);
-            let mut info: BITMAPINFO = std::mem::zeroed();
-            info.bmiHeader.biSize = std::mem::size_of::<BITMAPINFOHEADER>() as u32;
-            info.bmiHeader.biWidth = size as i32;
-            info.bmiHeader.biHeight = -(size as i32);
-            info.bmiHeader.biPlanes = 1;
-            info.bmiHeader.biBitCount = 32;
-            info.bmiHeader.biCompression = BI_RGB;
-            let mut bits = std::ptr::null_mut();
-            let bitmap = CreateDIBSection(
-                screen,
-                &info,
-                DIB_RGB_COLORS,
-                &mut bits,
-                std::ptr::null_mut(),
-                0,
-            );
-            if !bitmap.is_null() && !bits.is_null() {
-                std::ptr::copy_nonoverlapping(pixels.as_ptr(), bits.cast::<u8>(), pixels.len());
-                let old = SelectObject(dc, bitmap);
+            if native.dc.is_null() {
+                native.dc = CreateCompatibleDC(screen);
+            }
+            if native.dc.is_null() {
+                ReleaseDC(std::ptr::null_mut(), screen);
+                warn!("Could not create layered-window drawing context");
+                return;
+            }
+            if native.size != size || native.bitmap.is_null() || native.bits.is_null() {
+                if !native.bitmap.is_null() {
+                    SelectObject(native.dc, native.old_bitmap);
+                    DeleteObject(native.bitmap);
+                    native.bitmap = std::ptr::null_mut();
+                    native.old_bitmap = std::ptr::null_mut();
+                    native.bits = std::ptr::null_mut();
+                }
+                let mut info: BITMAPINFO = std::mem::zeroed();
+                info.bmiHeader.biSize = std::mem::size_of::<BITMAPINFOHEADER>() as u32;
+                info.bmiHeader.biWidth = size as i32;
+                info.bmiHeader.biHeight = -(size as i32);
+                info.bmiHeader.biPlanes = 1;
+                info.bmiHeader.biBitCount = 32;
+                info.bmiHeader.biCompression = BI_RGB;
+                let mut bits = std::ptr::null_mut();
+                native.bitmap = CreateDIBSection(
+                    screen,
+                    &info,
+                    DIB_RGB_COLORS,
+                    &mut bits,
+                    std::ptr::null_mut(),
+                    0,
+                );
+                if !native.bitmap.is_null() && !bits.is_null() {
+                    native.old_bitmap = SelectObject(native.dc, native.bitmap);
+                    native.bits = bits;
+                    native.size = size;
+                }
+            }
+            if !native.bitmap.is_null() && !native.bits.is_null() {
+                let output =
+                    std::slice::from_raw_parts_mut(native.bits.cast::<u8>(), frame.rgba.len());
+                let lut = srgb_premultiply_lut();
+                for (src, dst) in frame.rgba.chunks_exact(4).zip(output.chunks_exact_mut(4)) {
+                    let alpha = src[3];
+                    if alpha == 0 {
+                        dst.fill(0);
+                    } else if alpha == 255 {
+                        dst.copy_from_slice(&[src[2], src[1], src[0], alpha]);
+                    } else {
+                        let offset = alpha as usize * 256;
+                        dst.copy_from_slice(&[
+                            lut[offset + src[2] as usize],
+                            lut[offset + src[1] as usize],
+                            lut[offset + src[0] as usize],
+                            alpha,
+                        ]);
+                    }
+                }
                 let position = POINT {
                     x: rt.position.x.round() as i32,
                     y: rt.position.y.round() as i32,
@@ -297,7 +353,7 @@ pub fn present(
                     AlphaFormat: AC_SRC_ALPHA as u8,
                 };
                 if UpdateLayeredWindow(
-                    hwnd, screen, &position, &extent, dc, &source, 0, &blend, ULW_ALPHA,
+                    hwnd, screen, &position, &extent, native.dc, &source, 0, &blend, ULW_ALPHA,
                 ) != 0
                 {
                     *last = (frame.serial, size);
@@ -320,13 +376,37 @@ pub fn present(
                 } else {
                     warn!("Transparent frame presentation failed: {}", GetLastError());
                 }
-                SelectObject(dc, old);
-                DeleteObject(bitmap);
             }
-            DeleteDC(dc);
             ReleaseDC(std::ptr::null_mut(), screen);
         }
     }
+}
+
+#[cfg(any(windows, test))]
+fn srgb_premultiply_lut() -> &'static [u8] {
+    static LUT: std::sync::OnceLock<Box<[u8]>> = std::sync::OnceLock::new();
+    LUT.get_or_init(|| {
+        let mut table = vec![0; 256 * 256].into_boxed_slice();
+        for alpha_byte in 1..255 {
+            let alpha = alpha_byte as f32 / 255.;
+            for channel_byte in 0..=255 {
+                let encoded = channel_byte as f32 / 255.;
+                let linear = if encoded <= 0.04045 {
+                    encoded / 12.92
+                } else {
+                    ((encoded + 0.055) / 1.055).powf(2.4)
+                };
+                let straight = (linear / alpha.max(1. / 255.)).clamp(0., 1.);
+                let encoded = if straight <= 0.0031308 {
+                    straight * 12.92
+                } else {
+                    1.055 * straight.powf(1. / 2.4) - 0.055
+                };
+                table[alpha_byte * 256 + channel_byte] = (encoded * alpha * 255.).round() as u8;
+            }
+        }
+        table
+    })
 }
 
 #[cfg(not(windows))]
@@ -367,5 +447,54 @@ mod tests {
             assert!(unpack_rows(&data[..data.len() - 1], size).is_none());
         }
         assert_eq!(output_size(3.), 960);
+    }
+
+    #[test]
+    fn unpack_into_reuses_storage_and_computes_alpha_bounds_in_one_pass() {
+        let size: usize = 64;
+        let row = size * 4;
+        let pitch = row.div_ceil(256) * 256;
+        let mut data = vec![0; pitch * size];
+        for y in 10..30 {
+            for x in 20..40 {
+                data[y * pitch + x * 4 + 3] = 255;
+            }
+        }
+        let mut output = Vec::new();
+        let (has_alpha, insets) = unpack_rows_into(&data, size as u32, &mut output).unwrap();
+        assert!(has_alpha);
+        assert_eq!(insets, Some(Vec2::new(20., 24.)));
+        let capacity = output.capacity();
+        let pointer = output.as_ptr();
+        unpack_rows_into(&data, size as u32, &mut output).unwrap();
+        assert_eq!(output.capacity(), capacity);
+        assert_eq!(output.as_ptr(), pointer);
+    }
+
+    #[test]
+    fn premultiplication_lookup_matches_the_previous_color_conversion() {
+        let table = srgb_premultiply_lut();
+        for alpha_byte in [1u8, 2, 16, 32, 64, 127, 128, 192, 254] {
+            let alpha = alpha_byte as f32 / 255.;
+            for channel_byte in 0..=255u8 {
+                let encoded = channel_byte as f32 / 255.;
+                let linear = if encoded <= 0.04045 {
+                    encoded / 12.92
+                } else {
+                    ((encoded + 0.055) / 1.055).powf(2.4)
+                };
+                let straight = (linear / alpha.max(1. / 255.)).clamp(0., 1.);
+                let encoded = if straight <= 0.0031308 {
+                    straight * 12.92
+                } else {
+                    1.055 * straight.powf(1. / 2.4) - 0.055
+                };
+                let expected = (encoded * alpha * 255.).round() as u8;
+                assert_eq!(
+                    table[alpha_byte as usize * 256 + channel_byte as usize],
+                    expected
+                );
+            }
+        }
     }
 }

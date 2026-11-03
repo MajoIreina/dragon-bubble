@@ -46,6 +46,95 @@ pub fn prefers_dark_theme() -> bool {
         false
     }
 }
+
+/// Let Winit pace app updates without blocking the event-loop thread. The
+/// layered-window mouse hook is serviced on that same thread, so sleeping in
+/// a frame system adds avoidable input latency.
+pub fn frame_update_mode(
+    fps: u32,
+    vsync: bool,
+    refresh_hz: Option<u32>,
+) -> bevy::winit::UpdateMode {
+    let limit = if vsync {
+        let refresh = refresh_hz.unwrap_or(if fps == 0 { 60 } else { fps }).max(1);
+        if fps == 0 { refresh } else { fps.min(refresh) }
+    } else {
+        fps
+    };
+    if limit == 0 {
+        bevy::winit::UpdateMode::Continuous
+    } else {
+        bevy::winit::UpdateMode::reactive_low_power(std::time::Duration::from_secs_f64(
+            1. / limit.clamp(24, 360) as f64,
+        ))
+    }
+}
+#[derive(Default)]
+pub(crate) struct FramePacingCache {
+    refresh_hz: Option<u32>,
+    config: Option<(u32, bool, Option<u32>)>,
+    refresh_poll: f32,
+}
+pub fn frame_pacing(
+    time: Res<Time>,
+    rt: Res<Runtime>,
+    mut settings: ResMut<bevy::winit::WinitSettings>,
+    mut cache: Local<FramePacingCache>,
+) {
+    cache.refresh_poll += time.delta_secs();
+    if cache.refresh_poll >= 0.5 || cache.config.is_none() {
+        cache.refresh_hz = display_refresh_rate(&rt.position);
+        cache.refresh_poll = 0.;
+    }
+    let key = (
+        rt.prefs.performance.fps,
+        rt.prefs.performance.vsync,
+        cache.refresh_hz,
+    );
+    if cache.config != Some(key) {
+        let mode = frame_update_mode(key.0, key.1, key.2);
+        settings.focused_mode = mode;
+        settings.unfocused_mode = mode;
+        cache.config = Some(key);
+    }
+}
+
+#[cfg(windows)]
+fn display_refresh_rate(position: &Vec2) -> Option<u32> {
+    use windows_sys::Win32::{Foundation::POINT, Graphics::Gdi::*};
+    unsafe {
+        let monitor = MonitorFromPoint(
+            POINT {
+                x: position.x.round() as i32,
+                y: position.y.round() as i32,
+            },
+            MONITOR_DEFAULTTONEAREST,
+        );
+        if monitor.is_null() {
+            return None;
+        }
+        let mut info: MONITORINFOEXW = std::mem::zeroed();
+        info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+        if GetMonitorInfoW(monitor, (&mut info as *mut MONITORINFOEXW).cast()) == 0 {
+            return None;
+        }
+        let mut mode = DEVMODEW {
+            dmSize: std::mem::size_of::<DEVMODEW>() as u16,
+            ..Default::default()
+        };
+        if EnumDisplaySettingsW(info.szDevice.as_ptr(), ENUM_CURRENT_SETTINGS, &mut mode) == 0
+            || mode.dmDisplayFrequency <= 1
+        {
+            None
+        } else {
+            Some(mode.dmDisplayFrequency)
+        }
+    }
+}
+#[cfg(not(windows))]
+fn display_refresh_rate(_: &Vec2) -> Option<u32> {
+    None
+}
 pub struct Tray {
     _icon: TrayIcon,
     menu: Menu,
@@ -367,7 +456,7 @@ pub fn input(
                     };
                     return unsafe {
                         windows_sys::Win32::UI::WindowsAndMessaging::WindowFromPoint(p)
-                    } == native.0;
+                    } == native.hwnd;
                 }
                 false
             }
@@ -426,7 +515,7 @@ pub fn input(
             if let Some(tray) = tray {
                 #[cfg(windows)]
                 {
-                    crate::menu_font::show(&tray.menu, native.0);
+                    crate::menu_font::show(&tray.menu, native.hwnd);
                 }
             } else {
                 rt.actions.push(Action::ShowSettings(0));
@@ -482,7 +571,7 @@ pub fn events(
                     ..
                 }
             ) {
-                crate::menu_font::show(&tray.menu, native.0);
+                crate::menu_font::show(&tray.menu, native.hwnd);
             }
             if matches!(
                 e,
@@ -591,29 +680,26 @@ pub fn sync_windows(
         c.is_active = rt.show_settings;
     }
 }
-pub fn cap_frame(rt: Res<Runtime>, mut previous: Local<Option<std::time::Instant>>) {
-    #[cfg(windows)]
-    if rt.prefs.performance.vsync {
-        unsafe {
-            windows_sys::Win32::Graphics::Dwm::DwmFlush();
-        }
-    }
-    let now = std::time::Instant::now();
-    let fps = rt.prefs.performance.fps;
-    if let Some(last) = *previous
-        && fps > 0
-    {
-        let budget = std::time::Duration::from_secs_f64(1. / fps as f64);
-        if let Some(left) = budget.checked_sub(now - last) {
-            std::thread::sleep(left);
-        }
-    }
-    *previous = Some(std::time::Instant::now());
-}
-
 #[cfg(test)]
 mod tests {
     use super::drag_direction;
+    #[test]
+    fn frame_pacing_uses_event_loop_and_keeps_unlimited_mode() {
+        use bevy::winit::UpdateMode;
+        assert_eq!(
+            super::frame_update_mode(0, false, None),
+            UpdateMode::Continuous
+        );
+        assert!(
+            matches!(super::frame_update_mode(60, false, None), UpdateMode::Reactive { wait, react_to_device_events: false, .. } if wait.as_millis() == 16)
+        );
+        assert!(
+            matches!(super::frame_update_mode(240, true, Some(144)), UpdateMode::Reactive { wait, .. } if wait.as_micros() == 6944)
+        );
+        assert!(
+            matches!(super::frame_update_mode(0, true, Some(120)), UpdateMode::Reactive { wait, .. } if wait.as_micros() == 8333)
+        );
+    }
     #[test]
     fn foreground_windows_occlude_only_covered_title_edge() {
         use pet_core::desktop::Rect;

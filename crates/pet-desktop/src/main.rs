@@ -146,6 +146,7 @@ fn main() -> AppExit {
             avatar::resize_output,
             avatar::performance,
             platform::sync_windows,
+            platform::frame_pacing,
         )
             .chain(),
     )
@@ -163,7 +164,7 @@ fn main() -> AppExit {
             .after(bevy::transform::TransformSystems::Propagate),
     )
     .add_systems(EguiPrimaryContextPass, ui::draw)
-    .add_systems(Last, (layered::present, platform::cap_frame).chain());
+    .add_systems(Last, layered::present);
     if bounce_test {
         app.add_systems(Update, runtime::bounce_smoke.after(avatar::animate));
     } else {

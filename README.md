@@ -8,13 +8,13 @@
 
 博士处理文书的时候，她也有自己的小日常。轻轻点一下，看看这次是开心笑眼、惊讶，还是一个俏皮的单眼表情；提起来挪个位置，四只脚和尾巴也会跟着晃动。
 
-**当前版本：v0.1.2 · Windows x64 · Rust / Vulkan**
+**当前版本：v0.1.2a · Windows x64 · Rust / Vulkan**
 
-[接黍泡泡回桌面](https://github.com/MajoIreina/dragon-bubble/releases/tag/v0.1.2) · [本次更新记录](docs/releases/v0.1.2.md) · [向工程部反馈问题](https://github.com/MajoIreina/dragon-bubble/issues)
+[接黍泡泡回桌面](https://github.com/MajoIreina/dragon-bubble/releases/tag/v0.1.2a) · [本次更新记录](docs/releases/v0.1.2a.md) · [向工程部反馈问题](https://github.com/MajoIreina/dragon-bubble/issues)
 
 ## 终端接入 · 下载与启动
 
-1. 前往 [Releases](https://github.com/MajoIreina/dragon-bubble/releases/tag/v0.1.2)，下载 `dragon-bubble-v0.1.2-windows-x64.zip`。
+1. 前往 [Releases](https://github.com/MajoIreina/dragon-bubble/releases/tag/v0.1.2a)，下载 `dragon-bubble-v0.1.2a-windows-x64.zip`。
 2. 完整解压，运行 `My Dragon Bubble.exe`，保留包内许可证及辅助资源。
 3. 右键黍泡泡或系统托盘图标，即可打开设置，安排她的桌面日常。
 
