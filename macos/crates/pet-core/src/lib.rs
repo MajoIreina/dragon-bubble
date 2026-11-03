@@ -1,4 +1,6 @@
 //! Engine-independent desktop pet domain. No window, renderer, or Godot dependency.
+#![allow(clippy::chunks_exact_to_as_chunks)]
+
 pub mod action;
 pub mod assets;
 pub mod behavior;
