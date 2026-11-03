@@ -128,7 +128,9 @@ fn run() -> AppExit {
                         WindowResolution::new(320, 320).with_scale_factor_override(1.)
                     },
                     transparent: true,
-                    composite_alpha_mode: bevy::window::CompositeAlphaMode::PreMultiplied,
+                    // wgpu's Metal surface exposes Opaque/PostMultiplied only.
+                    // PreMultiplied passes compilation but panics on configure.
+                    composite_alpha_mode: bevy::window::CompositeAlphaMode::PostMultiplied,
                     decorations: false,
                     resizable: false,
                     skip_taskbar: true,
