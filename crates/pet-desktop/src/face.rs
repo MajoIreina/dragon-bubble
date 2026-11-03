@@ -227,7 +227,9 @@ pub fn install(
     let relative = inverse * global.affine();
     let surface = Surface(
         indices
-            .chunks_exact(3)
+            .as_chunks::<3>()
+            .0
+            .iter()
             .map(|tri| {
                 std::array::from_fn(|i| relative.transform_point3(Vec3::from(points[tri[i]])))
             })

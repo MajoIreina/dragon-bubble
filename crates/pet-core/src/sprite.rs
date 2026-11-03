@@ -47,7 +47,7 @@ fn decode(path: &Path) -> Result<RgbaImage> {
             &mut pix.as_mut(),
         );
         let mut pixels = pix.take();
-        for p in pixels.chunks_exact_mut(4) {
+        for p in pixels.as_chunks_mut::<4>().0 {
             if p[3] > 0 {
                 for i in 0..3 {
                     p[i] = ((p[i] as u32 * 255 / p[3] as u32).min(255)) as u8

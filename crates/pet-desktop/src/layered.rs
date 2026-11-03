@@ -197,7 +197,7 @@ fn unpack_rows_into(data: &[u8], size: u32, output: &mut Vec<u8>) -> Option<(boo
     for (y, line) in data.chunks_exact(pitch).enumerate() {
         let line = &line[..row];
         output[y * row..(y + 1) * row].copy_from_slice(line);
-        for (x, pixel) in line.chunks_exact(4).enumerate() {
+        for (x, pixel) in line.as_chunks::<4>().0.iter().enumerate() {
             has_alpha |= pixel[3] != 0;
             if pixel[3] > 32 {
                 left = left.min(x as u32);
@@ -215,7 +215,7 @@ fn side_insets(pixels: &[u8], size: u32) -> Option<Vec2> {
     }
     let mut left = size;
     let mut right = 0;
-    for (i, pixel) in pixels.chunks_exact(4).enumerate() {
+    for (i, pixel) in pixels.as_chunks::<4>().0.iter().enumerate() {
         // Ignore the almost transparent fringe left by filtering and temporal AA.
         if pixel[3] > 32 {
             let x = i as u32 % size;
@@ -241,7 +241,14 @@ pub fn receive(
         info!(
             "Readback {} bytes, max alpha {}",
             event.data.len(),
-            event.data.chunks_exact(4).map(|p| p[3]).max().unwrap_or(0)
+            event
+                .data
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|p| p[3])
+                .max()
+                .unwrap_or(0)
         );
     }
     if has_alpha {
@@ -318,7 +325,13 @@ pub fn present(
                 let output =
                     std::slice::from_raw_parts_mut(native.bits.cast::<u8>(), frame.rgba.len());
                 let lut = srgb_premultiply_lut();
-                for (src, dst) in frame.rgba.chunks_exact(4).zip(output.chunks_exact_mut(4)) {
+                for (src, dst) in frame
+                    .rgba
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
+                    .zip(output.as_chunks_mut::<4>().0.iter_mut())
+                {
                     let alpha = src[3];
                     if alpha == 0 {
                         dst.fill(0);
