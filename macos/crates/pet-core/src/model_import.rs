@@ -197,7 +197,9 @@ pub fn obj(source: &Path, dest: &Path) -> Result<()> {
         if !mesh.texcoords.is_empty() {
             let uv = mesh
                 .texcoords
-                .chunks_exact(2)
+                .as_chunks::<2>()
+                .0
+                .iter()
                 .flat_map(|p| [p[0], 1. - p[1]])
                 .collect::<Vec<_>>();
             attributes["TEXCOORD_0"] = json!(glb.floats(&uv, 2, false)?);
@@ -470,7 +472,7 @@ pub fn fbx(source: &Path, dest: &Path) -> Result<()> {
                 face_for_corner[c as usize] = i;
             }
         }
-        for triangle in mesh.triangles().chunks_exact(3) {
+        for triangle in mesh.triangles().as_chunks::<3>().0 {
             let face = face_for_corner[triangle[0] as usize];
             let slot = mesh.face_material().get(face).copied().unwrap_or(0);
             slots.entry(slot).or_default().extend_from_slice(triangle);

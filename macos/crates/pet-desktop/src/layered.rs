@@ -126,14 +126,21 @@ pub fn receive(
     let Some(pixels) = unpack_rows(&event.data, size.0) else {
         return;
     };
-    if frame.serial == 0 && event.data.chunks_exact(4).any(|p| p[3] > 0) {
+    if frame.serial == 0 && event.data.as_chunks::<4>().0.iter().any(|p| p[3] > 0) {
         info!(
             "Readback {} bytes, max alpha {}",
             event.data.len(),
-            event.data.chunks_exact(4).map(|p| p[3]).max().unwrap_or(0)
+            event
+                .data
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|p| p[3])
+                .max()
+                .unwrap_or(0)
         );
     }
-    if pixels.chunks_exact(4).any(|p| p[3] > 0) {
+    if pixels.as_chunks::<4>().0.iter().any(|p| p[3] > 0) {
         frame.rgba = pixels;
         frame.size = size.0;
         frame.serial += 1;
@@ -157,7 +164,7 @@ pub fn present(
     {
         let hwnd = native.0;
         let mut pixels = frame.rgba.clone();
-        for pixel in pixels.chunks_exact_mut(4) {
+        for pixel in pixels.as_chunks_mut::<4>().0 {
             if pixel[3] == 0 {
                 pixel.fill(0);
                 continue;
