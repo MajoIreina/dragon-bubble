@@ -48,7 +48,9 @@ sequence.pop('grid')
 (out / 'pet.obj').write_text('mtllib textured.mtl\nv -1 0 0\nv 1 0 0\nv 1 2 0\nv 0 1.5 0\nv -1 2 0\n'
                              'vt 0 0\nvt 1 0\nvt 1 1\nvt 0.5 0.75\nvt 0 1\nusemtl cloth\nf -5/1 -4/2 -3/3 -2/4 -1/5\n')
 (out / 'bad.obj').write_text('v 0 0 0\nf 1 2 99\n')
-payload = (root / 'skins/glb-demo/pet.glb').read_bytes()
+import runpy
+runpy.run_path(str(root / 'tests/create_glb_fixture.py'))
+payload = (root / 'work/glb-fixture/pet.glb').read_bytes()
 length = struct.unpack_from('<I', payload, 12)[0]
 gltf = json.loads(payload[20:20+length])
 binary = payload[28+length:]

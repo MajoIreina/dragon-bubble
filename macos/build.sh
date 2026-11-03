@@ -9,11 +9,15 @@ if [[ "$(uname -s)" != Darwin ]]; then
 fi
 export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-11.0}"
 skip_tests=false
+skip_checks=false
+embedded=true
 universal=false
 target="$(rustc -vV | sed -n 's/^host: //p')"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --skip-tests) skip_tests=true; shift ;;
+        --skip-checks) skip_checks=true; shift ;;
+        --model-free) embedded=false; shift ;;
         --universal) universal=true; shift ;;
         --target)
             [[ $# -gt 1 ]] || { echo "--target requires a Rust target triple" >&2; exit 2; }
@@ -32,14 +36,24 @@ else
     targets=("$target")
     label="$target"
 fi
-cargo fmt --all -- --check
-cargo clippy --locked --workspace --all-targets -- -D warnings
+features=(--no-default-features)
+if [[ "$embedded" == true ]]; then
+    [[ -f skins/shu/shu.glb && -f skins/shu/skin.json ]] || {
+        echo "Missing local Shu model. Use --model-free for a public-source build." >&2
+        exit 1
+    }
+    features=(--no-default-features --features embedded-shu)
+fi
+if [[ "$skip_checks" == false ]]; then
+    cargo fmt --all -- --check
+    cargo clippy --locked --workspace --all-targets "${features[@]}" -- -D warnings
+fi
 if [[ "$skip_tests" == false ]]; then
-    cargo test --locked --workspace
+    cargo test --locked --workspace "${features[@]}"
 fi
 # Explicit target-dir makes the package location independent of user Cargo configuration.
 for target in "${targets[@]}"; do
-    cargo build --locked --release --target "$target" --target-dir "$root/target" -p pet-desktop
+    cargo build --locked --release --target "$target" --target-dir "$root/target" -p pet-desktop "${features[@]}"
 done
 mkdir -p "$root/outputs"
 stage="$(mktemp -d "$root/outputs/.stage.XXXXXX")"
@@ -58,9 +72,11 @@ minimum_os="/usr/libexec/PlistBuddy"
 "$minimum_os" -c "Set :LSMinimumSystemVersion $MACOSX_DEPLOYMENT_TARGET" "$app/Contents/Info.plist"
 cp assets/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
 cp LICENSE-RENDERING.txt "$app/Contents/Resources/"
-for resource in assets skins i18n converters; do
-    cp -R "$resource" "$app/Contents/Resources/$resource"
-done
+# Explicit public resources only. Model and manifest are embedded in the binary.
+mkdir -p "$app/Contents/Resources/assets" "$app/Contents/Resources/i18n" "$app/Contents/Resources/converters"
+cp assets/tray.ico assets/tray.svg "$app/Contents/Resources/assets/"
+cp i18n/en.po i18n/ja.po "$app/Contents/Resources/i18n/"
+cp converters/model_to_glb.py "$app/Contents/Resources/converters/"
 plutil -lint "$app/Contents/Info.plist"
 codesign --force --deep --sign - "$app"
 codesign --verify --deep --strict "$app"

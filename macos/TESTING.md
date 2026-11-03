@@ -1,37 +1,36 @@
-# macOS 实机测试
+# 0.1.2a macOS 实机测试
 
-## 选择和启动
+M 系列 Mac 使用 ARM64 安装包。把 ZIP 原样复制到 Mac，用 Finder 解压，将 `My Dragon Bubble.app` 拖入“应用程序”后双击启动。应用显示桌宠和菜单栏图标，不常驻 Dock。若临时签名被系统拦截，在“系统设置 → 隐私与安全性”中允许此次打开。
 
-- Apple Silicon（M 系列）：选择 `dragon-bubble-aarch64-apple-darwin/My Dragon Bubble.zip`。
-- Intel Mac：选择 `dragon-bubble-x86_64-apple-darwin/My Dragon Bubble.zip`。
+## 打开后验证
 
-CI 下载的包保存在本项目 `macos/outputs/ci/` 下。将 ZIP 原样传到 Mac，再用 Finder 解压，将 `My Dragon Bubble.app` 拖到“应用程序”，双击启动。不要在 Windows 解压后重新压缩，以免丢失可执行权限和 macOS 包信息。
+1. 桌宠显示、透明区域可点击后方应用；右键桌宠和菜单栏均能打开菜单。
+2. 拖动、抛掷、左右朝向、滚轮缩放，以及停止后保持抓取状态正常。
+3. 检查四种点击反应、眨眼、睡觉/唤醒和行为设置。
+4. 开关设置、更换画质/抗锯齿/缩放后桌宠继续显示；退出重启后配置保留。
+5. 多屏移动、Retina 缩放、Dock/菜单栏边界、窗口停靠与窗口移动跟随正常。
 
-需要 macOS 11 或更新版本，以及支持 Metal 的显卡。运行安装包无需 Rust、Xcode、Vulkan SDK 或 MoltenVK。此测试包使用临时签名，未经 Apple 公证；若系统阻止启动，在“系统设置 → 隐私与安全性”中允许此次打开。
+## 双击后退出或没有反应
 
-应用启动后显示桌宠和菜单栏图标，不常驻 Dock。右键桌宠或点击菜单栏图标打开设置/退出菜单。
+应用在进入渲染前即开始记录日志。优先检查：
 
-## 验收操作
+`~/Library/Application Support/LPPDesktopPet/logs/latest.log`
 
-1. 确认模型出现、边缘透明，模型周围透明区域可点击到后方应用。
-2. 左键拖动、松手抛掷、轻点互动，观察落地和待机动画。
-3. 打开设置，更换外观，调整缩放、抗锯齿和性能选项，确认桌宠持续显示。
-4. 切换中文、日文和英文，检查字体和设置窗口。
-5. 有多屏时在 Retina/普通屏之间拖动，检查缩放、屏幕边界和 Dock 避让。
-6. 关闭设置后确认桌宠继续运行，再通过菜单退出，重启后确认配置保留。
-
-## 启动失败或渲染异常时采集日志
-
-先退出已运行的桌宠，在终端执行：
+也可在终端以前台方式运行（环境变量只影响此次启动）：
 
 ```bash
-RUST_BACKTRACE=1 RUST_LOG=info \
+LPP_LOG_TO_STDERR=1 RUST_BACKTRACE=1 RUST_LOG=info \
   "/Applications/My Dragon Bubble.app/Contents/MacOS/dragon-bubble" \
   > "$HOME/Desktop/dragon-bubble.log" 2>&1
 ```
 
-复现问题并退出应用后，桌面上的 `dragon-bubble.log` 包含此次启动日志。反馈时同时提供芯片类型、macOS 版本、具体操作和截图。
+需要排除旧配置时，在命令前增加 `LPP_DATA_DIR="$HOME/Desktop/dragon-bubble-test"`。原配置不受影响。反馈时请提供 macOS 版本、M 系列芯片型号、日志末尾和具体表现；原生日志缺失时，检查“控制台”中的应用崩溃报告。
 
-正常运行数据位于 `~/Library/Application Support/LPPDesktopPet/`。需要隔离测试数据时，可在上述启动命令前添加 `LPP_DATA_DIR="$HOME/Desktop/dragon-bubble-test"`。
+可选启动探测：
 
-内置 `--smoke-test` 目前面向源码目录运行，参见 README 的开发验证命令；实机安装包请按以上操作验收。
+```bash
+LPP_DATA_DIR="$HOME/Desktop/dragon-bubble-probe" \
+  "/Applications/My Dragon Bubble.app/Contents/MacOS/dragon-bubble" --startup-test
+```
+
+成功后自动退出，在上述目录生成 `startup-pass.json` 和 `startup-pet.png`，失败详情保存在 `logs/latest.log`。

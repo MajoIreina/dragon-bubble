@@ -1,7 +1,7 @@
 # Rust 重建进度与验证
 
 运行入口为 `start.ps1` / `start.cmd`，构建入口为 `build.ps1`。运行时不需要 Godot。
-旧 `scripts/`、`scenes/` 和 `.gd` 测试暂作为迁移功能对照保留，未链接进 Rust 可执行文件。
+旧 Godot 工程及测试已移入本地 `archives/cleanup-2026-11-03/legacy-godot/`，详见 [归档说明](archive.md)。当前源码不包含角色模型；发布版启用 `embedded-shu` 将本机黍泡泡资源内嵌 EXE。
 
 ## 分层
 

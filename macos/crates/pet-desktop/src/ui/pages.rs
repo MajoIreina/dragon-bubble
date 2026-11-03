@@ -18,7 +18,12 @@ pub(super) fn appearance_page(
             ui.add(egui::Image::new((texture, egui::vec2(size, size))));
             ui.vertical(|ui| {
                 ui.add_space(8.);
-                ui.label(egui::RichText::new(tr("选择外观")).size(18.).strong());
+                ui.label(
+                    egui::RichText::new(tr("选择外观"))
+                        .size(18.)
+                        .strong()
+                        .family(egui::FontFamily::Name("YaHeiBold".into())),
+                );
                 ui.label(
                     egui::RichText::new(tr("点击外观即可切换，设置会自动保存。"))
                         .small()
@@ -104,6 +109,72 @@ pub(super) fn behavior_page(ui: &mut egui::Ui, rt: &mut Runtime) {
             ui.label(tr(rt.brain.state.label()));
         },
     );
+    let sleeping = rt.brain.forced_sleep || rt.brain.state == State::Sleep;
+    setting_row(
+        ui,
+        "☾",
+        &tr("睡眠"),
+        &tr("一键睡觉后持续休息，点击、拖动或唤醒即可结束"),
+        110.,
+        |ui| {
+            if ui
+                .button(tr(if sleeping { "唤醒" } else { "一键睡觉" }))
+                .clicked()
+            {
+                rt.actions.push(Action::Sleep(!sleeping));
+            }
+        },
+    );
+    setting_row(
+        ui,
+        "▣",
+        &tr("桌面窗口捕捉"),
+        &tr("落在可见窗口顶边；窗口关闭或最小化后自然下落"),
+        80.,
+        |ui| {
+            toggle(
+                ui,
+                &mut rt.prefs.behavior.window_perching,
+                &tr("桌面窗口捕捉"),
+            );
+        },
+    );
+    setting_row(
+        ui,
+        "↻",
+        &tr("待机原地转圈"),
+        &tr("待机时偶尔转一圈，保持原地站立"),
+        80.,
+        |ui| {
+            toggle(ui, &mut rt.prefs.behavior.idle_spin, &tr("待机原地转圈"));
+        },
+    );
+    section(ui, &tr("动作时间"));
+    card(ui).show(ui, |ui| {
+        ui.label(tr("各动作持续时间（秒），自动活动有少量随机变化"));
+        for (label, value, range) in [
+            ("待机间隔", &mut rt.prefs.behavior.idle, 3.0..=120.0),
+            ("走路时长", &mut rt.prefs.behavior.walk, 1.0..=30.0),
+            ("跑步时长", &mut rt.prefs.behavior.run, 0.5..=15.0),
+            ("自动睡眠时长", &mut rt.prefs.behavior.sleep, 5.0..=600.0),
+            ("转圈间隔", &mut rt.prefs.behavior.spin_interval, 4.0..=60.0),
+        ] {
+            ui.add(
+                egui::Slider::new(value, range)
+                    .text(tr(label))
+                    .suffix(" s")
+                    .step_by(0.5),
+            );
+        }
+        if ui.button(tr("恢复默认动作时间")).clicked() {
+            let options = &mut rt.prefs.behavior;
+            *options = pet_core::behavior::BehaviorOptions {
+                idle_spin: options.idle_spin,
+                window_perching: options.window_perching,
+                ..Default::default()
+            };
+        }
+    });
     section(ui, &tr("互动指南"));
     card(ui).show(ui, |ui| {
         ui.set_min_width(ui.available_width());
@@ -116,7 +187,11 @@ pub(super) fn behavior_page(ui: &mut egui::Ui, rt: &mut Runtime) {
             ui.horizontal_wrapped(|ui| {
                 ui.add_sized(
                     [58., 28.],
-                    egui::Label::new(egui::RichText::new(tr(title)).strong()),
+                    egui::Label::new(
+                        egui::RichText::new(tr(title))
+                            .strong()
+                            .family(egui::FontFamily::Name("YaHeiBold".into())),
+                    ),
                 );
                 ui.label(egui::RichText::new(tr(description)).weak());
             });
@@ -149,7 +224,7 @@ pub(super) fn display_page(ui: &mut egui::Ui, rt: &mut Runtime) {
         ui.set_min_width(ui.available_width());
         ui.label(tr("桌宠大小"));
         ui.label(
-            egui::RichText::new(tr("按桌面比例调整，拖动滑条即时预览"))
+            egui::RichText::new(tr("鼠标悬停在桌宠上滚动滚轮，或拖动滑条调整"))
                 .small()
                 .weak(),
         );
@@ -207,7 +282,12 @@ pub(super) fn adaptation_page(
         ui.horizontal(|ui| {
             ui.add(egui::Image::new((texture, egui::vec2(size, size))));
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new(tr("动作预览")).size(18.).strong());
+                ui.label(
+                    egui::RichText::new(tr("动作预览"))
+                        .size(18.)
+                        .strong()
+                        .family(egui::FontFamily::Name("YaHeiBold".into())),
+                );
                 ui.label(
                     egui::RichText::new(tr("选择状态以查看对应动作"))
                         .small()
@@ -602,7 +682,12 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
                     .color(ui.visuals().hyperlink_color),
             );
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new(tr("检查更新")).size(16.).strong());
+                ui.label(
+                    egui::RichText::new(tr("检查更新"))
+                        .size(16.)
+                        .strong()
+                        .family(egui::FontFamily::Name("YaHeiBold".into())),
+                );
                 ui.label(
                     egui::RichText::new(format!("{} {}", tr("当前版本"), crate::updates::VERSION))
                         .small()
@@ -620,7 +705,7 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
             use crate::updates::Outcome;
             let text = match outcome {
                 Outcome::Current => tr("当前已是最新版本"),
-                Outcome::Available(version) => tr("发现新版本：{}").replace("{}", version),
+                Outcome::Available(release) => tr("发现新版本：{}").replace("{}", &release.version),
                 Outcome::Unpublished => tr("项目尚未发布公开版本，可前往发布页面查看。"),
                 Outcome::RateLimited => tr("更新服务暂时受限，请稍后重试或查看发布页面。"),
                 Outcome::Failed => tr("无法检查更新，请检查网络连接后重试。"),
@@ -631,6 +716,23 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
                 ui.visuals().text_color()
             };
             ui.colored_label(color, text);
+            if let Outcome::Available(release) = outcome {
+                ui.horizontal_wrapped(|ui| {
+                    ui.hyperlink_to(tr("查看此版本"), &release.url);
+                    if let Some(url) = &release.download {
+                        ui.hyperlink_to(tr("下载 Windows 版本"), url);
+                    }
+                });
+                if !release.notes.is_empty() {
+                    ui.collapsing(tr("更新说明"), |ui| {
+                        egui::ScrollArea::vertical()
+                            .max_height(200.)
+                            .show(ui, |ui| {
+                                ui.label(&release.notes);
+                            });
+                    });
+                }
+            }
         } else {
             ui.label(egui::RichText::new(tr("检查 GitHub 上发布的最新正式版本")).weak());
         }
@@ -655,13 +757,10 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
                 )
                 .clicked()
             {
-                let (send, receive) = std::sync::mpsc::channel();
-                state.update_receiver = Some(std::sync::Mutex::new(receive));
-                std::thread::spawn(move || {
-                    let _ = send.send(crate::updates::check());
-                });
+                state.check_updates();
             }
             ui.hyperlink_to(tr("前往发布页面"), crate::updates::RELEASES_URL);
+            ui.hyperlink_to(tr("GitHub 项目"), crate::updates::PROJECT_URL);
         });
     });
     section(ui, &tr("关于"));
@@ -672,7 +771,12 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
                 ui.add(egui::Image::new(logo).fit_to_exact_size(egui::vec2(56., 56.)));
             }
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new(tr("龙泡泡")).size(20.).strong());
+                ui.label(
+                    egui::RichText::new(tr("龙泡泡"))
+                        .size(20.)
+                        .strong()
+                        .family(egui::FontFamily::Name("YaHeiBold".into())),
+                );
                 ui.label(egui::RichText::new("My Dragon Bubble").weak());
                 ui.label(
                     egui::RichText::new(tr("陪伴在桌面上的小小伙伴"))

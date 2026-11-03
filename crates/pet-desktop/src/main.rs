@@ -1,9 +1,13 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 mod avatar;
+mod bundled;
 mod composite;
 mod effects;
 mod expressions;
+mod face;
 mod layered;
+#[cfg(windows)]
+mod menu_font;
 mod platform;
 mod runtime;
 mod soft_body;
@@ -28,22 +32,28 @@ use bevy::{
 use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 fn project_root() -> std::path::PathBuf {
     let current = std::env::current_dir().unwrap_or_default();
-    if current.join("skins").is_dir() {
+    if current.join("Cargo.toml").is_file() && current.join("converters/model_to_glb.py").is_file()
+    {
         return current;
     }
     if let Ok(exe) = std::env::current_exe() {
         let mut p = exe.parent();
         while let Some(parent) = p {
-            if parent.join("skins").is_dir() {
+            if parent.join("skins").is_dir() || parent.join("converters/model_to_glb.py").is_file()
+            {
                 return parent.to_owned();
             }
             p = parent.parent();
+        }
+        if let Some(parent) = exe.parent() {
+            return parent.to_owned();
         }
     }
     current
 }
 fn main() -> AppExit {
-    let smoke = std::env::args().any(|s| s == "--smoke-test");
+    let bounce_test = std::env::args().any(|s| s == "--bounce-test");
+    let smoke = bounce_test || std::env::args().any(|s| s == "--smoke-test");
     let root = project_root();
     let mut runtime = runtime::Runtime::new(root.clone(), smoke);
     runtime.loading = Some(runtime.prefs.skin_id.clone());
@@ -123,6 +133,7 @@ fn main() -> AppExit {
         Update,
         (
             platform::events,
+            platform::wheel,
             platform::input,
             runtime::actions,
             avatar::request,
@@ -135,12 +146,13 @@ fn main() -> AppExit {
             avatar::resize_output,
             avatar::performance,
             platform::sync_windows,
+            platform::frame_pacing,
         )
             .chain(),
     )
     .add_systems(
         PostUpdate,
-        (expressions::apply, suspension::apply)
+        (expressions::apply, suspension::apply, face::update)
             .chain()
             .after(bevy::app::AnimationSystems)
             .before(bevy::transform::TransformSystems::Propagate),
@@ -152,7 +164,13 @@ fn main() -> AppExit {
             .after(bevy::transform::TransformSystems::Propagate),
     )
     .add_systems(EguiPrimaryContextPass, ui::draw)
-    .add_systems(Update, runtime::smoke)
-    .add_systems(Last, (layered::present, platform::cap_frame).chain());
+    .add_systems(Last, layered::present);
+    if bounce_test {
+        app.add_systems(Update, runtime::bounce_smoke.after(avatar::animate));
+    } else {
+        // Inspect final animated transforms, after the per-frame reset and pose layers.
+        app.add_systems(PostUpdate, runtime::smoke.after(soft_body::update));
+    }
+    bundled::register(&mut app);
     app.run()
 }

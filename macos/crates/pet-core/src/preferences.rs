@@ -88,6 +88,8 @@ pub struct Preferences {
     pub locale: String,
     pub position: [i32; 2],
     pub performance: RenderOptions,
+    #[serde(default)]
+    pub behavior: crate::behavior::BehaviorOptions,
 }
 impl Default for Preferences {
     fn default() -> Self {
@@ -100,6 +102,7 @@ impl Default for Preferences {
             locale: "zh_CN".into(),
             position: [-99999, -99999],
             performance: RenderOptions::default(),
+            behavior: Default::default(),
         }
     }
 }
@@ -161,6 +164,7 @@ impl Preferences {
         }
         p.locale = crate::i18n::normalize(v["locale"].as_str().unwrap_or("zh_CN"));
         p.performance = RenderOptions::from_value(&v["performance"]);
+        p.behavior = crate::behavior::BehaviorOptions::from_value(&v["behavior"]);
         if let Some(pos) = v["position"].as_array()
             && pos.len() == 2
             && let (Some(x), Some(y)) = (pos[0].as_f64(), pos[1].as_f64())

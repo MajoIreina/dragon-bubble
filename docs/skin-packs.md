@@ -7,7 +7,7 @@
 | 类型 | 格式 | 实际处理 |
 | --- | --- | --- |
 | 通用 3D | GLB、glTF 2.0 | 保留网格、PBR 材质、骨骼、形态键及动画；外置缓冲区和贴图打包到 GLB |
-| FBX | .fbx | Godot 原生解码并转换为自包含 GLB，保留支持的贴图、骨骼及动画；普通桌面运行无需 Blender |
+| FBX | .fbx | Rust FBX 解码并转换为自包含 GLB，保留支持的贴图、骨骼及动画；普通桌面运行无需 Blender |
 | Wavefront | OBJ + MTL | 支持 UV、法线、负索引、多边形三角化、Kd / d / Tr / map_Kd；作为静态模型适配动作 |
 | VRM 基础模型 | .vrm | 按 glTF 加载基础网格、骨架、贴图及形态键；不提供 VRM 专用表情绑定、MToon 或弹簧骨实现 |
 | Blender / 静态几何 | .blend、STL、PLY | 使用本机 Blender 4.2+ 在后台转换；自动寻找安装位置，或在“动作与适配”设置路径 |
@@ -93,7 +93,7 @@ Live2D Cubism、Spine 和其他专用 2D 工程当前没有原生运行时，请
 }
 ```
 
-`node` 为整个身体的节点名或模型内相对路径；`profile_mesh` 和 `anchors` 相对于该节点查找。使用导入 Godot 后的精确名称（例如 Blender 的点号可能变成下划线）。`profile_mesh` 用于采样身体上下轮廓；`anchors` 排除四脚等承托子树，其他附件和绒毛一起变形。`axis` 是身体局部水平的前往后方向，局部 Y 必须向上；`start`、`length` 和两个高度均使用该节点坐标，跟随模型自动归一化。`support_height` 是后腹目标高度，`floor_height` 是包含尾片和绒毛的下限。
+`node` 为整个身体的节点名或模型内相对路径；`profile_mesh` 和 `anchors` 相对于该节点查找。使用模型导入后的精确节点名称。`profile_mesh` 用于采样身体上下轮廓；`anchors` 排除四脚等承托子树，其他附件和绒毛一起变形。`axis` 是身体局部水平的前往后方向，局部 Y 必须向上；`start`、`length` 和两个高度均使用该节点坐标，跟随模型自动归一化。`support_height` 是后腹目标高度，`floor_height` 是包含尾片和绒毛的下限。
 
 每个外观最多 8 处软体，每处 4–48 个截面。`compression` 范围 0–0.5，`gravity` 范围 0–9.8（0 关闭静态重力沉降），`stiffness` 范围 1–200，`damping` 范围 0.5–40。只对作者声明且没有已有蒙皮或形态键的子树生成权重；遇到冲突则保留原绑定并跳过该处软体。原始 GLB 资源不被改写，原生节点动画仍可叠加。该功能不是通用布料或完整体积软体求解器，未声明的导入模型保持原有表现。
 
@@ -143,4 +143,4 @@ Live2D Cubism、Spine 和其他专用 2D 工程当前没有原生运行时，请
 
 Blender 路径可在设置中保存，也可设置 `LPP_BLENDER_PATH` 环境变量。转换失败详情记录为运行数据目录内的 `conversion-last.log`。
 
-底层格式兼容性依据 [Godot GLTFDocument](https://docs.godotengine.org/en/4.5/classes/class_gltfdocument.html)、[FBXDocument](https://docs.godotengine.org/en/4.5/classes/class_fbxdocument.html) 和 [SkeletonModifier3D](https://docs.godotengine.org/en/4.5/classes/class_skeletonmodifier3d.html)。
+当前格式解析由 Rust 核心层完成；GLB 渲染使用 Bevy glTF 加载器。源码仓库不附带角色模型，自定义外观保存在用户数据目录。

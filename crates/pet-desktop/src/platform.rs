@@ -46,6 +46,95 @@ pub fn prefers_dark_theme() -> bool {
         false
     }
 }
+
+/// Let Winit pace app updates without blocking the event-loop thread. The
+/// layered-window mouse hook is serviced on that same thread, so sleeping in
+/// a frame system adds avoidable input latency.
+pub fn frame_update_mode(
+    fps: u32,
+    vsync: bool,
+    refresh_hz: Option<u32>,
+) -> bevy::winit::UpdateMode {
+    let limit = if vsync {
+        let refresh = refresh_hz.unwrap_or(if fps == 0 { 60 } else { fps }).max(1);
+        if fps == 0 { refresh } else { fps.min(refresh) }
+    } else {
+        fps
+    };
+    if limit == 0 {
+        bevy::winit::UpdateMode::Continuous
+    } else {
+        bevy::winit::UpdateMode::reactive_low_power(std::time::Duration::from_secs_f64(
+            1. / limit.clamp(24, 360) as f64,
+        ))
+    }
+}
+#[derive(Default)]
+pub(crate) struct FramePacingCache {
+    refresh_hz: Option<u32>,
+    config: Option<(u32, bool, Option<u32>)>,
+    refresh_poll: f32,
+}
+pub fn frame_pacing(
+    time: Res<Time>,
+    rt: Res<Runtime>,
+    mut settings: ResMut<bevy::winit::WinitSettings>,
+    mut cache: Local<FramePacingCache>,
+) {
+    cache.refresh_poll += time.delta_secs();
+    if cache.refresh_poll >= 0.5 || cache.config.is_none() {
+        cache.refresh_hz = display_refresh_rate(&rt.position);
+        cache.refresh_poll = 0.;
+    }
+    let key = (
+        rt.prefs.performance.fps,
+        rt.prefs.performance.vsync,
+        cache.refresh_hz,
+    );
+    if cache.config != Some(key) {
+        let mode = frame_update_mode(key.0, key.1, key.2);
+        settings.focused_mode = mode;
+        settings.unfocused_mode = mode;
+        cache.config = Some(key);
+    }
+}
+
+#[cfg(windows)]
+fn display_refresh_rate(position: &Vec2) -> Option<u32> {
+    use windows_sys::Win32::{Foundation::POINT, Graphics::Gdi::*};
+    unsafe {
+        let monitor = MonitorFromPoint(
+            POINT {
+                x: position.x.round() as i32,
+                y: position.y.round() as i32,
+            },
+            MONITOR_DEFAULTTONEAREST,
+        );
+        if monitor.is_null() {
+            return None;
+        }
+        let mut info: MONITORINFOEXW = std::mem::zeroed();
+        info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+        if GetMonitorInfoW(monitor, (&mut info as *mut MONITORINFOEXW).cast()) == 0 {
+            return None;
+        }
+        let mut mode = DEVMODEW {
+            dmSize: std::mem::size_of::<DEVMODEW>() as u16,
+            ..Default::default()
+        };
+        if EnumDisplaySettingsW(info.szDevice.as_ptr(), ENUM_CURRENT_SETTINGS, &mut mode) == 0
+            || mode.dmDisplayFrequency <= 1
+        {
+            None
+        } else {
+            Some(mode.dmDisplayFrequency)
+        }
+    }
+}
+#[cfg(not(windows))]
+fn display_refresh_rate(_: &Vec2) -> Option<u32> {
+    None
+}
 pub struct Tray {
     _icon: TrayIcon,
     menu: Menu,
@@ -95,6 +184,120 @@ pub fn desktop() -> Desktop {
 pub fn desktop() -> Desktop {
     Desktop::default()
 }
+/// Enumerate in Z order and remove covered pieces of each title-bar edge.
+/// All coordinates are physical pixels, matching GetCursorPos and rcWork.
+#[cfg(windows)]
+pub fn window_surfaces() -> Vec<pet_core::desktop::Surface> {
+    use windows_sys::Win32::{Foundation::*, Graphics::Dwm::*, UI::WindowsAndMessaging::*};
+    unsafe extern "system" fn visit(hwnd: HWND, data: LPARAM) -> i32 {
+        let windows = unsafe { &mut *(data as *mut Vec<(isize, Rect, bool)>) };
+        unsafe {
+            if IsWindowVisible(hwnd) == 0 || IsIconic(hwnd) != 0 {
+                return 1;
+            }
+            let mut pid = 0;
+            GetWindowThreadProcessId(hwnd, &mut pid);
+            if pid == std::process::id() {
+                return 1;
+            }
+            let mut cloaked: u32 = 0;
+            DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED as u32, &mut cloaked as *mut _ as _, 4);
+            if cloaked != 0 {
+                return 1;
+            }
+            let style = GetWindowLongW(hwnd, GWL_STYLE) as u32;
+            let ex = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
+            if ex & (WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT) != 0 {
+                return 1;
+            }
+            let mut class = [0u16; 128];
+            let len = GetClassNameW(hwnd, class.as_mut_ptr(), class.len() as i32);
+            let name = String::from_utf16_lossy(&class[..len.max(0) as usize]);
+            if [
+                "Progman",
+                "WorkerW",
+                "Shell_TrayWnd",
+                "Shell_SecondaryTrayWnd",
+            ]
+            .contains(&name.as_str())
+            {
+                return 1;
+            }
+            let mut r: RECT = std::mem::zeroed();
+            if DwmGetWindowAttribute(
+                hwnd,
+                DWMWA_EXTENDED_FRAME_BOUNDS as u32,
+                &mut r as *mut _ as _,
+                std::mem::size_of::<RECT>() as u32,
+            ) < 0
+                && GetWindowRect(hwnd, &mut r) == 0
+            {
+                return 1;
+            }
+            if r.right <= r.left || r.bottom <= r.top {
+                return 1;
+            }
+            windows.push((
+                hwnd as isize,
+                Rect::new(
+                    r.left as f32,
+                    r.top as f32,
+                    (r.right - r.left) as f32,
+                    (r.bottom - r.top) as f32,
+                ),
+                style & WS_CAPTION != 0,
+            ));
+        }
+        1
+    }
+    let mut windows: Vec<(isize, Rect, bool)> = vec![];
+    unsafe {
+        EnumWindows(Some(visit), &mut windows as *mut _ as isize);
+    }
+    exposed_surfaces(&windows)
+}
+#[cfg(not(windows))]
+pub fn window_surfaces() -> Vec<pet_core::desktop::Surface> {
+    vec![]
+}
+
+fn exposed_surfaces(windows: &[(isize, Rect, bool)]) -> Vec<pet_core::desktop::Surface> {
+    let mut result = vec![];
+    for (i, &(id, rect, perchable)) in windows.iter().enumerate() {
+        if !perchable {
+            continue;
+        }
+        let mut spans = vec![(rect.min.x, rect.max.x)];
+        for &(_, cover, _) in &windows[..i] {
+            if cover.min.y <= rect.min.y && cover.max.y > rect.min.y {
+                spans = spans
+                    .into_iter()
+                    .flat_map(|(l, r)| {
+                        if cover.max.x <= l || cover.min.x >= r {
+                            vec![(l, r)]
+                        } else {
+                            vec![(l, cover.min.x.max(l)), (cover.max.x.min(r), r)]
+                        }
+                    })
+                    .filter(|(l, r)| r - l >= 32.)
+                    .collect();
+            }
+        }
+        result.extend(
+            spans
+                .into_iter()
+                .filter(|(l, r)| r - l >= 32.)
+                .map(|(left, right)| pet_core::desktop::Surface {
+                    id,
+                    window_left: rect.min.x,
+                    left,
+                    right,
+                    y: rect.min.y,
+                }),
+        );
+    }
+    result
+}
 #[cfg(windows)]
 fn pointer() -> (Vec2, bool, bool) {
     use windows_sys::Win32::{
@@ -127,6 +330,16 @@ fn menu(rt: &Runtime) -> (Menu, HashMap<String, Action>) {
     add(&menu, tr("设置"), Action::ShowSettings(0));
     add(
         &menu,
+        tr(if rt.brain.forced_sleep || rt.brain.state == State::Sleep {
+            "唤醒"
+        } else {
+            "一键睡觉"
+        }),
+        Action::Sleep(!(rt.brain.forced_sleep || rt.brain.state == State::Sleep)),
+    );
+    add(&menu, tr("检查更新"), Action::CheckUpdates);
+    add(
+        &menu,
         format!(
             "{} {}",
             if rt.prefs.always_on_top { "✓" } else { "" },
@@ -143,7 +356,6 @@ fn menu(rt: &Runtime) -> (Menu, HashMap<String, Action>) {
         ),
         Action::Roam(!rt.prefs.roaming),
     );
-    add(&menu, tr("调整大小"), Action::ShowSize);
     add(&menu, tr("性能与画质"), Action::ShowSettings(4));
     add(&menu, tr("重置位置"), Action::Reset);
     let skins = Submenu::new(tr("外观"), true);
@@ -189,7 +401,6 @@ pub fn setup_tray(world: &mut World) {
         Ok(TrayIconBuilder::new()
             .with_icon(icon)
             .with_tooltip("龙泡泡 · My Dragon Bubble")
-            .with_menu(Box::new(menu.clone()))
             .with_menu_on_left_click(false)
             .build()?)
     })();
@@ -203,6 +414,15 @@ pub fn setup_tray(world: &mut World) {
         Err(e) => eprintln!("Tray initialization failed: {e}"),
     }
 }
+#[cfg(windows)]
+pub fn wheel(mut rt: ResMut<Runtime>) {
+    for (delta, cursor) in crate::layered::take_wheel() {
+        rt.scroll_zoom(delta, cursor);
+    }
+}
+#[cfg(not(windows))]
+pub fn wheel() {}
+
 pub fn input(
     time: Res<Time>,
     mut rt: ResMut<Runtime>,
@@ -236,7 +456,7 @@ pub fn input(
                     };
                     return unsafe {
                         windows_sys::Win32::UI::WindowsAndMessaging::WindowFromPoint(p)
-                    } == native.0;
+                    } == native.hwnd;
                 }
                 false
             }
@@ -245,10 +465,12 @@ pub fn input(
                 w.has_focus()
             }
         });
-        if left && !rt.last_left && inside && over_pet && !rt.show_size {
+        if left && !rt.last_left && inside && over_pet {
+            rt.brain.forced_sleep = false;
             rt.pressed = true;
             rt.dragging = false;
             rt.press_cursor = cursor;
+            rt.drag_cursor = cursor;
             rt.drag_facing_x = cursor.x;
             rt.press_origin = rt.position;
             rt.grab_point = local;
@@ -256,11 +478,15 @@ pub fn input(
             rt.motion.begin_drag(p, time.elapsed_secs_f64());
         }
         if rt.pressed && left {
+            rt.drag_cursor = cursor;
             if cursor.distance(rt.press_cursor) > 4. {
                 rt.dragging = true;
-                rt.brain.change(State::Dragged, 1.);
             }
             if rt.dragging {
+                // The drag stays latched even after stopping or returning to the press point.
+                if rt.brain.state != State::Dragged {
+                    rt.brain.change(State::Dragged, 1.);
+                }
                 let mut anchor = rt.drag_facing_x;
                 rt.brain.direction = drag_direction(cursor.x, &mut anchor, rt.brain.direction);
                 rt.drag_facing_x = anchor;
@@ -278,6 +504,7 @@ pub fn input(
                 rt.motion.launch(p, v);
                 rt.brain.change(State::Airborne, 2.);
             } else {
+                rt.pet_reaction = rt.pet_reaction.wrapping_add(1);
                 rt.brain.change(State::Petted, 1.8);
             }
             rt.pressed = false;
@@ -288,11 +515,7 @@ pub fn input(
             if let Some(tray) = tray {
                 #[cfg(windows)]
                 {
-                    use tray_icon::menu::ContextMenu;
-                    unsafe {
-                        tray.menu
-                            .show_context_menu_for_hwnd(native.0 as isize, None);
-                    }
+                    crate::menu_font::show(&tray.menu, native.hwnd);
                 }
             } else {
                 rt.actions.push(Action::ShowSettings(0));
@@ -319,6 +542,7 @@ pub fn events(
     mut close: MessageReader<WindowCloseRequested>,
     settings: Query<Entity, With<SettingsWindow>>,
     mut exit: MessageWriter<AppExit>,
+    #[cfg(windows)] native: NonSend<crate::layered::NativePet>,
 ) {
     #[cfg(windows)]
     if crate::layered::close_requested() {
@@ -327,7 +551,6 @@ pub fn events(
     for e in close.read() {
         if settings.contains(e.window) {
             rt.show_settings = false;
-            rt.show_size = false;
         } else {
             rt.actions.push(Action::Quit);
         }
@@ -339,6 +562,17 @@ pub fn events(
             }
         }
         while let Ok(e) = TrayIconEvent::receiver().try_recv() {
+            #[cfg(windows)]
+            if matches!(
+                e,
+                TrayIconEvent::Click {
+                    button: MouseButton::Right,
+                    button_state: MouseButtonState::Up,
+                    ..
+                }
+            ) {
+                crate::menu_font::show(&tray.menu, native.hwnd);
+            }
             if matches!(
                 e,
                 TrayIconEvent::Click {
@@ -351,17 +585,17 @@ pub fn events(
             }
         }
         let signature = format!(
-            "{}{}{}{}{}{}",
+            "{}{}{}{}{}{}{}",
             rt.prefs.locale,
             rt.prefs.skin_id,
             rt.prefs.roaming,
             rt.prefs.always_on_top,
             rt.skins.len(),
-            rt.desktop.areas.len()
+            rt.desktop.areas.len(),
+            rt.brain.forced_sleep || rt.brain.state == State::Sleep
         );
         if signature != tray.signature {
             let (m, a) = menu(&rt);
-            tray._icon.set_menu(Some(Box::new(m.clone())));
             tray.menu = m;
             tray.actions = a;
             tray.signature = signature;
@@ -380,7 +614,6 @@ pub fn sync_windows(
         Option<&SettingsWindow>,
     )>,
     mut cameras: Query<&mut Camera, With<SettingsCamera>>,
-    mut size_mode: Local<Option<bool>>,
     mut branded: Local<Option<Entity>>,
     _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
@@ -437,55 +670,55 @@ pub fn sync_windows(
                     }
                 });
             }
-            let compact = rt.show_size && !rt.show_settings;
-            if *size_mode != Some(compact) {
-                *size_mode = Some(compact);
-                w.resize_constraints.min_width = if compact { 400. } else { 760. };
-                w.resize_constraints.min_height = if compact { 230. } else { 560. };
-                w.resolution.set(
-                    if compact { 400. } else { 1120. },
-                    if compact { 230. } else { 800. },
-                );
-                w.resizable = !compact;
-                w.title = if compact {
-                    pet_core::i18n::tr(&rt.prefs.locale, "调整大小")
-                } else {
-                    "龙泡泡 · My Dragon Bubble".into()
-                };
-            }
-            let visible = rt.show_settings || rt.show_size;
+            let visible = rt.show_settings;
             if w.visible != visible {
                 w.visible = visible;
             }
         }
     }
     for mut c in &mut cameras {
-        c.is_active = rt.show_settings || rt.show_size;
+        c.is_active = rt.show_settings;
     }
 }
-pub fn cap_frame(rt: Res<Runtime>, mut previous: Local<Option<std::time::Instant>>) {
-    #[cfg(windows)]
-    if rt.prefs.performance.vsync {
-        unsafe {
-            windows_sys::Win32::Graphics::Dwm::DwmFlush();
-        }
-    }
-    let now = std::time::Instant::now();
-    let fps = rt.prefs.performance.fps;
-    if let Some(last) = *previous
-        && fps > 0
-    {
-        let budget = std::time::Duration::from_secs_f64(1. / fps as f64);
-        if let Some(left) = budget.checked_sub(now - last) {
-            std::thread::sleep(left);
-        }
-    }
-    *previous = Some(std::time::Instant::now());
-}
-
 #[cfg(test)]
 mod tests {
     use super::drag_direction;
+    #[test]
+    fn frame_pacing_uses_event_loop_and_keeps_unlimited_mode() {
+        use bevy::winit::UpdateMode;
+        assert_eq!(
+            super::frame_update_mode(0, false, None),
+            UpdateMode::Continuous
+        );
+        assert!(
+            matches!(super::frame_update_mode(60, false, None), UpdateMode::Reactive { wait, react_to_device_events: false, .. } if wait.as_millis() == 16)
+        );
+        assert!(
+            matches!(super::frame_update_mode(240, true, Some(144)), UpdateMode::Reactive { wait, .. } if wait.as_micros() == 6944)
+        );
+        assert!(
+            matches!(super::frame_update_mode(0, true, Some(120)), UpdateMode::Reactive { wait, .. } if wait.as_micros() == 8333)
+        );
+    }
+    #[test]
+    fn foreground_windows_occlude_only_covered_title_edge() {
+        use pet_core::desktop::Rect;
+        let edges = super::exposed_surfaces(&[
+            (1, Rect::new(300., 100., 200., 500.), true),
+            (2, Rect::new(100., 300., 600., 400.), true),
+        ]);
+        let back: Vec<_> = edges
+            .iter()
+            .filter(|s| s.id == 2)
+            .map(|s| (s.left, s.right))
+            .collect();
+        assert_eq!(back, vec![(100., 300.), (500., 700.)]);
+        let hidden = super::exposed_surfaces(&[
+            (1, Rect::new(0., 0., 1000., 800.), false),
+            (2, Rect::new(100., 300., 600., 400.), true),
+        ]);
+        assert!(hidden.is_empty());
+    }
 
     #[test]
     fn drag_facing_tracks_reversals_and_keeps_direction_while_stationary() {

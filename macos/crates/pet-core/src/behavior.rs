@@ -1,5 +1,53 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+/// Seconds per activity; a little variation keeps autonomous motion natural.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct BehaviorOptions {
+    pub idle: f32,
+    pub walk: f32,
+    pub run: f32,
+    pub sleep: f32,
+    pub spin_interval: f32,
+    pub idle_spin: bool,
+    pub window_perching: bool,
+}
+impl Default for BehaviorOptions {
+    fn default() -> Self {
+        Self {
+            idle: 12.,
+            walk: 4.,
+            run: 2.,
+            sleep: 30.,
+            spin_interval: 8.,
+            idle_spin: true,
+            window_perching: true,
+        }
+    }
+}
+impl BehaviorOptions {
+    pub fn from_value(v: &serde_json::Value) -> Self {
+        let mut result = Self::default();
+        for (key, value, min, max) in [
+            ("idle", &mut result.idle, 3., 120.),
+            ("walk", &mut result.walk, 1., 30.),
+            ("run", &mut result.run, 0.5, 15.),
+            ("sleep", &mut result.sleep, 5., 600.),
+            ("spin_interval", &mut result.spin_interval, 4., 60.),
+        ] {
+            if let Some(n) = v[key].as_f64().filter(|n| n.is_finite()) {
+                *value = n.clamp(min, max) as f32;
+            }
+        }
+        if let Some(b) = v["idle_spin"].as_bool() {
+            result.idle_spin = b;
+        }
+        if let Some(b) = v["window_perching"].as_bool() {
+            result.window_perching = b;
+        }
+        result
+    }
+}
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum State {
@@ -68,6 +116,8 @@ pub struct Brain {
     pub direction: i32,
     pub roaming: bool,
     pub remaining: f32,
+    pub options: BehaviorOptions,
+    pub forced_sleep: bool,
 }
 impl Default for Brain {
     fn default() -> Self {
@@ -76,6 +126,8 @@ impl Default for Brain {
             direction: 1,
             roaming: true,
             remaining: 4.,
+            options: Default::default(),
+            forced_sleep: false,
         }
     }
 }
@@ -84,16 +136,25 @@ impl Brain {
         self.state = state;
         self.remaining = seconds;
     }
+    pub fn sleep_now(&mut self) {
+        self.forced_sleep = true;
+        self.change(State::Sleep, self.options.sleep);
+    }
+    pub fn wake(&mut self) {
+        self.forced_sleep = false;
+        self.change(State::Idle, self.options.idle);
+    }
     pub fn set_roaming(&mut self, value: bool) {
         self.roaming = value;
         if !value && self.state.moving() {
-            self.change(State::Idle, 5.);
+            self.change(State::Idle, self.options.idle);
         }
     }
     pub fn tick(&mut self, delta: f32, rng: &mut impl Rng) {
         if !delta.is_finite()
             || delta <= 0.
             || matches!(self.state, State::Dragged | State::Airborne)
+            || (self.forced_sleep && self.state == State::Sleep)
         {
             return;
         }
@@ -101,20 +162,25 @@ impl Brain {
         if self.remaining > 0. {
             return;
         }
-        let (s, t) = match self.state {
-            State::Petted | State::Fall => (State::Idle, rng.random_range(3.0..6.0)),
-            State::Walk | State::Run => (State::Idle, rng.random_range(3.0..7.0)),
-            State::Sleep => (State::Idle, rng.random_range(4.0..8.0)),
+        let s = match self.state {
+            State::Petted | State::Fall | State::Walk | State::Run | State::Sleep => State::Idle,
             _ if self.roaming && rng.random_bool(0.65) => {
                 self.direction = if rng.random_bool(0.5) { -1 } else { 1 };
                 if rng.random_bool(0.25) {
-                    (State::Run, rng.random_range(1.2..2.8))
+                    State::Run
                 } else {
-                    (State::Walk, rng.random_range(2.0..5.0))
+                    State::Walk
                 }
             }
-            _ => (State::Sleep, rng.random_range(6.0..12.0)),
+            _ => State::Sleep,
         };
-        self.change(s, t);
+        let seconds = match s {
+            State::Idle => self.options.idle,
+            State::Walk => self.options.walk,
+            State::Run => self.options.run,
+            State::Sleep => self.options.sleep,
+            _ => self.options.idle,
+        };
+        self.change(s, seconds * rng.random_range(0.85..1.15));
     }
 }

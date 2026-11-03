@@ -115,3 +115,69 @@ pub fn prefers_dark_theme() -> bool {
         .stringForKey(ns_string!("AppleInterfaceStyle"))
         .is_some_and(|style| style.to_string() == "Dark")
 }
+
+/// Quartz reports window bounds in global logical points, top-left origin.
+/// Read geometry only; no screen capture, window titles, or accessibility hooks.
+pub fn visible_windows() -> Vec<(isize, Rect, bool)> {
+    use core_foundation::{
+        base::{CFType, TCFType},
+        dictionary::CFDictionary,
+        number::CFNumber,
+        string::CFString,
+    };
+    use core_graphics::{
+        geometry::CGRect,
+        window::{
+            copy_window_info, kCGNullWindowID, kCGWindowListExcludeDesktopElements,
+            kCGWindowListOptionOnScreenOnly,
+        },
+    };
+    fn value(dict: &CFDictionary, key: &str) -> Option<CFType> {
+        let key = CFString::new(key);
+        let pointer = dict.find(key.as_CFTypeRef())?;
+        // SAFETY: values belong to the live retained Core Foundation dictionary.
+        Some(unsafe { CFType::wrap_under_get_rule(*pointer) })
+    }
+    fn number(dict: &CFDictionary, key: &str) -> Option<i64> {
+        value(dict, key)?.downcast::<CFNumber>()?.to_i64()
+    }
+    let Some(windows) = copy_window_info(
+        kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
+        kCGNullWindowID,
+    ) else {
+        return vec![];
+    };
+    windows
+        .iter()
+        .filter_map(|pointer| {
+            // SAFETY: CGWindowListCopyWindowInfo returns an array of CFDictionary.
+            let entry =
+                unsafe { CFType::wrap_under_get_rule(*pointer) }.downcast::<CFDictionary>()?;
+            if number(&entry, "kCGWindowOwnerPID")? == std::process::id() as i64
+                || value(&entry, "kCGWindowAlpha")?
+                    .downcast::<CFNumber>()?
+                    .to_f64()?
+                    <= 0.
+            {
+                return None;
+            }
+            let bounds = value(&entry, "kCGWindowBounds")?.downcast::<CFDictionary>()?;
+            let rect = CGRect::from_dict_representation(&bounds)?;
+            if rect.size.width < 64. || rect.size.height < 48. {
+                return None;
+            }
+            let layer = number(&entry, "kCGWindowLayer")?;
+            let id = number(&entry, "kCGWindowNumber")? as isize;
+            Some((
+                id,
+                Rect::new(
+                    rect.origin.x as f32,
+                    rect.origin.y as f32,
+                    rect.size.width as f32,
+                    rect.size.height as f32,
+                ),
+                layer == 0,
+            ))
+        })
+        .collect()
+}

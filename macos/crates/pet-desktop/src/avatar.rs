@@ -35,6 +35,9 @@ pub struct Avatar {
     pub ready: bool,
     pub state: State,
     pub clock: f32,
+    pub expression_clock: f32,
+    pub spin_angle: f32,
+    pub spinning: bool,
     pub turning: bool,
     pub turn_clock: f32,
     pub resume_clock: f32,
@@ -55,6 +58,15 @@ pub struct Avatar {
     pub material: Option<Handle<StandardMaterial>>,
     pub base: Transform,
     pub suspension: pet_core::interaction::Suspension,
+    pub support_pivot: Vec3,
+    pub reaction: u64,
+    pub tail: pet_core::interaction::TailResponse,
+    landing_serial: u64,
+    drag_still_time: f32,
+    drag_cursor: Option<Vec2>,
+    drag_velocity: Vec2,
+    release_yaw: Option<f32>,
+    hanging_sway: f32,
 }
 impl Avatar {
     fn new(skin: Skin, preview: bool) -> Self {
@@ -64,6 +76,9 @@ impl Avatar {
             ready: false,
             state: State::Idle,
             clock: 0.,
+            expression_clock: 0.,
+            spin_angle: 0.,
+            spinning: false,
             turning: false,
             turn_clock: 0.,
             resume_clock: 1.,
@@ -84,10 +99,27 @@ impl Avatar {
             material: None,
             base: Transform::IDENTITY,
             suspension: default(),
+            support_pivot: Vec3::ZERO,
+            reaction: 0,
+            tail: default(),
+            landing_serial: 0,
+            drag_still_time: 0.,
+            drag_cursor: None,
+            drag_velocity: Vec2::ZERO,
+            release_yaw: None,
+            hanging_sway: 0.,
         }
     }
     pub fn resume_rate(&self) -> f32 {
         (self.resume_clock / 0.22).clamp(0., 1.)
+    }
+}
+/// Viewer-facing angle: left is negative, right positive; speed is unscaled px/s.
+fn drag_yaw(horizontal_speed: f32) -> f32 {
+    if horizontal_speed.abs() < 20. {
+        0.
+    } else {
+        (horizontal_speed / 900.).clamp(-1., 1.) * FRAC_PI_2
     }
 }
 #[derive(Component)]
@@ -301,6 +333,7 @@ pub fn request(
         };
         let layer = if preview { 2 } else { 1 };
         let mut avatar = Avatar::new(skin.clone(), preview);
+        avatar.landing_serial = rt.landing_serial;
         let root = commands
             .spawn((
                 Transform::default(),
@@ -310,19 +343,23 @@ pub fn request(
             .id();
         match skin.r#type.as_str() {
             "model3d" => {
-                let path = match pet_core::import::cached_model(&skin, &rt.data) {
-                    Ok(path) => path,
-                    Err(e) => {
-                        rt.status = format!("模型加载失败：{e:#}");
-                        commands.entity(root).despawn();
-                        continue;
-                    }
+                let handle = if let Some(path) = crate::bundled::asset_path(&skin) {
+                    server.load(path)
+                } else {
+                    let path = match pet_core::import::cached_model(&skin, &rt.data) {
+                        Ok(path) => path,
+                        Err(e) => {
+                            rt.status = format!("模型加载失败：{e:#}");
+                            commands.entity(root).despawn();
+                            continue;
+                        }
+                    };
+                    let relative = path.strip_prefix(&rt.data).unwrap();
+                    server.load(format!(
+                        "user://{}",
+                        relative.to_string_lossy().replace(char::from(92), "/")
+                    ))
                 };
-                let relative = path.strip_prefix(&rt.data).unwrap();
-                let handle = server.load(format!(
-                    "user://{}",
-                    relative.to_string_lossy().replace(char::from(92), "/")
-                ));
                 avatar.source = handle.clone();
                 commands.entity(root).insert((avatar, Loading { handle }));
             }
@@ -579,6 +616,15 @@ pub fn finish(
         );
         if a.skin.id == "builtin.shu" {
             crate::suspension::capture(&mut commands, root, &descendants, &rest_spatial);
+            crate::face::install(
+                &mut commands,
+                root,
+                a.preview,
+                &descendants,
+                &spatial,
+                &mut meshes,
+                &mut materials,
+            );
         }
         let layer = if a.preview { 2 } else { 1 };
         let toon = a.skin.options.get("render_style").and_then(|v| v.as_str()) == Some("toon");
@@ -660,6 +706,22 @@ pub fn finish(
                 continue;
             }
             let scale = 2.35 / longest;
+            // Use the planted feet, excluding the long tail from the spin axis.
+            let feet = descendants
+                .iter()
+                .filter_map(|e| {
+                    let (_, global, name) = rest_spatial.get(*e).ok()?;
+                    let name = name?;
+                    ["FrontFoot.L", "FrontFoot.R", "RearFoot.L", "RearFoot.R"]
+                        .contains(&name.as_str())
+                        .then_some(global.translation())
+                })
+                .collect::<Vec<_>>();
+            if feet.len() == 4 {
+                let centre = feet.iter().copied().sum::<Vec3>() / 4.;
+                a.support_pivot = (centre - (min + max) * 0.5) * scale;
+                a.support_pivot.y = 0.;
+            }
             for &e in &descendants {
                 if let Ok(mut transform) = transforms.get_mut(e) {
                     transform.scale = Vec3::splat(scale);
@@ -694,6 +756,13 @@ pub fn finish(
             rt.ground = a.ground;
             rt.prefs.skin_id = a.skin.id.clone();
             rt.desktop.extent = Vec2::new(320. * rt.prefs.zoom, rt.ground * rt.prefs.zoom);
+            // Normalization centers model bounds at y=0; the camera looks at y=0.05.
+            // Permit transparent top padding offscreen so the visible head reaches the edge.
+            rt.desktop.top_inset = if a.sprite.is_none() {
+                (320. + 0.1 * 300. / 3.9 - a.ground).max(0.) * rt.prefs.zoom
+            } else {
+                0.
+            };
             rt.position = rt.desktop.clamp_origin(rt.position);
             rt.dirty = true;
             rt.need_preview = true;
@@ -728,16 +797,26 @@ pub fn animate(
         let desired = if a.preview {
             rt.preview_state
         } else {
-            rt.brain.state
+            rt.animation_state()
         };
         let direction = if a.preview { 1 } else { rt.brain.direction };
-        let changed = a.state != desired || a.clock == 0.;
+        let reaction = if a.preview {
+            rt.pet_reaction.max(1)
+        } else {
+            rt.pet_reaction
+        };
+        let clicked = desired == State::Petted && a.reaction != reaction;
+        let changed = a.state != desired || a.clock == 0. || clicked;
+        if desired == State::Petted {
+            a.reaction = reaction;
+        }
         if changed {
             a.state = desired;
             a.clock = 0.;
             a.turning = false;
         }
         a.clock += dt;
+        a.expression_clock += dt;
         a.resume_clock += dt;
         let position = if a.preview {
             Vec2::new((a.clock * 1.7).sin() * 28., (a.clock * 1.3).cos() * 10.)
@@ -750,9 +829,54 @@ pub fn animate(
             desired == State::Dragged,
             desired == State::Airborne,
         );
+        let speed = a.suspension.speed;
+        if !a.preview && a.landing_serial != rt.landing_serial {
+            a.landing_serial = rt.landing_serial;
+            if desired != State::Dragged {
+                a.tail.impact(rt.landing_speed);
+            }
+        }
+        if desired == State::Dragged && a.tail.contact_weight() > 0. {
+            a.tail.cancel_contact();
+        }
+        let airborne = desired == State::Airborne
+            && (a.preview || !rt.motion.active || !rt.physically_supported());
+        a.tail
+            .advance(dt, desired == State::Dragged || airborne, speed);
         let is_sprite = a.sprite.is_some();
+        let held_drag = !a.preview && rt.pressed && rt.dragging && desired == State::Dragged;
+        if desired != State::Airborne {
+            a.release_yaw = None;
+        } else if a.drag_cursor.is_some() && !held_drag {
+            a.release_yaw = Some(a.yaw);
+        }
+        if held_drag {
+            let cursor = rt.drag_cursor;
+            let previous = a.drag_cursor.replace(cursor).unwrap_or(cursor);
+            let measured =
+                ((cursor - previous) / (dt.max(0.0001) * rt.prefs.zoom)).clamp_length_max(2200.);
+            a.drag_velocity = a.drag_velocity.lerp(measured, 1. - (-dt * 18.).exp());
+        } else {
+            a.drag_cursor = None;
+            a.drag_velocity = Vec2::ZERO;
+        }
+        // Allow short pauses and hand jitter before looking toward the viewer.
+        // Use pointer motion: screen limits can reposition the body as its silhouette turns.
+        a.drag_still_time = if held_drag && a.drag_velocity.x.abs() < 35. {
+            a.drag_still_time + dt
+        } else {
+            0.
+        };
         let side_on = desired.moving() || matches!(desired, State::Dragged | State::Airborne);
-        let target = if side_on {
+        let target = if held_drag {
+            if a.drag_still_time >= 0.18 {
+                0.
+            } else {
+                drag_yaw(a.drag_velocity.x)
+            }
+        } else if let Some(yaw) = a.release_yaw {
+            yaw
+        } else if side_on {
             direction as f32 * FRAC_PI_2
         } else {
             direction as f32 * 0.32
@@ -774,20 +898,49 @@ pub fn animate(
                 a.turning = false;
                 a.resume_clock = 0.;
             }
+        } else if held_drag {
+            // Facing changes independently of the looping hanging animation.
+            a.yaw += (target - a.yaw) * (1. - (-dt * 9.).exp());
         } else if side_on {
-            // Dragging cancels a planted turn and faces the movement direction immediately.
             a.yaw = target;
         } else {
             a.yaw += (target - a.yaw) * (dt * 6.).min(1.);
         }
         a.direction = direction;
-        let clip = if a.turning && a.clips.contains_key("Turn") {
+        let sway = if held_drag && a.drag_still_time >= 0.18 {
+            let front = 1. - (a.yaw.abs() / FRAC_PI_2).clamp(0., 1.);
+            (a.clock * std::f32::consts::TAU / 2.8).sin() * 0.028 * front
+        } else {
+            0.
+        };
+        a.hanging_sway += (sway - a.hanging_sway) * (1. - (-dt * 6.).exp());
+        let spin_phase = (a.clock - 1.4).rem_euclid(rt.prefs.behavior.spin_interval);
+        let spinning = desired == State::Idle
+            && rt.prefs.behavior.idle_spin
+            && a.clock >= 1.4
+            && spin_phase < 2.6
+            && !is_sprite;
+        let spin_changed = a.spinning != spinning;
+        a.spinning = spinning;
+        if spinning {
+            let t = spin_phase / 2.6;
+            a.spin_angle = std::f32::consts::TAU * t * t * (3. - 2. * t);
+        } else {
+            let angle = (a.spin_angle + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
+                - std::f32::consts::PI;
+            a.spin_angle = if side_on {
+                0.
+            } else {
+                angle * (-dt * 10.).exp()
+            };
+        }
+        let clip = if (a.turning || spinning) && a.clips.contains_key("Turn") {
             Some("Turn".to_string())
         } else {
             a.mapping.get(desired.key()).cloned()
         };
         a.native = clip.is_some();
-        if changed || turn_started || (!a.turning && a.resume_clock < dt * 1.5) {
+        if changed || spin_changed || turn_started || (!a.turning && a.resume_clock < dt * 1.5) {
             for &entity in &a.players {
                 if let Ok((mut player, mut transitions)) = players.get_mut(entity) {
                     if let Some(index) = clip.as_ref().and_then(|s| a.clips.get(s)) {
@@ -796,6 +949,9 @@ pub fn animate(
                             *index,
                             std::time::Duration::from_millis(160),
                         );
+                        if clicked {
+                            active.replay();
+                        }
                         if desired.looping() && !a.turning {
                             active.repeat();
                         }
@@ -817,7 +973,7 @@ pub fn animate(
                 }
             }
         } else {
-            transform.rotation = Quat::from_rotation_y(a.yaw);
+            transform.rotation = Quat::from_rotation_y(a.yaw + a.spin_angle);
         }
         {
             let t = a.clock;
@@ -830,7 +986,16 @@ pub fn animate(
                     stride.abs() * 0.045,
                     stride * 0.035,
                 ),
-                State::Sleep => (1.1, 0.8, 0., 0.),
+                State::Sleep => {
+                    let settle = (t / 0.8).clamp(0., 1.);
+                    let breath = (t * std::f32::consts::TAU / 4.4).sin();
+                    (
+                        1. + settle * (0.1 - breath * 0.018),
+                        1. - settle * (0.18 - breath * 0.035),
+                        0.,
+                        settle * (0.025 + breath * 0.012),
+                    )
+                }
                 State::Petted => (
                     1.,
                     1. + (t * 10.).sin() * (-t).exp() * 0.08,
@@ -849,7 +1014,13 @@ pub fn animate(
                 _ => 1.,
             };
             if a.native {
-                amplitude *= if desired.moving() { 0. } else { 0.12 };
+                amplitude *= if desired.moving() {
+                    0.
+                } else if desired == State::Sleep && a.skin.id == "builtin.shu" {
+                    0.65
+                } else {
+                    0.12
+                };
             }
             let sx = 1. + (sx - 1.) * amplitude;
             let sy = 1. + (sy - 1.) * amplitude;
@@ -861,8 +1032,11 @@ pub fn animate(
             transform.rotation *= Quat::from_rotation_z(lean);
         }
         if a.skin.id == "builtin.shu" {
+            let pivot = a.support_pivot * transform.scale;
+            transform.translation += Quat::from_rotation_y(a.yaw) * pivot
+                - Quat::from_rotation_y(a.yaw + a.spin_angle) * pivot;
             let response = &a.suspension;
-            // Rotate in the screen plane around the actual grab point; yaw stays side-on.
+            // Rotate in the screen plane around the actual grab point, independently of yaw.
             let pivot = if a.preview {
                 Vec2::new(160., 125.)
             } else {
@@ -873,7 +1047,7 @@ pub fn animate(
                 (160. - pivot.y) * 3.9 / 300. + 0.05,
                 0.,
             );
-            let rotation = Quat::from_rotation_z(response.roll);
+            let rotation = Quat::from_rotation_z(response.roll + a.hanging_sway);
             let stretch = Vec3::new(1. - response.stretch * 0.4, 1. + response.stretch, 1.);
             transform.translation = pivot
                 + rotation * ((transform.translation - pivot) * stretch)
@@ -1009,6 +1183,138 @@ pub fn performance(
 mod tests {
     use super::*;
 
+    // Exercise Shu-specific motion without depending on any private model files.
+    fn motion_test_skin() -> Skin {
+        serde_json::from_value(serde_json::json!({
+            "schema_version": 1, "id": "builtin.shu", "name": "Motion fixture",
+            "type": "model3d", "asset": "fixture.glb",
+            "animations": {"idle": "Idle", "walk": "Walk", "run": "Run",
+                "sleep": "Sleep", "petted": "Happy", "dragged": "PickedUp",
+                "airborne": "PickedUp", "fall": "Land"}
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn real_motion_impacts_reach_the_avatar_during_rebounds_and_floor_sliding() {
+        let root = std::env::temp_dir().join(format!("lpp-bounce-tail-{}", std::process::id()));
+        let mut rt = Runtime::new(root.clone(), true, pet_core::desktop::Desktop::default());
+        rt.poll = -1000.; // Keep the deterministic test desktop throughout this simulation.
+        rt.prefs.roaming = false;
+        rt.brain.change(State::Airborne, 60.);
+        rt.desktop = pet_core::desktop::Desktop {
+            areas: vec![pet_core::desktop::Rect::new(0., 0., 1920., 900.)],
+            ..default()
+        };
+        rt.position = Vec2::new(300., 200.);
+        rt.motion.launch(rt.position, Vec2::new(1600., 1200.));
+        let mut avatar = Avatar::new(motion_test_skin(), false);
+        avatar.ready = true;
+        let mut app = App::new();
+        let mut time = Time::<()>::default();
+        time.advance_by(std::time::Duration::from_secs_f32(1. / 60.));
+        app.insert_resource(time)
+            .insert_resource(rt)
+            .init_resource::<Assets<StandardMaterial>>()
+            .add_systems(Update, (crate::runtime::simulate, animate).chain());
+        let entity = app.world_mut().spawn((avatar, Transform::default())).id();
+        let mut seen = 0;
+        let mut airborne_contacts = 0;
+        let mut slide_seen = false;
+        for _ in 0..300 {
+            let before = app.world().get::<Avatar>(entity).unwrap().tail.pitch;
+            app.update();
+            let rt = app.world().resource::<Runtime>();
+            let avatar = app.world().get::<Avatar>(entity).unwrap();
+            if rt.landing_serial != seen {
+                seen = rt.landing_serial;
+                assert_eq!(avatar.landing_serial, seen);
+                assert!(avatar.tail.contact_weight() > 0.5);
+                assert!(
+                    avatar.tail.pitch < before - 0.02,
+                    "each physical impact must lower the tail"
+                );
+                if avatar.state == State::Airborne {
+                    airborne_contacts += 1;
+                }
+            }
+            if rt.motion.active && rt.physically_supported() {
+                slide_seen = true;
+                assert!(
+                    avatar.tail.pitch < -0.1,
+                    "tail must not lift during grounded sliding"
+                );
+            }
+        }
+        assert!(seen >= 3 && airborne_contacts >= 2);
+        assert!(slide_seen);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn idle_spin_completes_a_full_turn_in_place_and_drag_interrupts() {
+        let root = std::env::temp_dir().join(format!("lpp-spin-{}", std::process::id()));
+        let mut rt = Runtime::new(root.clone(), true, pet_core::desktop::Desktop::default());
+        rt.prefs.behavior.idle_spin = true;
+        rt.brain.change(State::Idle, 120.);
+        let skin = motion_test_skin();
+        let mut avatar = Avatar::new(skin, false);
+        avatar.ready = true;
+        avatar.support_pivot = Vec3::new(0.05, 0., 0.43);
+        let mut app = App::new();
+        let mut time = Time::<()>::default();
+        time.advance_by(std::time::Duration::from_secs_f32(1. / 60.));
+        app.insert_resource(time)
+            .insert_resource(rt)
+            .init_resource::<Assets<StandardMaterial>>()
+            .add_systems(Update, animate);
+        let entity = app.world_mut().spawn((avatar, Transform::default())).id();
+        let mut max_angle = 0_f32;
+        for _ in 0..260 {
+            app.update();
+            let a = app.world().get::<Avatar>(entity).unwrap();
+            max_angle = max_angle.max(a.spin_angle);
+            let transform = app.world().get::<Transform>(entity).unwrap();
+            let foot_centre = transform.transform_point(a.support_pivot);
+            let expected = Quat::from_rotation_y(a.yaw) * a.support_pivot;
+            assert!((foot_centre.x - expected.x).abs() < 0.0001);
+            assert!((foot_centre.z - expected.z).abs() < 0.0001);
+        }
+        assert!(max_angle > 6.27, "must complete a full turn");
+        let a = app.world().get::<Avatar>(entity).unwrap();
+        assert!(!a.spinning && a.spin_angle.abs() < 0.01);
+        app.world_mut()
+            .get_mut::<Avatar>(entity)
+            .unwrap()
+            .spin_angle = 3.;
+        app.world_mut()
+            .resource_mut::<Runtime>()
+            .brain
+            .change(State::Dragged, 10.);
+        app.update();
+        let a = app.world().get::<Avatar>(entity).unwrap();
+        assert!(!a.spinning);
+        assert_eq!(a.spin_angle, 0.);
+        app.world_mut()
+            .resource_mut::<Runtime>()
+            .brain
+            .change(State::Petted, 1.8);
+        app.world_mut().resource_mut::<Runtime>().pet_reaction = 1;
+        for _ in 0..30 {
+            app.update();
+        }
+        assert!(app.world().get::<Avatar>(entity).unwrap().clock > 0.4);
+        app.world_mut().resource_mut::<Runtime>().pet_reaction = 2;
+        app.update();
+        let a = app.world().get::<Avatar>(entity).unwrap();
+        assert_eq!(a.reaction, 2);
+        assert!(
+            a.clock < 0.02,
+            "repeated click must restart the reaction immediately"
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn taa_and_ao_share_depth_and_remove_jitter_when_disabled() {
         use crate::temporal::TemporalAntiAliasing;
@@ -1110,8 +1416,7 @@ mod tests {
         let root = std::env::temp_dir().join(format!("lpp-facing-{}", std::process::id()));
         let mut rt = Runtime::new(root.clone(), true, pet_core::desktop::Desktop::default());
         rt.show_settings = false;
-        let skin: Skin = serde_json::from_str(include_str!("../../../skins/shu/skin.json"))
-            .expect("Shu manifest");
+        let skin = motion_test_skin();
         let mut avatar = Avatar::new(skin, false);
         avatar.ready = true;
         avatar.state = State::Walk;
@@ -1159,5 +1464,178 @@ mod tests {
             }
         }
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn held_drag_faces_viewer_when_stopped_and_sideways_when_moving() {
+        for hz in [30, 60, 144] {
+            for zoom in [0.2, 1., 3.] {
+                let root = std::env::temp_dir().join(format!(
+                    "lpp-held-facing-{}-{hz}-{zoom}",
+                    std::process::id()
+                ));
+                let mut rt =
+                    Runtime::new(root.clone(), true, pet_core::desktop::Desktop::default());
+                rt.show_settings = false;
+                rt.prefs.zoom = zoom;
+                rt.pressed = true;
+                rt.dragging = true;
+                // Incidental state changes must not end the hanging animation.
+                rt.brain.change(State::Idle, 1.);
+                let mut avatar = Avatar::new(motion_test_skin(), false);
+                avatar.ready = true;
+                avatar.mapping = avatar.skin.animations.clone();
+                let pickup = AnimationNodeIndex::new(0);
+                avatar.clips.insert("PickedUp".into(), pickup);
+                let mut app = App::new();
+                let mut time = Time::<()>::default();
+                time.advance_by(std::time::Duration::from_secs_f32(1. / hz as f32));
+                app.insert_resource(time)
+                    .insert_resource(rt)
+                    .init_resource::<Assets<StandardMaterial>>()
+                    .add_systems(Update, animate);
+                let player = app
+                    .world_mut()
+                    .spawn((AnimationPlayer::default(), AnimationTransitions::default()))
+                    .id();
+                avatar.players.push(player);
+                let entity = app.world_mut().spawn((avatar, Transform::default())).id();
+                app.update();
+                for (direction, speed) in [(-1, 90.), (1, 450.), (-1, 1200.), (1, 600.)] {
+                    // Move for a second, including reversing after the previous pause.
+                    for _ in 0..hz {
+                        let mut rt = app.world_mut().resource_mut::<Runtime>();
+                        rt.brain.direction = direction;
+                        rt.position.x += direction as f32 * speed * zoom / hz as f32;
+                        rt.drag_cursor.x += direction as f32 * speed * zoom / hz as f32;
+                        app.update();
+                    }
+                    let side_yaw = drag_yaw(direction as f32 * speed);
+                    assert!(
+                        (app.world().get::<Avatar>(entity).unwrap().yaw - side_yaw).abs() < 0.002
+                    );
+                    // Deceleration eases the current angle toward the viewer.
+                    for _ in 0..hz / 10 {
+                        app.update();
+                    }
+                    assert!(app.world().get::<Avatar>(entity).unwrap().yaw.abs() < side_yaw.abs());
+                    let mut previous_yaw = side_yaw.abs();
+                    for _ in 0..hz {
+                        app.update();
+                        let avatar = app.world().get::<Avatar>(entity).unwrap();
+                        assert_eq!(avatar.state, State::Dragged);
+                        if avatar.drag_still_time >= 0.18 {
+                            assert!(avatar.yaw.abs() <= previous_yaw + 0.00001);
+                        }
+                        previous_yaw = avatar.yaw.abs();
+                        assert!(!avatar.spinning && !avatar.turning);
+                        assert!(avatar.suspension.weight > 0.99);
+                        assert!(
+                            app.world()
+                                .get::<AnimationPlayer>(player)
+                                .unwrap()
+                                .is_playing_animation(pickup)
+                        );
+                    }
+                    let transform = app.world().get::<Transform>(entity).unwrap();
+                    assert!(
+                        (transform.rotation * Vec3::Z).z > 0.999,
+                        "stopped drag must face viewer at {hz} FPS / {zoom} zoom"
+                    );
+                    // Small position jitter must not turn the character back sideways.
+                    for frame in 0..hz {
+                        let mut rt = app.world_mut().resource_mut::<Runtime>();
+                        rt.drag_cursor.x += if frame % 2 == 0 { 0.15 } else { -0.15 } * zoom;
+                        // Simulate silhouette-dependent screen clamping independently of input.
+                        rt.position.x += if frame % 2 == 0 { 8. } else { -8. } * zoom;
+                        app.update();
+                        assert!(app.world().get::<Avatar>(entity).unwrap().yaw.abs() < 0.01);
+                    }
+                    assert!(
+                        app.world()
+                            .get::<Avatar>(entity)
+                            .unwrap()
+                            .hanging_sway
+                            .abs()
+                            > 0.001
+                    );
+                }
+                let released_yaw = app.world().get::<Avatar>(entity).unwrap().yaw;
+                {
+                    let mut rt = app.world_mut().resource_mut::<Runtime>();
+                    rt.pressed = false;
+                    rt.dragging = false;
+                    rt.brain.change(State::Airborne, 2.);
+                }
+                for _ in 0..hz {
+                    app.update();
+                    let avatar = app.world().get::<Avatar>(entity).unwrap();
+                    assert_eq!(avatar.state, State::Airborne);
+                    assert_eq!(avatar.drag_still_time, 0.);
+                    assert!(avatar.drag_cursor.is_none());
+                    assert!((avatar.yaw - released_yaw).abs() < 0.00001);
+                }
+                // Regrabbing clears the release heading; releasing during movement keeps it too.
+                {
+                    let mut rt = app.world_mut().resource_mut::<Runtime>();
+                    rt.pressed = true;
+                    rt.dragging = true;
+                    rt.brain.direction = -1;
+                }
+                for _ in 0..hz {
+                    app.world_mut().resource_mut::<Runtime>().drag_cursor.x -=
+                        600. * zoom / hz as f32;
+                    app.update();
+                }
+                let released_yaw = app.world().get::<Avatar>(entity).unwrap().yaw;
+                assert!((released_yaw - drag_yaw(-600.)).abs() < 0.002);
+                {
+                    let mut rt = app.world_mut().resource_mut::<Runtime>();
+                    rt.pressed = false;
+                    rt.dragging = false;
+                    rt.brain.direction = 1;
+                }
+                for _ in 0..hz {
+                    app.update();
+                    assert!(
+                        (app.world().get::<Avatar>(entity).unwrap().yaw - released_yaw).abs()
+                            < 0.00001
+                    );
+                }
+                app.world_mut()
+                    .resource_mut::<Runtime>()
+                    .brain
+                    .change(State::Fall, 1.);
+                app.update();
+                assert!(
+                    app.world()
+                        .get::<Avatar>(entity)
+                        .unwrap()
+                        .release_yaw
+                        .is_none()
+                );
+                std::fs::remove_dir_all(root).unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn drag_angle_varies_with_horizontal_speed_and_has_signed_limits() {
+        for hz in [30, 60, 144] {
+            let dt = 1. / hz as f32;
+            let mut velocity: f32 = 0.;
+            let mut yaw = 0.;
+            for speed in [-1800., -900., -450., -90., 0., 90., 450., 900., 1800.] {
+                for _ in 0..hz * 2 {
+                    velocity += (speed - velocity) * (1. - (-dt * 18.).exp());
+                    yaw += (drag_yaw(velocity) - yaw) * (1. - (-dt * 9.).exp());
+                    assert!(yaw.abs() <= FRAC_PI_2 + 0.00001);
+                }
+                let expected = (speed / 900.).clamp(-1., 1.) * FRAC_PI_2;
+                assert!((yaw - expected).abs() < 0.0001, "{speed} px/s at {hz} FPS");
+            }
+        }
+        assert_eq!(drag_yaw(-10.), 0.);
+        assert_eq!(drag_yaw(10.), 0.);
     }
 }

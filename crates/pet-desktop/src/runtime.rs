@@ -21,7 +21,8 @@ pub enum Action {
     Preview(State),
     ResetAdaptation,
     Quit,
-    ShowSize,
+    Sleep(bool),
+    CheckUpdates,
 }
 #[derive(Resource)]
 pub struct Runtime {
@@ -37,7 +38,8 @@ pub struct Runtime {
     pub ground: f32,
     pub actions: Vec<Action>,
     pub show_settings: bool,
-    pub show_size: bool,
+    wheel_remainder: i32,
+    pub check_updates_requested: bool,
     pub page: usize,
     pub status: String,
     pub loading: Option<String>,
@@ -49,9 +51,13 @@ pub struct Runtime {
     pub pressed: bool,
     pub dragging: bool,
     pub press_cursor: Vec2,
+    pub drag_cursor: Vec2,
     pub drag_facing_x: f32,
     pub press_origin: Vec2,
     pub grab_point: Vec2,
+    pub pet_reaction: u64,
+    pub landing_serial: u64,
+    pub landing_speed: f32,
     pub last_left: bool,
     pub last_right: bool,
     pub poll: f32,
@@ -66,6 +72,21 @@ pub struct Runtime {
     pub smoke_original: String,
 }
 impl Runtime {
+    pub fn animation_state(&self) -> State {
+        if self.pressed && self.dragging {
+            State::Dragged
+        } else {
+            self.brain.state
+        }
+    }
+    /// Floor support is independent of the behavior state while friction is still active.
+    pub fn physically_supported(&self) -> bool {
+        let floor = self.desktop.support(self.position).map_or_else(
+            || self.desktop.bounds_for(self.position).max.y,
+            |surface| surface.y - self.desktop.extent.y,
+        );
+        !self.pressed && (self.position.y - floor).abs() < 1. && self.motion.velocity.y.abs() < 1.
+    }
     pub fn new(root: PathBuf, smoke: bool) -> Self {
         let data = if smoke {
             root.join("work/rust-smoke-data")
@@ -74,8 +95,9 @@ impl Runtime {
         };
         let _ = std::fs::create_dir_all(&data);
         let mut prefs = Preferences::load(&data.join("preferences.json"));
-        let (skins, diagnostics) =
+        let (mut skins, diagnostics) =
             pet_core::assets::scan(&[root.join("skins"), data.join("skins")]);
+        crate::bundled::add_skin(&mut skins);
         if !skins.iter().any(|s| s.id == prefs.skin_id) {
             prefs.skin_id = skins
                 .iter()
@@ -86,7 +108,10 @@ impl Runtime {
         }
         let mut brain = Brain::default();
         brain.set_roaming(prefs.roaming);
-        let desktop = crate::platform::desktop();
+        brain.options = prefs.behavior.clone();
+        let mut desktop = crate::platform::desktop();
+        desktop.extent = Vec2::new(320., 248.) * prefs.zoom;
+        desktop.top_inset = 35. * prefs.zoom;
         let position = if prefs.position[0] == -99999 {
             desktop.place_on(0)
         } else {
@@ -109,7 +134,8 @@ impl Runtime {
             position,
             ground: 248.,
             actions: vec![],
-            show_size: false,
+            wheel_remainder: 0,
+            check_updates_requested: false,
             page: 0,
             status: String::new(),
             loading: None,
@@ -121,9 +147,13 @@ impl Runtime {
             pressed: false,
             dragging: false,
             press_cursor: Vec2::ZERO,
+            drag_cursor: Vec2::ZERO,
             drag_facing_x: 0.,
             press_origin: Vec2::ZERO,
             grab_point: Vec2::new(160., 125.),
+            pet_reaction: 0,
+            landing_serial: 0,
+            landing_speed: 0.,
             last_left: false,
             last_right: false,
             poll: 0.,
@@ -158,15 +188,107 @@ impl Runtime {
     pub fn rescan(&mut self) {
         (self.skins, self.diagnostics) =
             pet_core::assets::scan(&[self.root.join("skins"), self.data.join("skins")]);
+        crate::bundled::add_skin(&mut self.skins);
     }
     pub fn set_zoom(&mut self, value: f32) {
         let old = self.prefs.zoom;
         self.prefs.zoom = preferences::zoom(value);
         self.position.y += self.ground * (old - self.prefs.zoom);
         self.desktop.extent = Vec2::new(320. * self.prefs.zoom, self.ground * self.prefs.zoom);
+        self.desktop.top_inset *= self.prefs.zoom / old;
+        self.desktop.side_insets *= self.prefs.zoom / old;
         self.position = self.desktop.clamp_origin(self.position);
         self.motion.position = self.position;
         self.dirty = true;
+    }
+    pub fn scroll_zoom(&mut self, delta: i32, cursor: Vec2) {
+        self.wheel_remainder += delta;
+        let steps = self.wheel_remainder / 120;
+        self.wheel_remainder %= 120;
+        if steps == 0 {
+            return;
+        }
+        let old = self.prefs.zoom;
+        let new = preferences::zoom(old + steps as f32 * 0.05);
+        if new == old {
+            return;
+        }
+        let local = (cursor - self.position) / old;
+        let supported = self.physically_supported();
+        self.set_zoom(new);
+        self.position.x = cursor.x - local.x * self.prefs.zoom;
+        if !supported {
+            self.position.y = cursor.y - local.y * self.prefs.zoom;
+        }
+        self.position = self.desktop.clamp_origin(self.position);
+        self.motion.position = self.position;
+        if self.pressed {
+            // Continue from the resized grab point without a jump or an artificial throw.
+            self.press_cursor = cursor;
+            self.press_origin = self.position;
+            self.grab_point = (cursor - self.position) / self.prefs.zoom;
+            self.motion.begin_drag(self.position, 0.);
+        }
+    }
+}
+
+#[cfg(test)]
+mod wheel_tests {
+    use super::*;
+
+    #[test]
+    fn wheel_zoom_accumulates_high_resolution_scroll_and_preserves_support_and_preferences() {
+        let root = std::env::temp_dir().join(format!("lpp-wheel-{}", std::process::id()));
+        let mut rt = Runtime::new(root.clone(), true);
+        rt.desktop = Desktop::default();
+        rt.prefs.zoom = 1.;
+        rt.position = Vec2::new(400., 1080. - rt.ground);
+        let cursor = rt.position + Vec2::new(160., 140.);
+        for _ in 0..3 {
+            rt.scroll_zoom(30, cursor);
+            assert_eq!(rt.prefs.zoom, 1.);
+        }
+        rt.scroll_zoom(30, cursor);
+        assert_eq!(rt.prefs.zoom, 1.05);
+        assert!((rt.position.y + rt.ground * rt.prefs.zoom - 1080.).abs() < 0.001);
+        assert!((cursor.x - rt.position.x - 160. * rt.prefs.zoom).abs() < 0.001);
+        rt.scroll_zoom(-120, cursor);
+        assert_eq!(rt.prefs.zoom, 1.);
+        rt.scroll_zoom(120 * 100, cursor);
+        assert_eq!(rt.prefs.zoom, 3.);
+        rt.scroll_zoom(120, cursor);
+        assert_eq!(rt.prefs.zoom, 3.);
+        rt.scroll_zoom(-120, cursor);
+        assert_eq!(
+            rt.prefs.zoom, 2.95,
+            "reverse immediately at the upper limit"
+        );
+        rt.scroll_zoom(-120 * 100, cursor);
+        assert_eq!(rt.prefs.zoom, 0.2);
+        rt.scroll_zoom(120, cursor);
+        assert_eq!(rt.prefs.zoom, 0.25);
+        rt.save();
+        assert_eq!(
+            Preferences::load(&rt.data.join("preferences.json")).zoom,
+            0.25
+        );
+
+        rt.set_zoom(1.);
+        rt.position = Vec2::new(400., 300.);
+        rt.pressed = true;
+        rt.dragging = true;
+        let cursor = rt.position + Vec2::new(160., 125.);
+        rt.motion.begin_drag(rt.position, 1.);
+        rt.motion
+            .record_drag(rt.position + Vec2::new(100., 0.), 1.1);
+        rt.scroll_zoom(120, cursor);
+        assert!((cursor - rt.position - Vec2::new(160., 125.) * 1.05).length() < 0.001);
+        assert_eq!(rt.press_origin, rt.position);
+        assert_eq!(rt.press_cursor, cursor);
+        assert_eq!(rt.motion.position, rt.position);
+        assert_eq!(rt.motion.release_velocity(1.11), Vec2::ZERO);
+        assert!(rt.pressed && rt.dragging);
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
 pub fn actions(mut rt: ResMut<Runtime>) {
@@ -179,7 +301,18 @@ pub fn actions(mut rt: ResMut<Runtime>) {
                 rt.need_preview = true;
                 let _ = std::fs::write(rt.data.join("welcome_seen"), "1");
             }
-            Action::ShowSize => rt.show_size = true,
+            Action::CheckUpdates => {
+                rt.show_settings = true;
+                rt.page = 5;
+                rt.check_updates_requested = true;
+            }
+            Action::Sleep(sleep) => {
+                if sleep {
+                    rt.brain.sleep_now();
+                } else {
+                    rt.brain.wake();
+                }
+            }
             Action::SelectSkin(id) => rt.loading = Some(id),
             Action::Scale(v) => rt.set_zoom(v),
             Action::Roam(v) => {
@@ -269,9 +402,39 @@ pub fn actions(mut rt: ResMut<Runtime>) {
 pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate::avatar::Avatar>) {
     let dt = time.delta_secs().min(0.1);
     rt.frame_seconds += (time.delta_secs() - rt.frame_seconds) * 0.05;
+    if rt.brain.options != rt.prefs.behavior {
+        rt.brain.options = rt.prefs.behavior.clone();
+        // Apply new timing immediately, without interrupting the current pose.
+        rt.brain.remaining = match rt.brain.state {
+            State::Idle => rt.prefs.behavior.idle,
+            State::Walk => rt.prefs.behavior.walk,
+            State::Run => rt.prefs.behavior.run,
+            State::Sleep => rt.prefs.behavior.sleep,
+            _ => rt.brain.remaining,
+        };
+    }
     rt.poll += dt;
-    if rt.poll >= 1. {
+    if rt.poll >= 0.15 && !(rt.pressed && rt.dragging) {
         rt.poll = 0.;
+        let support = rt.desktop.support(rt.position);
+        let surfaces = if rt.prefs.behavior.window_perching {
+            crate::platform::window_surfaces()
+        } else {
+            vec![]
+        };
+        if !rt.pressed
+            && !rt.motion.active
+            && let Some(old) = support
+            && let Some(new) = surfaces.iter().filter(|s| s.id == old.id).min_by(|a, b| {
+                (a.left - old.left)
+                    .abs()
+                    .total_cmp(&(b.left - old.left).abs())
+            })
+        {
+            let next = rt.position + Vec2::new(new.window_left - old.window_left, new.y - old.y);
+            rt.position = rt.desktop.clamp_origin(next);
+        }
+        rt.desktop.surfaces = surfaces;
         let layout = crate::platform::desktop();
         if rt.desktop.areas != layout.areas {
             rt.desktop.areas = layout.areas;
@@ -282,14 +445,27 @@ pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate:
             rt.dirty = true
         }
     }
+    if rt.pressed && rt.dragging && rt.brain.state != State::Dragged {
+        rt.brain.change(State::Dragged, 1.);
+    }
     let turning = rt
         .active
         .and_then(|e| avatars.get(e).ok())
         .is_some_and(|a| a.turning);
-    if !rt.pressed && !rt.motion.active && !rt.show_size && !turning {
-        rt.brain.tick(dt, &mut rand_rng());
+    let finishing_spin = rt
+        .active
+        .and_then(|e| avatars.get(e).ok())
+        .is_some_and(|a| a.spinning)
+        && rt.brain.remaining <= dt;
+    if !rt.pressed && !rt.motion.active && !turning {
+        if rt.brain.forced_sleep && rt.brain.state != State::Sleep {
+            rt.brain.sleep_now();
+        }
+        if !finishing_spin {
+            rt.brain.tick(dt, &mut rand_rng());
+        }
     }
-    let blocked = rt.pressed || rt.motion.active || rt.show_size;
+    let blocked = rt.pressed || rt.motion.active;
     if rt.brain.state.moving() && !blocked && !turning {
         let bounds = rt.desktop.bounds_for(rt.position);
         let distance = if rt.brain.direction > 0 {
@@ -316,9 +492,12 @@ pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate:
         rt.position = clamped;
         rt.dirty = true;
     }
-    if !rt.pressed && !rt.show_size {
+    if !rt.pressed {
         let bounds = rt.desktop.bounds_for(rt.position);
-        if !rt.motion.active && rt.position.y < bounds.max.y - 1. {
+        if !rt.motion.active
+            && rt.desktop.support(rt.position).is_none()
+            && rt.position.y < bounds.max.y - 1.
+        {
             let p = rt.position;
             rt.motion.launch(p, Vec2::ZERO);
             rt.brain.change(State::Airborne, 2.)
@@ -326,12 +505,20 @@ pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate:
         if rt.motion.active {
             let desktop = rt.desktop.clone();
             let impact = rt.motion.advance(dt, bounds, Some(&desktop));
+            if impact.landed {
+                rt.landing_serial = rt.landing_serial.wrapping_add(1);
+                rt.landing_speed = impact.speed / rt.prefs.zoom;
+            }
             rt.position = rt.motion.position;
             if rt.motion.velocity.x.abs() > 20. {
                 rt.brain.direction = if rt.motion.velocity.x > 0. { 1 } else { -1 }
             }
             if impact.settled {
-                rt.brain.change(State::Fall, 0.8);
+                if rt.brain.forced_sleep {
+                    rt.brain.sleep_now();
+                } else {
+                    rt.brain.change(State::Fall, 0.8);
+                }
                 rt.dirty = true
             }
         }
@@ -344,6 +531,111 @@ pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate:
 }
 fn rand_rng() -> impl pet_core::rand_support::Rng {
     pet_core::rand_support::rng()
+}
+
+#[derive(Default)]
+pub struct BounceCheck {
+    started: bool,
+    serial: u64,
+    contacts: usize,
+    age: f32,
+    captured: bool,
+    clock: f32,
+}
+/// Focused GPU regression of actual rebound physics, rather than forced state previews.
+pub fn bounce_smoke(
+    time: Res<Time>,
+    mut rt: ResMut<Runtime>,
+    avatars: Query<&crate::avatar::Avatar>,
+    views: Res<crate::avatar::RenderViews>,
+    mut commands: Commands,
+    mut check: Local<BounceCheck>,
+    mut exit: MessageWriter<AppExit>,
+) {
+    check.clock += time.delta_secs();
+    if check.clock > 20. {
+        eprintln!("BOUNCE FAILED: {} contacts, {}", check.contacts, rt.status);
+        exit.write(AppExit::error());
+        return;
+    }
+    let Some(avatar) = rt
+        .active
+        .and_then(|e| avatars.get(e).ok())
+        .filter(|a| a.ready)
+    else {
+        return;
+    };
+    if !check.started {
+        rt.set_zoom(1.);
+        rt.prefs.roaming = false;
+        rt.prefs.behavior.window_perching = false;
+        rt.desktop.surfaces.clear();
+        rt.show_settings = false;
+        let bounds = rt.desktop.bounds_for(rt.position);
+        rt.position.y = (bounds.max.y - 420.).max(bounds.min.y + 5.);
+        let p = rt.position;
+        rt.motion.launch(p, Vec2::new(120., 1200.));
+        rt.brain.change(State::Airborne, 60.);
+        check.serial = rt.landing_serial;
+        check.started = true;
+        return;
+    }
+    check.age += time.delta_secs();
+    let mut capture = None;
+    if rt.landing_serial != check.serial {
+        check.serial = rt.landing_serial;
+        check.contacts += 1;
+        check.age = 0.;
+        check.captured = false;
+        assert!(
+            avatar.tail.contact_weight() > 0.,
+            "physics contact must reach the rendered tail"
+        );
+        println!(
+            "BOUNCE contact {}: speed {:.1}, state {:?}, tail {:.3}",
+            check.contacts, rt.landing_speed, avatar.state, avatar.tail.pitch
+        );
+        capture = Some(format!("bounce-{}-contact.png", check.contacts));
+    } else if check.contacts > 0 && check.age >= 0.05 && !check.captured {
+        assert!(
+            avatar.tail.pitch < -0.10,
+            "each bounce must visibly lower the tail within 50 ms"
+        );
+        println!(
+            "BOUNCE drop {}: tail {:.3}",
+            check.contacts, avatar.tail.pitch
+        );
+        capture = Some(format!("bounce-{}-drop.png", check.contacts));
+        check.captured = true;
+    }
+    if let Some(name) = capture {
+        let folder = rt.data.join("screenshots");
+        std::fs::create_dir_all(&folder).expect("bounce screenshot directory");
+        let path = folder.join(name);
+        commands
+            .spawn(bevy::render::view::screenshot::Screenshot::image(
+                views.output.clone(),
+            ))
+            .observe(
+                move |event: On<bevy::render::view::screenshot::ScreenshotCaptured>| {
+                    event
+                        .image
+                        .clone()
+                        .try_into_dynamic()
+                        .expect("bounce RGBA")
+                        .save(&path)
+                        .expect("bounce screenshot");
+                },
+            );
+    }
+    if !rt.motion.active && check.age > 0.6 {
+        assert!(check.contacts >= 3, "must exercise repeated rebounds");
+        println!(
+            "BOUNCE PASS: {} physical contacts, including airborne rebounds",
+            check.contacts
+        );
+        exit.write(AppExit::Success);
+    }
 }
 
 /// Automated smoke run uses a dedicated data directory to keep user settings untouched.
@@ -373,6 +665,7 @@ pub fn smoke(
     >,
 ) {
     const PERFORMANCE_CHECKS: usize = 23;
+    const REACTION_CHECKS: usize = 4;
     const DIRECTION_CHECKS: [(State, i32, &str); 4] = [
         (State::Dragged, -1, "dragged-left"),
         (State::Dragged, 1, "dragged-right"),
@@ -474,7 +767,7 @@ pub fn smoke(
                     }
                     15 => rt.prefs.performance.aa = "off".into(),
                     16 => rt.prefs.performance.aa = "msaa4".into(),
-                    18 => rt.actions.push(Action::SelectSkin("example.sprite".into())),
+                    18 => rt.need_preview = true,
                     19 => rt.actions.push(Action::SelectSkin("builtin.shu".into())),
                     20 => {
                         rt.prefs.performance.resolution = 816;
@@ -498,6 +791,17 @@ pub fn smoke(
             rt.position.y = rt.desktop.bounds_for(rt.position).max.y;
             let position = rt.position;
             rt.motion.stop(position);
+        } else if rt.smoke_step < skin_start + rt.skins.len() + PERFORMANCE_CHECKS + REACTION_CHECKS
+        {
+            let reaction = rt.smoke_step - skin_start - rt.skins.len() - PERFORMANCE_CHECKS;
+            rt.pet_reaction = reaction as u64 + 1;
+            rt.brain.change(State::Petted, 60.);
+            rt.preview_state = State::Petted;
+            rt.prefs.performance = pet_core::preferences::RenderOptions::preset("high");
+            rt.prefs.performance.aa = "taa".into();
+            rt.set_zoom(2.);
+            rt.brain.direction = 1;
+            rt.show_settings = false;
         }
         *prepared = true;
         rt.smoke_clock = 0.;
@@ -574,13 +878,7 @@ pub fn smoke(
             );
     } else if rt.smoke_step < skin_start + rt.skins.len() + PERFORMANCE_CHECKS {
         let step = rt.smoke_step - skin_start - rt.skins.len();
-        if active.skin.id
-            != if step == 18 {
-                "example.sprite"
-            } else {
-                "builtin.shu"
-            }
-        {
+        if active.skin.id != "builtin.shu" {
             return;
         }
         if step == 13 || step == 14 {
@@ -635,6 +933,30 @@ pub fn smoke(
                         .expect("save performance screenshot");
                 },
             );
+    } else if rt.smoke_step < skin_start + rt.skins.len() + PERFORMANCE_CHECKS + REACTION_CHECKS {
+        let reaction = rt.smoke_step - skin_start - rt.skins.len() - PERFORMANCE_CHECKS;
+        assert_eq!(active.state, State::Petted);
+        assert_eq!(active.reaction, reaction as u64 + 1);
+        let path = folder.join(format!("reaction-{reaction}.png"));
+        commands
+            .spawn(bevy::render::view::screenshot::Screenshot::image(
+                views.output.clone(),
+            ))
+            .observe(
+                move |event: On<bevy::render::view::screenshot::ScreenshotCaptured>| {
+                    event
+                        .image
+                        .clone()
+                        .try_into_dynamic()
+                        .expect("reaction RGBA")
+                        .save(&path)
+                        .expect("save reaction screenshot");
+                },
+            );
+        println!(
+            "SMOKE reaction {:?}",
+            crate::face::Reaction::for_click(active.reaction)
+        );
     } else {
         assert!(
             *moving_feet > 20,
@@ -642,7 +964,7 @@ pub fn smoke(
         );
         println!("SMOKE suspended foot changes: {}", *moving_feet);
         println!(
-            "SMOKE PASS: {} states, {} skins, {PERFORMANCE_CHECKS} performance modes, 4 side-facing checks",
+            "SMOKE PASS: {} states, {} skins, {PERFORMANCE_CHECKS} performance modes, 4 side-facing checks, {REACTION_CHECKS} reactions",
             8,
             rt.skins.len()
         );

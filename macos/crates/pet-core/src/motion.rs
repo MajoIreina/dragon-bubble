@@ -70,6 +70,9 @@ impl Motion {
         while remaining > 0.000001 {
             if let Some(d) = desktop {
                 bounds = d.bounds_for(self.position);
+                if let Some(s) = d.support(self.position) {
+                    bounds.max.y = s.y - d.extent.y;
+                }
             }
             let step = remaining.min(1. / 120.);
             remaining -= step;
@@ -82,9 +85,20 @@ impl Motion {
                 self.velocity.y += GRAVITY * step;
                 self.velocity.x *= (-0.25 * step).exp();
             }
+            let previous = self.position;
             self.position += self.velocity * step;
             if let Some(d) = desktop {
                 bounds = d.bounds_for(self.position);
+                if self.velocity.y >= 0.
+                    && let Some(s) = d.crossed_surface(previous, self.position)
+                {
+                    bounds.max.y = s.y - d.extent.y;
+                    // Window tops catch gently instead of bouncing through a moving frame.
+                    self.position.y = bounds.max.y;
+                    result.landed = true;
+                    result.speed = result.speed.max(self.velocity.y);
+                    self.velocity.y = 0.;
+                }
             }
             if self.position.x < bounds.min.x {
                 self.position.x = bounds.min.x;

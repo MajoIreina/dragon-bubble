@@ -11,6 +11,111 @@ fn project() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 #[test]
+fn windows_catch_descending_feet_and_release_when_removed() {
+    use pet_core::desktop::Surface;
+    let mut desktop = Desktop {
+        extent: Vec2::new(200., 160.),
+        surfaces: vec![Surface {
+            id: 1,
+            window_left: 200.,
+            left: 200.,
+            right: 800.,
+            y: 500.,
+        }],
+        ..Default::default()
+    };
+    assert!(
+        desktop
+            .crossed_surface(Vec2::new(300., 400.), Vec2::new(300., 300.))
+            .is_none()
+    );
+    assert!(
+        desktop
+            .crossed_surface(Vec2::new(900., 200.), Vec2::new(900., 500.))
+            .is_none()
+    );
+    let mut motion = Motion::default();
+    motion.launch(Vec2::new(300., 100.), Vec2::ZERO);
+    for _ in 0..300 {
+        motion.advance(
+            1. / 120.,
+            desktop.bounds_for(motion.position),
+            Some(&desktop),
+        );
+    }
+    assert!(!motion.active);
+    assert!((motion.position.y - 340.).abs() < 0.01);
+    assert_eq!(desktop.support(motion.position).unwrap().id, 1);
+    desktop.surfaces.clear();
+    motion.launch(motion.position, Vec2::ZERO);
+    for _ in 0..500 {
+        motion.advance(
+            1. / 120.,
+            desktop.bounds_for(motion.position),
+            Some(&desktop),
+        );
+    }
+    assert!(!motion.active);
+    assert_eq!(motion.position.y, 920.);
+}
+#[test]
+fn visible_sides_reach_both_edges_at_all_zooms_and_cross_monitor_seams() {
+    for zoom in [0.2, 1., 3.] {
+        let desktop = Desktop {
+            areas: vec![Rect::new(-1920., -1080., 1920., 1080.)],
+            extent: Vec2::new(320., 248.) * zoom,
+            side_insets: Vec2::new(84., 61.) * zoom,
+            ..Default::default()
+        };
+        let left = desktop.clamp_origin(Vec2::new(-10000., -800.));
+        let right = desktop.clamp_origin(Vec2::new(10000., -800.));
+        assert!((left.x + desktop.side_insets.x + 1920.).abs() < 0.001);
+        assert!((right.x + desktop.extent.x - desktop.side_insets.y).abs() < 0.001);
+        let mut adjacent = desktop.clone();
+        adjacent.areas.push(Rect::new(0., -1080., 1920., 1080.));
+        let bounds = adjacent.bounds_for(Vec2::new(-200., -800.));
+        assert!((bounds.min.x + desktop.side_insets.x + 1920.).abs() < 0.001);
+        assert!((bounds.max.x + desktop.extent.x - desktop.side_insets.y - 1920.).abs() < 0.001);
+    }
+}
+
+#[test]
+fn zoom_300_percent_uses_visible_top_and_keeps_negative_monitor_coordinates() {
+    let desktop = Desktop {
+        areas: vec![Rect::new(-1920., -1080., 1920., 1080.)],
+        extent: Vec2::new(960., 744.),
+        top_inset: 240.,
+        ..Default::default()
+    };
+    let top = desktop.clamp_origin(Vec2::new(-1500., -5000.));
+    assert_eq!(top.y + desktop.top_inset, -1080.);
+    assert_eq!(top.x, -1500.);
+    let mut motion = Motion::default();
+    motion.launch(top, Vec2::new(0., -1000.));
+    motion.advance(1. / 60., desktop.bounds_for(top), Some(&desktop));
+    assert!(motion.position.y >= -1320.);
+}
+#[test]
+fn behavior_settings_migrate_and_manual_sleep_waits_for_wake() {
+    let prefs = Preferences::from_value(
+        &json!({"behavior":{"idle":-1,"walk":999,"sleep":90,"idle_spin":false}}),
+    );
+    assert_eq!(prefs.behavior.idle, 3.);
+    assert_eq!(prefs.behavior.walk, 30.);
+    assert_eq!(prefs.behavior.sleep, 90.);
+    assert!(!prefs.behavior.idle_spin);
+    assert!(prefs.behavior.window_perching);
+    let roundtrip = Preferences::from_value(&serde_json::to_value(&prefs).unwrap());
+    assert_eq!(prefs, roundtrip);
+    let mut brain = pet_core::behavior::Brain::default();
+    brain.sleep_now();
+    brain.tick(1000., &mut pet_core::rand_support::rng());
+    assert_eq!(brain.state, State::Sleep);
+    brain.wake();
+    assert_eq!(brain.state, State::Idle);
+    assert!(!brain.forced_sleep);
+}
+#[test]
 fn profiles_preserve_explicit_choice_and_detect_character_or_sprite() {
     let round = Vec3::ONE;
     let bones = vec!["mixamorig:Hips".into(), "Head".into()];
@@ -37,6 +142,7 @@ fn multiscreen_negative_seams_steps_and_gravity() {
             Rect::new(0., 0., 1920., 1040.),
         ],
         extent: Vec2::new(200., 160.),
+        ..Default::default()
     };
     assert_eq!(d.screen_at(Vec2::new(-600., 50.)), 0);
     assert_eq!(d.bounds_for(Vec2::new(-300., 500.)).max.x, 1720.);
@@ -72,6 +178,7 @@ fn disconnected_hotplug_and_oversize() {
             Rect::new(1200., 200., 800., 800.),
         ],
         extent: Vec2::new(200., 160.),
+        ..Default::default()
     };
     assert_eq!(d.bounds_for(Vec2::new(750., 100.)).max.x, 800.);
     assert_eq!(d.clamp_origin(Vec2::new(1050., 400.)).x, 1200.);
@@ -151,10 +258,25 @@ fn tolerant_preferences_and_atomic_replace() {
     assert_eq!(Preferences::load(&file), p2);
 }
 #[test]
-fn builtins_validate_and_sprite_decodes() {
-    let (skins, errors) = assets::scan(&[project().join("skins")]);
+fn generated_skin_validates_and_sprite_decodes() {
+    let fixture = tempfile::tempdir().unwrap();
+    let skin_dir = fixture.path().join("sprite-fixture");
+    fs::create_dir(&skin_dir).unwrap();
+    image::RgbaImage::from_pixel(8, 8, image::Rgba([120, 180, 220, 255]))
+        .save(skin_dir.join("sprite.png"))
+        .unwrap();
+    fs::write(
+        skin_dir.join("skin.json"),
+        serde_json::to_vec(&json!({
+            "schema_version": 1, "id": "test.sprite", "name": "Generated fixture",
+            "type": "sprite", "asset": "sprite.png"
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let (skins, errors) = assets::scan(&[fixture.path().to_owned()]);
     assert!(errors.is_empty(), "{errors:?}");
-    assert!(skins.len() >= 5);
+    assert_eq!(skins.len(), 1);
     for skin in skins {
         if skin.r#type == "sprite" {
             let pack = pet_core::sprite::SpritePack::load(&skin).unwrap();

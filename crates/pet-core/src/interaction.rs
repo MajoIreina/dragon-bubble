@@ -1,6 +1,64 @@
 //! Damped suspension response in screen space, independent of the renderer.
 use glam::Vec2;
 
+/// Tail pitch relative to its animated rest pose (+Y is up, tail points toward -Z).
+#[derive(Clone, Debug, Default)]
+pub struct TailResponse {
+    pub pitch: f32,
+    velocity: f32,
+    unsupported: bool,
+    contact_remaining: f32,
+}
+impl TailResponse {
+    /// A physical impact can occur while the animation remains Airborne across bounces.
+    pub fn impact(&mut self, speed: f32) {
+        if !speed.is_finite() {
+            return;
+        }
+        let strength = (speed / 1500.).clamp(0., 1.);
+        self.velocity = -3.2 - strength * 1.8;
+        self.contact_remaining = 0.09 + strength * 0.035;
+    }
+    pub fn contact_weight(&self) -> f32 {
+        (self.contact_remaining / 0.055).clamp(0., 1.)
+    }
+    pub fn cancel_contact(&mut self) {
+        self.contact_remaining = 0.;
+        self.velocity = 0.;
+    }
+    pub fn advance(&mut self, dt: f32, unsupported: bool, speed: f32) {
+        if !dt.is_finite() || dt <= 0. {
+            return;
+        }
+        if dt > 0.25 {
+            self.pitch = if unsupported { 0.10 } else { -0.27 };
+            self.velocity = 0.;
+            self.contact_remaining = 0.;
+            self.unsupported = unsupported;
+            return;
+        }
+        if self.unsupported && !unsupported && self.contact_remaining <= 0. {
+            self.impact(speed);
+        }
+        self.unsupported = unsupported;
+        let steps = (dt * 120.).ceil().max(1.) as usize;
+        let step = dt / steps as f32;
+        for _ in 0..steps {
+            let contact = self.contact_weight();
+            let free = if unsupported { 0.10 } else { -0.27 };
+            let target = free + (-0.35 - free) * contact;
+            self.velocity += ((target - self.pitch) * (260. + contact * 200.)
+                - self.velocity * (23. + contact * 3.))
+                * step;
+            self.pitch = (self.pitch + self.velocity * step).clamp(-0.42, 0.18);
+            if self.pitch <= -0.42 {
+                self.velocity = self.velocity.max(0.);
+            }
+            self.contact_remaining = (self.contact_remaining - step).max(0.);
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Suspension {
     pub weight: f32,
@@ -86,6 +144,78 @@ impl Suspension {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn every_physical_bounce_drops_the_tail_without_an_animation_state_change() {
+        use crate::{desktop::Rect, motion::Motion};
+        for hz in [30., 60., 144.] {
+            let mut motion = Motion::default();
+            motion.launch(Vec2::new(100., 10.), Vec2::new(0., 1200.));
+            let mut tail = TailResponse::default();
+            for _ in 0..hz as usize {
+                tail.advance(1. / hz, true, 0.);
+            }
+            let mut contacts = 0;
+            let mut before = 0.;
+            let mut since_contact = None;
+            let mut checks = 0;
+            for _ in 0..(hz * 3.) as usize {
+                let impact = motion.advance(1. / hz, Rect::new(0., 0., 800., 450.), None);
+                if impact.landed {
+                    contacts += 1;
+                    before = tail.pitch;
+                    since_contact = Some(0.);
+                    tail.impact(impact.speed);
+                }
+                // Deliberately stay Airborne, just like the desktop throughout rebound motion.
+                tail.advance(1. / hz, true, 0.);
+                if let Some(age) = &mut since_contact {
+                    *age += 1. / hz;
+                    if *age >= 0.05 {
+                        assert!(
+                            tail.pitch < before - 0.07,
+                            "contact {contacts} at {hz} FPS: {} -> {}",
+                            before,
+                            tail.pitch
+                        );
+                        checks += 1;
+                        since_contact = None;
+                    }
+                }
+            }
+            assert!(
+                contacts >= 3 && checks == contacts,
+                "all rebounds must respond"
+            );
+            for _ in 0..hz as usize {
+                tail.advance(1. / hz, false, 0.);
+            }
+            assert!((tail.pitch + 0.27).abs() < 0.001);
+        }
+    }
+    #[test]
+    fn tail_drops_promptly_after_landing_then_settles_at_different_frame_rates() {
+        for hz in [30., 60., 144.] {
+            let mut tail = TailResponse::default();
+            for _ in 0..hz as usize {
+                tail.advance(1. / hz, true, 900.);
+            }
+            assert!(tail.pitch > 0.08);
+            for _ in 0..(hz * 0.15).ceil() as usize {
+                tail.advance(1. / hz, false, 900.);
+            }
+            assert!(
+                tail.pitch < -0.20,
+                "must drop within 150 ms: {}",
+                tail.pitch
+            );
+            for _ in 0..hz as usize {
+                tail.advance(1. / hz, false, 0.);
+            }
+            assert!((tail.pitch + 0.27).abs() < 0.001);
+            tail.advance(2., true, 10000.);
+            assert_eq!(tail.pitch, 0.10);
+        }
+    }
     #[test]
     fn suspension_tracks_lift_reversal_and_settles_after_landing() {
         let mut response = Suspension::default();

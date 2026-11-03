@@ -1,45 +1,63 @@
-name: macOS port
+name: macOS 0.1.2a
 
 on:
   workflow_dispatch:
   push:
     paths: ["macos/**", ".github/workflows/macos.yml"]
-  pull_request:
-    paths: ["macos/**", ".github/workflows/macos.yml"]
 
 jobs:
-  build:
-    timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-15
-            target: aarch64-apple-darwin
-          - runner: macos-15-intel
-            target: x86_64-apple-darwin
-    runs-on: ${{ matrix.runner }}
+  apple-silicon:
+    runs-on: macos-15
+    timeout-minutes: 100
     defaults:
       run:
         working-directory: macos
     env:
       MACOSX_DEPLOYMENT_TARGET: "11.0"
-      CARGO_BUILD_JOBS: "2"
+      CARGO_BUILD_JOBS: "3"
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
+      RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-          targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: macos
-      - name: Test and package
-        run: bash build.sh --target "${{ matrix.target }}"
+          cache-on-failure: true
+      # Restore the identical model already present in retained port history.
+      # These files are never added to the new source tree or release ZIP.
+      - name: Restore retained release model for embedding
+        run: |
+          git fetch origin 5feb7dffc1382a66ef3b041e6b7b53fd74a47c15 --depth=1
+          mkdir -p skins/shu
+          git show FETCH_HEAD:macos/skins/shu/shu.glb > skins/shu/shu.glb
+          git show FETCH_HEAD:macos/skins/shu/skin.json > skins/shu/skin.json
+          test "$(git hash-object skins/shu/shu.glb)" = 0f62f1c513807f76ce3bcd42bb946b316199015d
+          test "$(git hash-object skins/shu/skin.json)" = d6f09b3ba26fb748cdf368386be4cd4372bb49a6
+      - name: Format and Clippy
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --locked --workspace --all-targets --features embedded-shu -- -D warnings
+      - name: Regression tests
+        run: cargo test --locked --workspace --features embedded-shu
+      - name: Build and sign app
+        run: bash build.sh --skip-checks --skip-tests --target aarch64-apple-darwin
+      - name: Launch packaged app and verify Metal rendering
+        run: python3 tests/launch_app.py "outputs/aarch64-apple-darwin/My Dragon Bubble.zip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-0.1.2a-startup-diagnostics
+          path: |
+            macos/outputs/aarch64-apple-darwin/launch-check/result.json
+            macos/outputs/aarch64-apple-darwin/launch-check/direct/
+            macos/outputs/aarch64-apple-darwin/launch-check/finder/
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
-          name: dragon-bubble-${{ matrix.target }}
-          path: macos/outputs/${{ matrix.target }}/My Dragon Bubble.zip
+          name: dragon-bubble-0.1.2a-macos-arm64
+          path: macos/outputs/aarch64-apple-darwin/My Dragon Bubble.zip
           if-no-files-found: error

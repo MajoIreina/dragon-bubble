@@ -90,6 +90,8 @@ pub struct SoftBody {
     pub sway: Vec3,
     /// 0 = normal support, 1 = hanging from a hand rather than resting on feet.
     pub suspension: f32,
+    /// Multiplier for supported recovery frequency; 1 preserves authored dynamics.
+    pub support_response: f32,
     load_velocity: f32,
     sway_velocity: Vec3,
     accumulator: f32,
@@ -143,6 +145,7 @@ impl SoftBody {
             load,
             sway: Vec3::ZERO,
             suspension: 0.,
+            support_response: 1.,
             load_velocity: 0.,
             sway_velocity: Vec3::ZERO,
             accumulator: 0.,
@@ -187,14 +190,24 @@ impl SoftBody {
             return;
         }
         let target = self.def.gravity / 9.8
-            * (1. - acceleration.y / desktop_gravity.max(0.001)).clamp(0., 1.12)
+            * (if grounded {
+                1.
+            } else {
+                (1. - acceleration.y / desktop_gravity.max(0.001)).clamp(0., 1.12)
+            })
             * (1. - self.suspension.clamp(0., 1.) * 0.72);
         self.accumulator += dt;
         let step = 1. / 120.;
+        let response = if grounded {
+            self.support_response.clamp(1., 3.)
+        } else {
+            1.
+        };
         while self.accumulator >= step {
-            self.load_velocity += ((target - self.load) * self.def.stiffness
-                - self.load_velocity * self.def.damping)
-                * step;
+            let stiffness = self.def.stiffness * response * response;
+            let damping = self.def.damping * response;
+            self.load_velocity +=
+                ((target - self.load) * stiffness - self.load_velocity * damping) * step;
             self.load = (self.load + self.load_velocity * step).clamp(0., 1.2);
             self.sway_velocity += (-local_acceleration * 0.10
                 - self.sway * self.def.stiffness
