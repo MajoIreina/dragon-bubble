@@ -14,10 +14,20 @@ pub struct Accent {
     material: Handle<StandardMaterial>,
     sleep: f32,
     idle: f32,
-    clock: f32,
 }
 #[derive(Component)]
 pub struct BubbleEye;
+/// One growing Z every seven seconds, with a quiet gap between emissions.
+fn sleep_glyph(clock: f32) -> Option<(f32, f32, f32)> {
+    let age = (clock - 0.7).rem_euclid(7.);
+    if clock < 0.7 || age >= 2.6 {
+        return None;
+    }
+    let phase = age / 2.6;
+    let size = 0.055 + phase * 0.28;
+    let alpha = (phase / 0.18).min((1. - phase) / 0.25).clamp(0., 1.) * 0.82;
+    Some((phase, size, alpha))
+}
 fn glyph() -> Mesh {
     let mut positions = vec![];
     let mut indices = vec![];
@@ -70,9 +80,8 @@ pub fn install(
         })
     });
     let z = meshes.add(glyph());
-    let ring = meshes.add(Annulus::new(0.82, 1.));
     let glint = meshes.add(Rectangle::new(1., 0.12));
-    for kind in 0..8 {
+    for kind in [0, 4, 5, 6, 7] {
         let material = materials.add(StandardMaterial {
             base_color: Color::srgba(0.51, 0.72, 0.76, 0.),
             unlit: true,
@@ -88,15 +97,8 @@ pub fn install(
                 material: material.clone(),
                 sleep: 0.,
                 idle: 0.,
-                clock: 0.,
             },
-            Mesh3d(if kind < 3 {
-                z.clone()
-            } else if kind == 3 {
-                ring.clone()
-            } else {
-                glint.clone()
-            }),
+            Mesh3d(if kind < 3 { z.clone() } else { glint.clone() }),
             MeshMaterial3d(material),
             Transform::default(),
             Visibility::Hidden,
@@ -127,7 +129,6 @@ pub fn update(
             *visible = Visibility::Hidden;
             continue;
         }
-        effect.clock += dt;
         effect.sleep = (effect.sleep
             + if avatar.state == State::Sleep {
                 dt * 2.
@@ -148,23 +149,15 @@ pub fn update(
             .map(|g| g.translation())
             .unwrap_or_else(|| global.transform_point(Vec3::new(0.35, 0.45, 0.)));
         let (offset, size, alpha, rotation) = if effect.kind < 3 {
-            let phase = (effect.clock / 3.6 + effect.kind as f32 / 3.).fract();
+            let (phase, size, alpha) = sleep_glyph(avatar.clock).unwrap_or((0., 0.055, 0.));
             (
                 Vec2::new(
                     0.23 + phase * 0.32 + (phase * std::f32::consts::TAU).sin() * 0.05,
                     0.16 + phase * 0.69,
                 ),
-                0.17 + phase * 0.12,
-                (phase * std::f32::consts::PI).sin() * effect.sleep * 0.82,
+                size,
+                alpha * effect.sleep,
                 (phase * std::f32::consts::TAU).sin() * 0.12,
-            )
-        } else if effect.kind == 3 {
-            let breath = 0.5 - (effect.clock * std::f32::consts::TAU / 5.5).cos() * 0.5;
-            (
-                Vec2::new(0.17, -0.14),
-                0.04 + breath * 0.065,
-                effect.sleep * 0.5,
-                0.,
             )
         } else {
             let i = (effect.kind - 4) / 2;
@@ -217,5 +210,23 @@ pub fn update(
             );
             transform.scale.y = 1. - blink * 0.9;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sleep_z_grows_then_leaves_a_long_quiet_gap() {
+        assert!(sleep_glyph(0.5).is_none());
+        let small = sleep_glyph(0.9).unwrap();
+        let large = sleep_glyph(2.8).unwrap();
+        assert!(small.1 < large.1 && small.2 > 0. && large.2 > 0.);
+        for time in [3.4, 4., 5., 6., 7.6] {
+            assert!(sleep_glyph(time).is_none());
+        }
+        let next = sleep_glyph(7.9).unwrap();
+        assert!((small.1 - next.1).abs() < 0.00001);
     }
 }

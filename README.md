@@ -1,8 +1,10 @@
 # 龙泡泡 · My Dragon Bubble
 
-当前默认开发版本为 **Rust Windows 0.1.1**：Bevy 0.17 / wgpu Vulkan、egui、Win32 透明窗口和系统托盘。运行与构建不再依赖 Godot。
+当前默认开发版本为 **Rust Windows 0.1.2**：Bevy 0.17 / wgpu Vulkan、egui、Win32 透明窗口和系统托盘。运行与构建不再依赖 Godot。
 
-[下载 v0.1.1](https://github.com/MajoIreina/dragon-bubble/releases/tag/v0.1.1) · [问题反馈](https://github.com/MajoIreina/dragon-bubble/issues)
+0.1.2 调整了落地尾巴回弹、四脚中心转圈，增加四种点击表情，支持悬停滚轮缩放、随拖动速度改变侧向角度、停住后转向正面，修复左右贴边，并简化睡眠特效；详见 [本次版本说明](docs/releases/v0.1.2.md)。
+
+[下载 v0.1.2](https://github.com/MajoIreina/dragon-bubble/releases/tag/v0.1.2) · [问题反馈](https://github.com/MajoIreina/dragon-bubble/issues)
 
 ## 运行与构建
 
@@ -29,7 +31,7 @@ cargo test --locked --workspace
 
 ## 功能
 
-左键拖动、抛掷和轻点互动，支持多显示器与 20%–300% 缩放。右键桌宠或系统托盘打开菜单，提供一键睡觉 / 唤醒、自由散步、置顶、大小、完整设置和退出。
+左键拖动、抛掷和轻点互动，支持多显示器与 20%–300% 缩放；鼠标悬停在角色上时，向上滚动放大、向下滚动缩小，每格调整 5 个百分点。右键桌宠或系统托盘打开菜单，提供一键睡觉 / 唤醒、自由散步、置顶、完整设置和退出。
 
 支持站在普通桌面窗口顶边、待机原地转圈、可调动作间隔、睡眠慢呼吸与黑色 Z 字、独立眨眼和单眼表情。界面使用微软雅黑。设置提供中 / 日 / 英语言、外观导入与动作适配、画质性能、GitHub 更新检查及项目链接。
 

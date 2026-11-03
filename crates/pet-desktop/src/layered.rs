@@ -3,7 +3,47 @@
 use bevy::{prelude::*, render::gpu_readback::ReadbackComplete};
 
 #[cfg(windows)]
-pub struct NativePet(pub windows_sys::Win32::Foundation::HWND);
+pub struct NativePet(
+    pub windows_sys::Win32::Foundation::HWND,
+    windows_sys::Win32::UI::WindowsAndMessaging::HHOOK,
+);
+#[cfg(windows)]
+static PET_WINDOW: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
+#[cfg(windows)]
+static WHEEL: std::sync::Mutex<Vec<(i32, Vec2)>> = std::sync::Mutex::new(Vec::new());
+#[cfg(windows)]
+pub fn take_wheel() -> Vec<(i32, Vec2)> {
+    WHEEL
+        .lock()
+        .map(|mut events| std::mem::take(&mut *events))
+        .unwrap_or_default()
+}
+#[cfg(windows)]
+fn queue_wheel(delta: i32, point: windows_sys::Win32::Foundation::POINT) -> bool {
+    if let Ok(mut events) = WHEEL.try_lock() {
+        events.push((delta, Vec2::new(point.x as f32, point.y as f32)));
+        true
+    } else {
+        false
+    }
+}
+// Receive hover scrolling even when another application has keyboard focus and
+// Windows' "scroll inactive windows" preference is disabled. Pass all other input on.
+#[cfg(windows)]
+unsafe extern "system" fn mouse_hook(code: i32, wparam: usize, lparam: isize) -> isize {
+    use windows_sys::Win32::UI::WindowsAndMessaging::*;
+    if code >= 0 && wparam == WM_MOUSEWHEEL as usize {
+        let event = unsafe { &*(lparam as *const MSLLHOOKSTRUCT) };
+        let pet = PET_WINDOW.load(std::sync::atomic::Ordering::Relaxed);
+        if pet != 0
+            && unsafe { WindowFromPoint(event.pt) } as isize == pet
+            && queue_wheel((event.mouseData >> 16) as i16 as i32, event.pt)
+        {
+            return 1;
+        }
+    }
+    unsafe { CallNextHookEx(std::ptr::null_mut(), code, wparam, lparam) }
+}
 #[cfg(windows)]
 static CLOSE_REQUESTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 #[cfg(windows)]
@@ -25,6 +65,17 @@ unsafe extern "system" fn window_proc(
         CLOSE_REQUESTED.store(true, std::sync::atomic::Ordering::Relaxed);
         return 0;
     }
+    if message == WM_MOUSEWHEEL {
+        let point = windows_sys::Win32::Foundation::POINT {
+            x: lparam as i16 as i32,
+            y: (lparam >> 16) as i16 as i32,
+        };
+        if unsafe { WindowFromPoint(point) } == hwnd
+            && queue_wheel((wparam >> 16) as i16 as i32, point)
+        {
+            return 0;
+        }
+    }
     // A layered window never needs an opaque background erase between frames.
     if message == WM_ERASEBKGND {
         return 1;
@@ -35,6 +86,10 @@ unsafe extern "system" fn window_proc(
 impl Drop for NativePet {
     fn drop(&mut self) {
         unsafe {
+            PET_WINDOW.store(0, std::sync::atomic::Ordering::Relaxed);
+            if !self.1.is_null() {
+                windows_sys::Win32::UI::WindowsAndMessaging::UnhookWindowsHookEx(self.1);
+            }
             windows_sys::Win32::UI::WindowsAndMessaging::DestroyWindow(self.0);
         }
     }
@@ -75,7 +130,12 @@ pub fn setup(world: &mut World) {
             !hwnd.is_null(),
             "Could not create transparent desktop window"
         );
-        world.insert_non_send_resource(NativePet(hwnd));
+        PET_WINDOW.store(hwnd as isize, std::sync::atomic::Ordering::Relaxed);
+        let hook = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook), instance, 0);
+        if hook.is_null() {
+            warn!("Hover wheel hook unavailable; using window wheel messages");
+        }
+        world.insert_non_send_resource(NativePet(hwnd, hook));
     }
 }
 #[cfg(not(windows))]
@@ -104,10 +164,27 @@ fn unpack_rows(data: &[u8], size: u32) -> Option<Vec<u8>> {
             .collect(),
     )
 }
+fn side_insets(pixels: &[u8], size: u32) -> Option<Vec2> {
+    if size == 0 || pixels.len() != size as usize * size as usize * 4 {
+        return None;
+    }
+    let mut left = size;
+    let mut right = 0;
+    for (i, pixel) in pixels.chunks_exact(4).enumerate() {
+        // Ignore the almost transparent fringe left by filtering and temporal AA.
+        if pixel[3] > 32 {
+            let x = i as u32 % size;
+            left = left.min(x);
+            right = right.max(x + 1);
+        }
+    }
+    (left < right).then_some(Vec2::new(left as f32, (size - right) as f32))
+}
 pub fn receive(
     event: On<ReadbackComplete>,
     sizes: Query<&FrameSize>,
     mut frame: ResMut<DesktopFrame>,
+    mut rt: ResMut<crate::runtime::Runtime>,
 ) {
     let Ok(size) = sizes.get(event.entity) else {
         return;
@@ -123,6 +200,11 @@ pub fn receive(
         );
     }
     if pixels.chunks_exact(4).any(|p| p[3] > 0) {
+        if size.0 == output_size(rt.prefs.zoom)
+            && let Some(insets) = side_insets(&pixels, size.0)
+        {
+            rt.desktop.side_insets = insets;
+        }
         frame.rgba = pixels;
         frame.size = size.0;
         frame.serial += 1;
@@ -253,6 +335,21 @@ pub fn present() {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn silhouette_padding_follows_facing_and_zoom_without_transparent_fringe() {
+        for (size, left, right) in [(320, 85, 260), (960, 255, 780), (320, 60, 235)] {
+            let mut pixels = vec![0; size * size * 4];
+            assert!(side_insets(&pixels, size as u32).is_none());
+            pixels[3] = 12;
+            for x in left..right {
+                pixels[(size * (size / 2) + x) * 4 + 3] = 255;
+            }
+            assert_eq!(
+                side_insets(&pixels, size as u32),
+                Some(Vec2::new(left as f32, (size - right) as f32))
+            );
+        }
+    }
     #[test]
     fn native_size_readback_strips_padding_without_blurring_or_shifting_rows() {
         for size in [64, 320, 374, 640, 960] {

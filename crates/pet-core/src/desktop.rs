@@ -29,6 +29,8 @@ pub struct Desktop {
     pub extent: Vec2,
     /// Transparent pixels above the visible avatar, in physical desktop pixels.
     pub top_inset: f32,
+    /// Transparent left/right padding of the rendered silhouette, in desktop pixels.
+    pub side_insets: Vec2,
     pub surfaces: Vec<Surface>,
 }
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -45,11 +47,19 @@ impl Default for Desktop {
             areas: vec![Rect::new(0., 0., 1920., 1080.)],
             extent: Vec2::new(320., 248.),
             top_inset: 0.,
+            side_insets: Vec2::ZERO,
             surfaces: vec![],
         }
     }
 }
 impl Desktop {
+    fn area_bounds(&self, area: Rect) -> Rect {
+        let low = area.min - Vec2::new(self.side_insets.x, self.top_inset);
+        Rect {
+            min: low,
+            max: (area.max - self.extent + Vec2::new(self.side_insets.y, 0.)).max(low),
+        }
+    }
     pub fn screen_at(&self, p: Vec2) -> usize {
         if let Some(i) = self.areas.iter().position(|r| r.contains(p)) {
             return i;
@@ -70,19 +80,21 @@ impl Desktop {
         let Some(area) = self.areas.get(self.current(p)).copied() else {
             return Rect::new(0., 0., 1600., 800.);
         };
-        let mut low = area.min;
-        low.y -= self.top_inset;
-        let mut high = (area.max - self.extent).max(low);
+        let bounds = self.area_bounds(area);
+        let mut low = bounds.min;
+        let mut high = bounds.max;
         for other in &self.areas {
             if p.y >= other.min.y && p.y + self.extent.y <= other.max.y + 0.01 {
                 if (area.max.x - other.min.x).abs() < 0.5 {
-                    high.x = high.x.max(other.max.x - self.extent.x);
+                    high.x = high.x.max(self.area_bounds(*other).max.x);
                 }
                 if (area.min.x - other.max.x).abs() < 0.5 {
-                    low.x = low.x.min(other.min.x);
+                    low.x = low.x.min(self.area_bounds(*other).min.x);
                 }
             }
-            if p.x >= other.min.x && p.x + self.extent.x <= other.max.x {
+            if p.x + self.side_insets.x >= other.min.x
+                && p.x + self.extent.x - self.side_insets.y <= other.max.x
+            {
                 if (area.max.y - other.min.y).abs() < 0.5 {
                     high.y = high.y.max(other.max.y - self.extent.y);
                 }
@@ -106,11 +118,7 @@ impl Desktop {
         if area.contains(anchor) {
             self.bounds_for(p).clamp(p)
         } else {
-            Rect {
-                min: area.min - Vec2::new(0., self.top_inset),
-                max: (area.max - self.extent).max(area.min),
-            }
-            .clamp(p)
+            self.area_bounds(area).clamp(p)
         }
     }
     /// Only descending feet can land on a window; moving upward passes through.
@@ -147,10 +155,7 @@ impl Desktop {
     }
     pub fn place_on(&self, index: usize) -> Vec2 {
         let a = self.areas.get(index).copied().unwrap_or(self.areas[0]);
-        Rect {
-            min: a.min,
-            max: (a.max - self.extent).max(a.min),
-        }
-        .clamp(a.max - self.extent - Vec2::new(40., 0.))
+        let bounds = self.area_bounds(a);
+        bounds.clamp(bounds.max - Vec2::new(40., 0.))
     }
 }

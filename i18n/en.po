@@ -1225,3 +1225,6 @@ msgstr "Release notes"
 
 msgid "GitHub 项目"
 msgstr "GitHub project"
+
+msgid "鼠标悬停在桌宠上滚动滚轮，或拖动滑条调整"
+msgstr "Hover over the pet and scroll the wheel, or drag the slider"

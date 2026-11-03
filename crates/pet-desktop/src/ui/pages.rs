@@ -219,7 +219,7 @@ pub(super) fn display_page(ui: &mut egui::Ui, rt: &mut Runtime) {
         ui.set_min_width(ui.available_width());
         ui.label(tr("桌宠大小"));
         ui.label(
-            egui::RichText::new(tr("按桌面比例调整，拖动滑条即时预览"))
+            egui::RichText::new(tr("鼠标悬停在桌宠上滚动滚轮，或拖动滑条调整"))
                 .small()
                 .weak(),
         );

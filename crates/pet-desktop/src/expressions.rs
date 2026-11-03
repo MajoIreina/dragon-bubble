@@ -65,6 +65,9 @@ pub fn capture(
             if name.starts_with("ClosedEmbroideredLid.") {
                 role = "shu-lid";
             }
+            if name == "TinyWEmbroideredMouth" {
+                role = "shu-mouth";
+            }
             if joints.contains(&e) && !compact.ends_with("end") && !compact.ends_with("tip") {
                 for (part, hints) in [
                     (
@@ -193,6 +196,13 @@ pub fn apply(
                         rest.pose.translation.x + rest.side * 0.425 * (1. - amount);
                 }
                 _ => {}
+            }
+            if ["shu-eye", "shu-lid", "shu-mouth"].contains(&rest.role) {
+                if rest.role == "shu-mouth" {
+                    *pose = rest.pose;
+                }
+                // The overlay replaces the original embroidery only during a reaction.
+                pose.scale *= (1. - crate::face::weight(a)).max(0.001);
             }
             rest.modified = true;
             continue;

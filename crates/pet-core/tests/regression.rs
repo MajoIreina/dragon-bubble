@@ -59,6 +59,27 @@ fn windows_catch_descending_feet_and_release_when_removed() {
     assert_eq!(motion.position.y, 920.);
 }
 #[test]
+fn visible_sides_reach_both_edges_at_all_zooms_and_cross_monitor_seams() {
+    for zoom in [0.2, 1., 3.] {
+        let desktop = Desktop {
+            areas: vec![Rect::new(-1920., -1080., 1920., 1080.)],
+            extent: Vec2::new(320., 248.) * zoom,
+            side_insets: Vec2::new(84., 61.) * zoom,
+            ..Default::default()
+        };
+        let left = desktop.clamp_origin(Vec2::new(-10000., -800.));
+        let right = desktop.clamp_origin(Vec2::new(10000., -800.));
+        assert!((left.x + desktop.side_insets.x + 1920.).abs() < 0.001);
+        assert!((right.x + desktop.extent.x - desktop.side_insets.y).abs() < 0.001);
+        let mut adjacent = desktop.clone();
+        adjacent.areas.push(Rect::new(0., -1080., 1920., 1080.));
+        let bounds = adjacent.bounds_for(Vec2::new(-200., -800.));
+        assert!((bounds.min.x + desktop.side_insets.x + 1920.).abs() < 0.001);
+        assert!((bounds.max.x + desktop.extent.x - desktop.side_insets.y - 1920.).abs() < 0.001);
+    }
+}
+
+#[test]
 fn zoom_300_percent_uses_visible_top_and_keeps_negative_monitor_coordinates() {
     let desktop = Desktop {
         areas: vec![Rect::new(-1920., -1080., 1920., 1080.)],

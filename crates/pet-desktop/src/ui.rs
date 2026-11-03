@@ -173,7 +173,7 @@ pub fn draw(
             }
         }
     }
-    if !rt.show_settings && !rt.show_size {
+    if !rt.show_settings {
         return;
     }
     let ctx = context.get_mut();
@@ -232,28 +232,6 @@ pub fn draw(
     let locale = rt.prefs.locale.clone();
     let tr = |s: &str| pet_core::i18n::tr(&locale, s);
     let before = rt.prefs.clone();
-    if !rt.show_settings {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add_space(15.);
-            ui.heading(tr("调整大小"));
-            ui.add_space(12.);
-            scale_control(ui, &mut rt);
-            if ui.button(tr("完成")).clicked() {
-                rt.show_size = false;
-            }
-        });
-        return;
-    }
-    if rt.show_size {
-        egui::Window::new(tr("调整大小"))
-            .collapsible(false)
-            .show(ctx, |ui| {
-                scale_control(ui, &mut rt);
-                if ui.button(tr("完成")).clicked() {
-                    rt.show_size = false;
-                }
-            });
-    }
     let dark = ctx.style().visuals.dark_mode;
     let background = if dark {
         egui::Color32::from_rgb(32, 32, 32)

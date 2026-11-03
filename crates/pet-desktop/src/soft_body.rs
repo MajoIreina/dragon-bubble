@@ -20,6 +20,8 @@ pub struct Lattice {
     bindings: Vec<(Entity, Handle<SkinnedMeshInverseBindposes>)>,
     last_velocity: Vec2,
     last_position: Vec2,
+    rest_lower: Vec<f32>,
+    tail_floor_vertices: Vec<(Entity, Vec<Vec3>)>,
 }
 fn find(
     root: Entity,
@@ -163,7 +165,19 @@ pub fn install(
                 })
                 .collect::<Vec<_>>();
             let mut bindings = vec![];
+            let mut tail_floor_vertices = vec![];
+            let tail = find(target, "TailWag", &children, &names);
             for (e, mut mesh, points, relative) in candidates {
+                if tail.is_some_and(|tail| children.iter_descendants(tail).any(|child| child == e))
+                    && !names
+                        .get(e)
+                        .is_ok_and(|name| name.as_str().contains("MicroPile"))
+                    && let Some(VertexAttributeValues::Float32x3(vertices)) =
+                        mesh.attribute(Mesh::ATTRIBUTE_POSITION)
+                {
+                    tail_floor_vertices
+                        .push((e, vertices.iter().map(|p| Vec3::from(*p)).collect()));
+                }
                 let mut indices = Vec::with_capacity(points.len());
                 let mut weights = Vec::with_capacity(points.len());
                 for p in points {
@@ -202,7 +216,9 @@ pub fn install(
                 .spawn(Lattice {
                     owner: root,
                     target,
+                    rest_lower: body.mesh_lower.clone(),
                     body,
+                    tail_floor_vertices,
                     joints,
                     bindings,
                     last_velocity: Vec2::ZERO,
@@ -240,10 +256,14 @@ pub fn update(
         let acceleration = ((velocity - lattice.last_velocity) / dt).clamp_length_max(9000.);
         lattice.last_velocity = velocity;
         lattice.last_position = rt.position;
-        let grounded = !matches!(
-            a.state,
-            pet_core::behavior::State::Dragged | pet_core::behavior::State::Airborne
-        ) && (a.preview || (!rt.pressed && !rt.motion.active));
+        let landed = a.tail.contact_weight() > 0.;
+        let grounded = landed
+            || (!a.preview && rt.motion.active && rt.physically_supported())
+            || (!matches!(
+                a.state,
+                pet_core::behavior::State::Dragged | pet_core::behavior::State::Airborne
+            ) && (a.preview || (!rt.pressed && !rt.motion.active)));
+        lattice.body.support_response = if a.skin.id == "builtin.shu" { 2.2 } else { 1. };
         lattice.body.suspension = if a.state == pet_core::behavior::State::Dragged {
             a.suspension.weight
         } else {
@@ -257,6 +277,29 @@ pub fn update(
         } else {
             0.
         };
+        let Ok(target) = globals.p0().get(lattice.target).copied() else {
+            continue;
+        };
+        let inverse = target.affine().inverse();
+        // Pitch changes the tail's lowest points. Recompute only its floor envelope
+        // before solving the lattice, so a fast landing never pushes it through the floor.
+        if grounded && !lattice.tail_floor_vertices.is_empty() {
+            let Lattice {
+                body,
+                rest_lower,
+                tail_floor_vertices,
+                ..
+            } = &mut *lattice;
+            body.mesh_lower.copy_from_slice(rest_lower);
+            for (entity, vertices) in tail_floor_vertices {
+                if let Ok(global) = globals.p0().get(*entity) {
+                    let relative = inverse * global.affine();
+                    for p in vertices {
+                        body.include_vertex(relative.transform_point3(*p));
+                    }
+                }
+            }
+        }
         lattice.body.advance(
             dt,
             Vec3::new(acceleration.x, acceleration.y, 0.),
@@ -265,10 +308,6 @@ pub fn update(
             grounded,
             flex,
         );
-        let Ok(target) = globals.p0().get(lattice.target).copied() else {
-            continue;
-        };
-        let inverse = target.affine().inverse();
         for (mesh, handle) in &lattice.bindings {
             if let Ok(g) = globals.p0().get(*mesh) {
                 let matrix = Mat4::from(inverse * g.affine());

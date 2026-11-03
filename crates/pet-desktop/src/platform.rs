@@ -267,7 +267,6 @@ fn menu(rt: &Runtime) -> (Menu, HashMap<String, Action>) {
         ),
         Action::Roam(!rt.prefs.roaming),
     );
-    add(&menu, tr("调整大小"), Action::ShowSize);
     add(&menu, tr("性能与画质"), Action::ShowSettings(4));
     add(&menu, tr("重置位置"), Action::Reset);
     let skins = Submenu::new(tr("外观"), true);
@@ -326,6 +325,15 @@ pub fn setup_tray(world: &mut World) {
         Err(e) => eprintln!("Tray initialization failed: {e}"),
     }
 }
+#[cfg(windows)]
+pub fn wheel(mut rt: ResMut<Runtime>) {
+    for (delta, cursor) in crate::layered::take_wheel() {
+        rt.scroll_zoom(delta, cursor);
+    }
+}
+#[cfg(not(windows))]
+pub fn wheel() {}
+
 pub fn input(
     time: Res<Time>,
     mut rt: ResMut<Runtime>,
@@ -368,11 +376,12 @@ pub fn input(
                 w.has_focus()
             }
         });
-        if left && !rt.last_left && inside && over_pet && !rt.show_size {
+        if left && !rt.last_left && inside && over_pet {
             rt.brain.forced_sleep = false;
             rt.pressed = true;
             rt.dragging = false;
             rt.press_cursor = cursor;
+            rt.drag_cursor = cursor;
             rt.drag_facing_x = cursor.x;
             rt.press_origin = rt.position;
             rt.grab_point = local;
@@ -380,11 +389,15 @@ pub fn input(
             rt.motion.begin_drag(p, time.elapsed_secs_f64());
         }
         if rt.pressed && left {
+            rt.drag_cursor = cursor;
             if cursor.distance(rt.press_cursor) > 4. {
                 rt.dragging = true;
-                rt.brain.change(State::Dragged, 1.);
             }
             if rt.dragging {
+                // The drag stays latched even after stopping or returning to the press point.
+                if rt.brain.state != State::Dragged {
+                    rt.brain.change(State::Dragged, 1.);
+                }
                 let mut anchor = rt.drag_facing_x;
                 rt.brain.direction = drag_direction(cursor.x, &mut anchor, rt.brain.direction);
                 rt.drag_facing_x = anchor;
@@ -402,6 +415,7 @@ pub fn input(
                 rt.motion.launch(p, v);
                 rt.brain.change(State::Airborne, 2.);
             } else {
+                rt.pet_reaction = rt.pet_reaction.wrapping_add(1);
                 rt.brain.change(State::Petted, 1.8);
             }
             rt.pressed = false;
@@ -448,7 +462,6 @@ pub fn events(
     for e in close.read() {
         if settings.contains(e.window) {
             rt.show_settings = false;
-            rt.show_size = false;
         } else {
             rt.actions.push(Action::Quit);
         }
@@ -512,7 +525,6 @@ pub fn sync_windows(
         Option<&SettingsWindow>,
     )>,
     mut cameras: Query<&mut Camera, With<SettingsCamera>>,
-    mut size_mode: Local<Option<bool>>,
     mut branded: Local<Option<Entity>>,
     _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
@@ -569,30 +581,14 @@ pub fn sync_windows(
                     }
                 });
             }
-            let compact = rt.show_size && !rt.show_settings;
-            if *size_mode != Some(compact) {
-                *size_mode = Some(compact);
-                w.resize_constraints.min_width = if compact { 400. } else { 760. };
-                w.resize_constraints.min_height = if compact { 230. } else { 560. };
-                w.resolution.set(
-                    if compact { 400. } else { 1120. },
-                    if compact { 230. } else { 800. },
-                );
-                w.resizable = !compact;
-                w.title = if compact {
-                    pet_core::i18n::tr(&rt.prefs.locale, "调整大小")
-                } else {
-                    "龙泡泡 · My Dragon Bubble".into()
-                };
-            }
-            let visible = rt.show_settings || rt.show_size;
+            let visible = rt.show_settings;
             if w.visible != visible {
                 w.visible = visible;
             }
         }
     }
     for mut c in &mut cameras {
-        c.is_active = rt.show_settings || rt.show_size;
+        c.is_active = rt.show_settings;
     }
 }
 pub fn cap_frame(rt: Res<Runtime>, mut previous: Local<Option<std::time::Instant>>) {

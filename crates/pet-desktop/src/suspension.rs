@@ -10,6 +10,12 @@ pub struct SuspendedFoot {
     side: f32,
     modified: bool,
 }
+#[derive(Component)]
+pub struct ResponsiveTail {
+    owner: Entity,
+    rest: Transform,
+    modified: bool,
+}
 pub fn capture(
     commands: &mut Commands,
     owner: Entity,
@@ -21,6 +27,13 @@ pub fn capture(
             continue;
         };
         let name = name.as_str();
+        if name == "TailWag" {
+            commands.entity(e).insert(ResponsiveTail {
+                owner,
+                rest: *rest,
+                modified: false,
+            });
+        }
         if !["FrontFoot.L", "FrontFoot.R", "RearFoot.L", "RearFoot.R"].contains(&name) {
             continue;
         }
@@ -33,15 +46,37 @@ pub fn capture(
         });
     }
 }
-pub fn reset(mut feet: Query<(&mut SuspendedFoot, &mut Transform)>) {
+pub fn reset(
+    mut feet: Query<(&mut SuspendedFoot, &mut Transform), Without<ResponsiveTail>>,
+    mut tails: Query<(&mut ResponsiveTail, &mut Transform), Without<SuspendedFoot>>,
+) {
     for (mut foot, mut transform) in &mut feet {
         if foot.modified {
             *transform = foot.rest;
             foot.modified = false;
         }
     }
+    for (mut tail, mut transform) in &mut tails {
+        if tail.modified {
+            *transform = tail.rest;
+            tail.modified = false;
+        }
+    }
 }
-pub fn apply(avatars: Query<&Avatar>, mut feet: Query<(&mut SuspendedFoot, &mut Transform)>) {
+pub fn apply(
+    avatars: Query<&Avatar>,
+    mut feet: Query<(&mut SuspendedFoot, &mut Transform), Without<ResponsiveTail>>,
+    mut tails: Query<(&mut ResponsiveTail, &mut Transform), Without<SuspendedFoot>>,
+) {
+    for (mut tail, mut transform) in &mut tails {
+        if let Ok(a) = avatars.get(tail.owner)
+            && a.ready
+        {
+            // Layer pitch over native yaw; never accumulate frame-to-frame rotations.
+            transform.rotation *= Quat::from_rotation_x(a.tail.pitch);
+            tail.modified = true;
+        }
+    }
     for (mut foot, mut transform) in &mut feet {
         let Ok(a) = avatars.get(foot.owner) else {
             continue;

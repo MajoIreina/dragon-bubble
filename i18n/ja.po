@@ -1225,3 +1225,6 @@ msgstr "リリースノート"
 
 msgid "GitHub 项目"
 msgstr "GitHub プロジェクト"
+
+msgid "鼠标悬停在桌宠上滚动滚轮，或拖动滑条调整"
+msgstr "ペットの上でホイールを回すか、スライダーで調整"
