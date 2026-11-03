@@ -33,6 +33,9 @@ pub struct Avatar {
     pub ready: bool,
     pub state: State,
     pub clock: f32,
+    pub expression_clock: f32,
+    pub spin_angle: f32,
+    pub spinning: bool,
     pub turning: bool,
     pub turn_clock: f32,
     pub resume_clock: f32,
@@ -62,6 +65,9 @@ impl Avatar {
             ready: false,
             state: State::Idle,
             clock: 0.,
+            expression_clock: 0.,
+            spin_angle: 0.,
+            spinning: false,
             turning: false,
             turn_clock: 0.,
             resume_clock: 1.,
@@ -658,6 +664,13 @@ pub fn finish(
             rt.ground = a.ground;
             rt.prefs.skin_id = a.skin.id.clone();
             rt.desktop.extent = Vec2::new(320. * rt.prefs.zoom, rt.ground * rt.prefs.zoom);
+            // Normalization centers model bounds at y=0; the camera looks at y=0.05.
+            // Permit transparent top padding offscreen so the visible head reaches the edge.
+            rt.desktop.top_inset = if a.sprite.is_none() {
+                (320. + 0.1 * 300. / 3.9 - a.ground).max(0.) * rt.prefs.zoom
+            } else {
+                0.
+            };
             rt.position = rt.desktop.clamp_origin(rt.position);
             rt.dirty = true;
             rt.need_preview = true;
@@ -702,6 +715,7 @@ pub fn animate(
             a.turning = false;
         }
         a.clock += dt;
+        a.expression_clock += dt;
         a.resume_clock += dt;
         let position = if a.preview {
             Vec2::new((a.clock * 1.7).sin() * 28., (a.clock * 1.3).cos() * 10.)
@@ -745,13 +759,33 @@ pub fn animate(
             a.yaw += (target - a.yaw) * (dt * 6.).min(1.);
         }
         a.direction = direction;
-        let clip = if a.turning && a.clips.contains_key("Turn") {
+        let spin_phase = (a.clock - 1.4).rem_euclid(rt.prefs.behavior.spin_interval);
+        let spinning = desired == State::Idle
+            && rt.prefs.behavior.idle_spin
+            && a.clock >= 1.4
+            && spin_phase < 2.6
+            && !is_sprite;
+        let spin_changed = a.spinning != spinning;
+        a.spinning = spinning;
+        if spinning {
+            let t = spin_phase / 2.6;
+            a.spin_angle = std::f32::consts::TAU * t * t * (3. - 2. * t);
+        } else {
+            let angle = (a.spin_angle + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU)
+                - std::f32::consts::PI;
+            a.spin_angle = if side_on {
+                0.
+            } else {
+                angle * (-dt * 10.).exp()
+            };
+        }
+        let clip = if (a.turning || spinning) && a.clips.contains_key("Turn") {
             Some("Turn".to_string())
         } else {
             a.mapping.get(desired.key()).cloned()
         };
         a.native = clip.is_some();
-        if changed || turn_started || (!a.turning && a.resume_clock < dt * 1.5) {
+        if changed || spin_changed || turn_started || (!a.turning && a.resume_clock < dt * 1.5) {
             for &entity in &a.players {
                 if let Ok((mut player, mut transitions)) = players.get_mut(entity) {
                     if let Some(index) = clip.as_ref().and_then(|s| a.clips.get(s)) {
@@ -781,7 +815,7 @@ pub fn animate(
                 }
             }
         } else {
-            transform.rotation = Quat::from_rotation_y(a.yaw);
+            transform.rotation = Quat::from_rotation_y(a.yaw + a.spin_angle);
         }
         {
             let t = a.clock;
@@ -794,7 +828,16 @@ pub fn animate(
                     stride.abs() * 0.045,
                     stride * 0.035,
                 ),
-                State::Sleep => (1.1, 0.8, 0., 0.),
+                State::Sleep => {
+                    let settle = (t / 0.8).clamp(0., 1.);
+                    let breath = (t * std::f32::consts::TAU / 4.4).sin();
+                    (
+                        1. + settle * (0.1 - breath * 0.018),
+                        1. - settle * (0.18 - breath * 0.035),
+                        0.,
+                        settle * (0.025 + breath * 0.012),
+                    )
+                }
                 State::Petted => (
                     1.,
                     1. + (t * 10.).sin() * (-t).exp() * 0.08,
@@ -813,7 +856,13 @@ pub fn animate(
                 _ => 1.,
             };
             if a.native {
-                amplitude *= if desired.moving() { 0. } else { 0.12 };
+                amplitude *= if desired.moving() {
+                    0.
+                } else if desired == State::Sleep && a.skin.id == "builtin.shu" {
+                    0.65
+                } else {
+                    0.12
+                };
             }
             let sx = 1. + (sx - 1.) * amplitude;
             let sy = 1. + (sy - 1.) * amplitude;
@@ -970,6 +1019,50 @@ pub fn performance(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn idle_spin_completes_a_full_turn_in_place_and_drag_interrupts() {
+        let root = std::env::temp_dir().join(format!("lpp-spin-{}", std::process::id()));
+        let mut rt = Runtime::new(root.clone(), true);
+        rt.prefs.behavior.idle_spin = true;
+        rt.brain.change(State::Idle, 120.);
+        let skin = serde_json::from_str(include_str!("../../../skins/shu/skin.json")).unwrap();
+        let mut avatar = Avatar::new(skin, false);
+        avatar.ready = true;
+        let mut app = App::new();
+        let mut time = Time::<()>::default();
+        time.advance_by(std::time::Duration::from_secs_f32(1. / 60.));
+        app.insert_resource(time)
+            .insert_resource(rt)
+            .init_resource::<Assets<StandardMaterial>>()
+            .add_systems(Update, animate);
+        let entity = app.world_mut().spawn((avatar, Transform::default())).id();
+        let mut max_angle = 0_f32;
+        for _ in 0..260 {
+            app.update();
+            let a = app.world().get::<Avatar>(entity).unwrap();
+            max_angle = max_angle.max(a.spin_angle);
+            let transform = app.world().get::<Transform>(entity).unwrap();
+            assert_eq!(transform.translation.x, 0.);
+            assert_eq!(transform.translation.z, 0.);
+        }
+        assert!(max_angle > 6.27, "must complete a full turn");
+        let a = app.world().get::<Avatar>(entity).unwrap();
+        assert!(!a.spinning && a.spin_angle.abs() < 0.01);
+        app.world_mut()
+            .get_mut::<Avatar>(entity)
+            .unwrap()
+            .spin_angle = 3.;
+        app.world_mut()
+            .resource_mut::<Runtime>()
+            .brain
+            .change(State::Dragged, 10.);
+        app.update();
+        let a = app.world().get::<Avatar>(entity).unwrap();
+        assert!(!a.spinning);
+        assert_eq!(a.spin_angle, 0.);
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn taa_and_ao_share_depth_and_remove_jitter_when_disabled() {

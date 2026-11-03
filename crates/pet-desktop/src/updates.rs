@@ -5,11 +5,18 @@ use std::time::Duration;
 pub const PROJECT_URL: &str = "https://github.com/MajoIreina/dragon-bubble";
 pub const RELEASES_URL: &str = "https://github.com/MajoIreina/dragon-bubble/releases";
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+#[derive(Debug, PartialEq)]
+pub struct Release {
+    pub version: String,
+    pub url: String,
+    pub notes: String,
+    pub download: Option<String>,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum Outcome {
     Current,
-    Available(String),
+    Available(Release),
     Unpublished,
     RateLimited,
     Failed,
@@ -21,10 +28,41 @@ fn classify_release(body: &str, current: &str) -> Option<Outcome> {
         return None;
     }
     let tag = release.get("tag_name")?.as_str()?.trim();
-    let latest = Version::parse(tag.strip_prefix('v').unwrap_or(tag)).ok()?;
+    let latest = Version::parse(tag.strip_prefix(['v', 'V']).unwrap_or(tag)).ok()?;
     let current = Version::parse(current).ok()?;
     Some(if latest > current {
-        Outcome::Available(latest.to_string())
+        Outcome::Available(Release {
+            version: latest.to_string(),
+            url: release["html_url"]
+                .as_str()
+                .filter(|u| u.starts_with(&format!("{RELEASES_URL}/tag/")))
+                .unwrap_or(RELEASES_URL)
+                .to_string(),
+            notes: release["body"]
+                .as_str()
+                .unwrap_or("")
+                .chars()
+                .take(6000)
+                .collect(),
+            download: release["assets"].as_array().and_then(|assets| {
+                assets.iter().find_map(|a| {
+                    let name = a["name"].as_str()?.to_lowercase();
+                    let url = a["browser_download_url"].as_str()?;
+                    // Never offer macOS/Linux artifacts as Windows downloads.
+                    ((name.contains("windows")
+                        || name.contains("win64")
+                        || name.ends_with(".exe")
+                        || name.ends_with(".msi"))
+                        && !name.contains("arm64")
+                        && !name.contains("aarch64")
+                        && [".zip", ".exe", ".msi"]
+                            .iter()
+                            .any(|ext| name.ends_with(ext))
+                        && url.starts_with(&format!("{RELEASES_URL}/download/")))
+                    .then(|| url.to_string())
+                })
+            }),
+        })
     } else {
         Outcome::Current
     })
@@ -42,6 +80,7 @@ pub fn check() -> Outcome {
             concat!("DragonBubble/", env!("CARGO_PKG_VERSION")),
         )
         .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
         .call()
     {
         Ok(mut response) => response
@@ -62,13 +101,39 @@ pub fn check() -> Outcome {
 mod tests {
     use super::*;
     #[test]
+    fn release_details_offer_only_project_windows_assets() {
+        let body = serde_json::json!({
+            "tag_name":"v9.0.0", "draft":false, "prerelease":false,
+            "html_url":format!("{RELEASES_URL}/tag/v9.0.0"), "body":"New animations",
+            "assets":[
+                {"name":"macos.zip", "browser_download_url":format!("{RELEASES_URL}/download/v9.0.0/macos.zip")},
+                {"name":"windows-arm64.zip", "browser_download_url":format!("{RELEASES_URL}/download/v9.0.0/windows-arm64.zip")},
+                {"name":"windows.zip", "browser_download_url":"https://example.com/unrelated.zip"},
+                {"name":"windows-x64.zip", "browser_download_url":format!("{RELEASES_URL}/download/v9.0.0/windows-x64.zip")}
+            ]
+        });
+        let Some(Outcome::Available(release)) = classify_release(&body.to_string(), VERSION) else {
+            panic!("new release");
+        };
+        assert_eq!(
+            release.download,
+            Some(format!("{RELEASES_URL}/download/v9.0.0/windows-x64.zip"))
+        );
+        assert_eq!(release.notes, "New animations");
+    }
+    #[test]
     fn compares_release_versions_numerically_and_handles_invalid_metadata() {
         let release = |tag: &str| {
             serde_json::json!({"tag_name": tag, "draft": false, "prerelease": false}).to_string()
         };
         assert_eq!(
             classify_release(&release("v0.10.0"), "0.9.0"),
-            Some(Outcome::Available("0.10.0".into()))
+            Some(Outcome::Available(Release {
+                version: "0.10.0".into(),
+                url: RELEASES_URL.into(),
+                notes: String::new(),
+                download: None
+            }))
         );
         assert_eq!(
             classify_release(&release("v0.1.0"), VERSION),

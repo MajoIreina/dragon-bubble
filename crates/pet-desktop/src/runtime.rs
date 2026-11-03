@@ -22,6 +22,8 @@ pub enum Action {
     ResetAdaptation,
     Quit,
     ShowSize,
+    Sleep(bool),
+    CheckUpdates,
 }
 #[derive(Resource)]
 pub struct Runtime {
@@ -38,6 +40,7 @@ pub struct Runtime {
     pub actions: Vec<Action>,
     pub show_settings: bool,
     pub show_size: bool,
+    pub check_updates_requested: bool,
     pub page: usize,
     pub status: String,
     pub loading: Option<String>,
@@ -86,7 +89,10 @@ impl Runtime {
         }
         let mut brain = Brain::default();
         brain.set_roaming(prefs.roaming);
-        let desktop = crate::platform::desktop();
+        brain.options = prefs.behavior.clone();
+        let mut desktop = crate::platform::desktop();
+        desktop.extent = Vec2::new(320., 248.) * prefs.zoom;
+        desktop.top_inset = 35. * prefs.zoom;
         let position = if prefs.position[0] == -99999 {
             desktop.place_on(0)
         } else {
@@ -110,6 +116,7 @@ impl Runtime {
             ground: 248.,
             actions: vec![],
             show_size: false,
+            check_updates_requested: false,
             page: 0,
             status: String::new(),
             loading: None,
@@ -164,6 +171,7 @@ impl Runtime {
         self.prefs.zoom = preferences::zoom(value);
         self.position.y += self.ground * (old - self.prefs.zoom);
         self.desktop.extent = Vec2::new(320. * self.prefs.zoom, self.ground * self.prefs.zoom);
+        self.desktop.top_inset *= self.prefs.zoom / old;
         self.position = self.desktop.clamp_origin(self.position);
         self.motion.position = self.position;
         self.dirty = true;
@@ -180,6 +188,18 @@ pub fn actions(mut rt: ResMut<Runtime>) {
                 let _ = std::fs::write(rt.data.join("welcome_seen"), "1");
             }
             Action::ShowSize => rt.show_size = true,
+            Action::CheckUpdates => {
+                rt.show_settings = true;
+                rt.page = 5;
+                rt.check_updates_requested = true;
+            }
+            Action::Sleep(sleep) => {
+                if sleep {
+                    rt.brain.sleep_now();
+                } else {
+                    rt.brain.wake();
+                }
+            }
             Action::SelectSkin(id) => rt.loading = Some(id),
             Action::Scale(v) => rt.set_zoom(v),
             Action::Roam(v) => {
@@ -269,9 +289,39 @@ pub fn actions(mut rt: ResMut<Runtime>) {
 pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate::avatar::Avatar>) {
     let dt = time.delta_secs().min(0.1);
     rt.frame_seconds += (time.delta_secs() - rt.frame_seconds) * 0.05;
+    if rt.brain.options != rt.prefs.behavior {
+        rt.brain.options = rt.prefs.behavior.clone();
+        // Apply new timing immediately, without interrupting the current pose.
+        rt.brain.remaining = match rt.brain.state {
+            State::Idle => rt.prefs.behavior.idle,
+            State::Walk => rt.prefs.behavior.walk,
+            State::Run => rt.prefs.behavior.run,
+            State::Sleep => rt.prefs.behavior.sleep,
+            _ => rt.brain.remaining,
+        };
+    }
     rt.poll += dt;
-    if rt.poll >= 1. {
+    if rt.poll >= 0.15 {
         rt.poll = 0.;
+        let support = rt.desktop.support(rt.position);
+        let surfaces = if rt.prefs.behavior.window_perching {
+            crate::platform::window_surfaces()
+        } else {
+            vec![]
+        };
+        if !rt.pressed
+            && !rt.motion.active
+            && let Some(old) = support
+            && let Some(new) = surfaces.iter().filter(|s| s.id == old.id).min_by(|a, b| {
+                (a.left - old.left)
+                    .abs()
+                    .total_cmp(&(b.left - old.left).abs())
+            })
+        {
+            let next = rt.position + Vec2::new(new.window_left - old.window_left, new.y - old.y);
+            rt.position = rt.desktop.clamp_origin(next);
+        }
+        rt.desktop.surfaces = surfaces;
         let layout = crate::platform::desktop();
         if rt.desktop.areas != layout.areas {
             rt.desktop.areas = layout.areas;
@@ -286,8 +336,18 @@ pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate:
         .active
         .and_then(|e| avatars.get(e).ok())
         .is_some_and(|a| a.turning);
+    let finishing_spin = rt
+        .active
+        .and_then(|e| avatars.get(e).ok())
+        .is_some_and(|a| a.spinning)
+        && rt.brain.remaining <= dt;
     if !rt.pressed && !rt.motion.active && !rt.show_size && !turning {
-        rt.brain.tick(dt, &mut rand_rng());
+        if rt.brain.forced_sleep && rt.brain.state != State::Sleep {
+            rt.brain.sleep_now();
+        }
+        if !finishing_spin {
+            rt.brain.tick(dt, &mut rand_rng());
+        }
     }
     let blocked = rt.pressed || rt.motion.active || rt.show_size;
     if rt.brain.state.moving() && !blocked && !turning {
@@ -318,7 +378,10 @@ pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate:
     }
     if !rt.pressed && !rt.show_size {
         let bounds = rt.desktop.bounds_for(rt.position);
-        if !rt.motion.active && rt.position.y < bounds.max.y - 1. {
+        if !rt.motion.active
+            && rt.desktop.support(rt.position).is_none()
+            && rt.position.y < bounds.max.y - 1.
+        {
             let p = rt.position;
             rt.motion.launch(p, Vec2::ZERO);
             rt.brain.change(State::Airborne, 2.)
@@ -331,7 +394,11 @@ pub fn simulate(time: Res<Time>, mut rt: ResMut<Runtime>, avatars: Query<&crate:
                 rt.brain.direction = if rt.motion.velocity.x > 0. { 1 } else { -1 }
             }
             if impact.settled {
-                rt.brain.change(State::Fall, 0.8);
+                if rt.brain.forced_sleep {
+                    rt.brain.sleep_now();
+                } else {
+                    rt.brain.change(State::Fall, 0.8);
+                }
                 rt.dirty = true
             }
         }

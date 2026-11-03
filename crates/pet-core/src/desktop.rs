@@ -27,12 +27,25 @@ impl Rect {
 pub struct Desktop {
     pub areas: Vec<Rect>,
     pub extent: Vec2,
+    /// Transparent pixels above the visible avatar, in physical desktop pixels.
+    pub top_inset: f32,
+    pub surfaces: Vec<Surface>,
+}
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Surface {
+    pub id: isize,
+    pub window_left: f32,
+    pub left: f32,
+    pub right: f32,
+    pub y: f32,
 }
 impl Default for Desktop {
     fn default() -> Self {
         Self {
             areas: vec![Rect::new(0., 0., 1920., 1080.)],
             extent: Vec2::new(320., 248.),
+            top_inset: 0.,
+            surfaces: vec![],
         }
     }
 }
@@ -58,6 +71,7 @@ impl Desktop {
             return Rect::new(0., 0., 1600., 800.);
         };
         let mut low = area.min;
+        low.y -= self.top_inset;
         let mut high = (area.max - self.extent).max(low);
         for other in &self.areas {
             if p.y >= other.min.y && p.y + self.extent.y <= other.max.y + 0.01 {
@@ -93,11 +107,43 @@ impl Desktop {
             self.bounds_for(p).clamp(p)
         } else {
             Rect {
-                min: area.min,
+                min: area.min - Vec2::new(0., self.top_inset),
                 max: (area.max - self.extent).max(area.min),
             }
             .clamp(p)
         }
+    }
+    /// Only descending feet can land on a window; moving upward passes through.
+    pub fn crossed_surface(&self, previous: Vec2, next: Vec2) -> Option<Surface> {
+        let old_feet = previous.y + self.extent.y;
+        let feet = next.y + self.extent.y;
+        if feet < old_feet {
+            return None;
+        }
+        self.surfaces
+            .iter()
+            .copied()
+            .filter(|s| {
+                let t = if feet > old_feet {
+                    ((s.y - old_feet) / (feet - old_feet)).clamp(0., 1.)
+                } else {
+                    1.
+                };
+                let x = previous.x + (next.x - previous.x) * t + self.extent.x * 0.5;
+                old_feet <= s.y + 0.5
+                    && feet >= s.y
+                    && x >= s.left
+                    && x <= s.right
+                    && s.y - self.extent.y >= self.bounds_for(next).min.y
+            })
+            .min_by(|a, b| a.y.total_cmp(&b.y))
+    }
+    pub fn support(&self, p: Vec2) -> Option<Surface> {
+        let x = p.x + self.extent.x * 0.5;
+        self.surfaces
+            .iter()
+            .copied()
+            .find(|s| (p.y + self.extent.y - s.y).abs() < 1. && x >= s.left && x <= s.right)
     }
     pub fn place_on(&self, index: usize) -> Vec2 {
         let a = self.areas.get(index).copied().unwrap_or(self.areas[0]);

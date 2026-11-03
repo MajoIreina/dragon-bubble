@@ -50,6 +50,21 @@ pub fn capture(
             let compact = tokens.join("");
             let lower = name.to_lowercase();
             let mut role = "";
+            if name == "BlinkBothEyes" {
+                role = "shu-eye-parent";
+            }
+            if name == "ClosedEyelids" {
+                role = "shu-lid-parent";
+            }
+            if name.starts_with("CeladonEyeFill.")
+                || name.starts_with("EmbroideredEyeBorder.")
+                || name.starts_with("HeavyUpperLid.")
+            {
+                role = "shu-eye";
+            }
+            if name.starts_with("ClosedEmbroideredLid.") {
+                role = "shu-lid";
+            }
             if joints.contains(&e) && !compact.ends_with("end") && !compact.ends_with("tip") {
                 for (part, hints) in [
                     (
@@ -84,6 +99,7 @@ pub fn capture(
                 side: if compact.contains("left")
                     || compact.contains('左')
                     || tokens.iter().any(|t| t == "l")
+                    || name.ends_with(".-1")
                 {
                     -1.
                 } else {
@@ -160,6 +176,25 @@ pub fn apply(
             continue;
         };
         if !a.ready {
+            continue;
+        }
+        if a.skin.id == "builtin.shu" && rest.role.starts_with("shu-") {
+            // Override only the face channels after native clips; preserve body animation.
+            let close = eye_closure(a.state, a.expression_clock, a.clock, rest.side);
+            match rest.role {
+                "shu-eye-parent" | "shu-lid-parent" => pose.scale = Vec3::ONE,
+                "shu-eye" => {
+                    pose.scale = rest.pose.scale * Vec3::new(1., (1. - close).max(0.015), 1.)
+                }
+                "shu-lid" => {
+                    let amount = ((close - 0.68) / 0.32).clamp(0.001, 1.);
+                    pose.scale = rest.pose.scale * amount;
+                    pose.translation.x =
+                        rest.pose.translation.x + rest.side * 0.425 * (1. - amount);
+                }
+                _ => {}
+            }
+            rest.modified = true;
             continue;
         }
         if rest.lock_root {
@@ -240,11 +275,7 @@ pub fn apply(
         if !a.ready || a.native {
             continue;
         }
-        let blink = if a.state == State::Sleep {
-            1.
-        } else {
-            (1. - ((a.clock % 4.3 - 3.7) / 0.11).abs()).max(0.)
-        };
+        let blink = eye_closure(a.state, a.expression_clock, a.clock, 0.);
         let smile = if a.state == State::Petted {
             (a.clock * 5.).min(0.7)
         } else {
@@ -261,5 +292,59 @@ pub fn apply(
             }
         }
         rest.modified = true;
+    }
+}
+
+/// Smooth asymmetric blinks: close quickly, reopen gently, with occasional winks.
+pub fn eye_closure(state: State, clock: f32, state_clock: f32, side: f32) -> f32 {
+    fn pulse(t: f32, start: f32, hold: f32) -> f32 {
+        let t = t - start;
+        let x = if t < 0. {
+            0.
+        } else if t < 0.09 {
+            t / 0.09
+        } else if t < 0.09 + hold {
+            1.
+        } else {
+            1. - (t - 0.09 - hold) / 0.18
+        };
+        let x = x.clamp(0., 1.);
+        x * x * (3. - 2. * x)
+    }
+    if state == State::Sleep {
+        let t = (state_clock / 0.65).clamp(0., 1.);
+        return t * t * (3. - 2. * t);
+    }
+    let t = clock.rem_euclid(13.7);
+    let blink = pulse(t, 2.7, 0.035)
+        .max(pulse(t, 6.4, 0.025))
+        .max(pulse(t, 6.75, 0.02));
+    let wink = if side < 0. {
+        pulse(t, 10.2, 0.32)
+    } else if side > 0. {
+        pulse(t, 11.1, 0.26)
+    } else {
+        0.
+    };
+    let squint = if state == State::Petted {
+        0.55 * (state_clock * 4.).min(1.)
+    } else {
+        0.3 * pulse(t, 8.5, 0.5)
+    };
+    blink.max(wink).max(squint)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn eyes_can_wink_independently_and_ease_into_sleep() {
+        assert_eq!(eye_closure(State::Idle, 10.4, 10.4, -1.), 1.);
+        assert_eq!(eye_closure(State::Idle, 10.4, 10.4, 1.), 0.);
+        assert_eq!(eye_closure(State::Idle, 11.3, 11.3, 1.), 1.);
+        assert_eq!(eye_closure(State::Idle, 11.3, 11.3, -1.), 0.);
+        assert_eq!(eye_closure(State::Sleep, 0., 0., 1.), 0.);
+        assert_eq!(eye_closure(State::Sleep, 1., 1., -1.), 1.);
+        assert!((eye_closure(State::Sleep, 0.325, 0.325, 1.) - 0.5).abs() < 0.001);
     }
 }

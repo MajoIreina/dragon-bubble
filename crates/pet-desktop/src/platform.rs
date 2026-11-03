@@ -95,6 +95,120 @@ pub fn desktop() -> Desktop {
 pub fn desktop() -> Desktop {
     Desktop::default()
 }
+/// Enumerate in Z order and remove covered pieces of each title-bar edge.
+/// All coordinates are physical pixels, matching GetCursorPos and rcWork.
+#[cfg(windows)]
+pub fn window_surfaces() -> Vec<pet_core::desktop::Surface> {
+    use windows_sys::Win32::{Foundation::*, Graphics::Dwm::*, UI::WindowsAndMessaging::*};
+    unsafe extern "system" fn visit(hwnd: HWND, data: LPARAM) -> i32 {
+        let windows = unsafe { &mut *(data as *mut Vec<(isize, Rect, bool)>) };
+        unsafe {
+            if IsWindowVisible(hwnd) == 0 || IsIconic(hwnd) != 0 {
+                return 1;
+            }
+            let mut pid = 0;
+            GetWindowThreadProcessId(hwnd, &mut pid);
+            if pid == std::process::id() {
+                return 1;
+            }
+            let mut cloaked: u32 = 0;
+            DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED as u32, &mut cloaked as *mut _ as _, 4);
+            if cloaked != 0 {
+                return 1;
+            }
+            let style = GetWindowLongW(hwnd, GWL_STYLE) as u32;
+            let ex = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
+            if ex & (WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT) != 0 {
+                return 1;
+            }
+            let mut class = [0u16; 128];
+            let len = GetClassNameW(hwnd, class.as_mut_ptr(), class.len() as i32);
+            let name = String::from_utf16_lossy(&class[..len.max(0) as usize]);
+            if [
+                "Progman",
+                "WorkerW",
+                "Shell_TrayWnd",
+                "Shell_SecondaryTrayWnd",
+            ]
+            .contains(&name.as_str())
+            {
+                return 1;
+            }
+            let mut r: RECT = std::mem::zeroed();
+            if DwmGetWindowAttribute(
+                hwnd,
+                DWMWA_EXTENDED_FRAME_BOUNDS as u32,
+                &mut r as *mut _ as _,
+                std::mem::size_of::<RECT>() as u32,
+            ) < 0
+                && GetWindowRect(hwnd, &mut r) == 0
+            {
+                return 1;
+            }
+            if r.right <= r.left || r.bottom <= r.top {
+                return 1;
+            }
+            windows.push((
+                hwnd as isize,
+                Rect::new(
+                    r.left as f32,
+                    r.top as f32,
+                    (r.right - r.left) as f32,
+                    (r.bottom - r.top) as f32,
+                ),
+                style & WS_CAPTION != 0,
+            ));
+        }
+        1
+    }
+    let mut windows: Vec<(isize, Rect, bool)> = vec![];
+    unsafe {
+        EnumWindows(Some(visit), &mut windows as *mut _ as isize);
+    }
+    exposed_surfaces(&windows)
+}
+#[cfg(not(windows))]
+pub fn window_surfaces() -> Vec<pet_core::desktop::Surface> {
+    vec![]
+}
+
+fn exposed_surfaces(windows: &[(isize, Rect, bool)]) -> Vec<pet_core::desktop::Surface> {
+    let mut result = vec![];
+    for (i, &(id, rect, perchable)) in windows.iter().enumerate() {
+        if !perchable {
+            continue;
+        }
+        let mut spans = vec![(rect.min.x, rect.max.x)];
+        for &(_, cover, _) in &windows[..i] {
+            if cover.min.y <= rect.min.y && cover.max.y > rect.min.y {
+                spans = spans
+                    .into_iter()
+                    .flat_map(|(l, r)| {
+                        if cover.max.x <= l || cover.min.x >= r {
+                            vec![(l, r)]
+                        } else {
+                            vec![(l, cover.min.x.max(l)), (cover.max.x.min(r), r)]
+                        }
+                    })
+                    .filter(|(l, r)| r - l >= 32.)
+                    .collect();
+            }
+        }
+        result.extend(
+            spans
+                .into_iter()
+                .filter(|(l, r)| r - l >= 32.)
+                .map(|(left, right)| pet_core::desktop::Surface {
+                    id,
+                    window_left: rect.min.x,
+                    left,
+                    right,
+                    y: rect.min.y,
+                }),
+        );
+    }
+    result
+}
 #[cfg(windows)]
 fn pointer() -> (Vec2, bool, bool) {
     use windows_sys::Win32::{
@@ -125,6 +239,16 @@ fn menu(rt: &Runtime) -> (Menu, HashMap<String, Action>) {
         let _ = m.append(&item);
     };
     add(&menu, tr("设置"), Action::ShowSettings(0));
+    add(
+        &menu,
+        tr(if rt.brain.forced_sleep || rt.brain.state == State::Sleep {
+            "唤醒"
+        } else {
+            "一键睡觉"
+        }),
+        Action::Sleep(!(rt.brain.forced_sleep || rt.brain.state == State::Sleep)),
+    );
+    add(&menu, tr("检查更新"), Action::CheckUpdates);
     add(
         &menu,
         format!(
@@ -189,7 +313,6 @@ pub fn setup_tray(world: &mut World) {
         Ok(TrayIconBuilder::new()
             .with_icon(icon)
             .with_tooltip("龙泡泡 · My Dragon Bubble")
-            .with_menu(Box::new(menu.clone()))
             .with_menu_on_left_click(false)
             .build()?)
     })();
@@ -246,6 +369,7 @@ pub fn input(
             }
         });
         if left && !rt.last_left && inside && over_pet && !rt.show_size {
+            rt.brain.forced_sleep = false;
             rt.pressed = true;
             rt.dragging = false;
             rt.press_cursor = cursor;
@@ -288,11 +412,7 @@ pub fn input(
             if let Some(tray) = tray {
                 #[cfg(windows)]
                 {
-                    use tray_icon::menu::ContextMenu;
-                    unsafe {
-                        tray.menu
-                            .show_context_menu_for_hwnd(native.0 as isize, None);
-                    }
+                    crate::menu_font::show(&tray.menu, native.0);
                 }
             } else {
                 rt.actions.push(Action::ShowSettings(0));
@@ -319,6 +439,7 @@ pub fn events(
     mut close: MessageReader<WindowCloseRequested>,
     settings: Query<Entity, With<SettingsWindow>>,
     mut exit: MessageWriter<AppExit>,
+    #[cfg(windows)] native: NonSend<crate::layered::NativePet>,
 ) {
     #[cfg(windows)]
     if crate::layered::close_requested() {
@@ -339,6 +460,17 @@ pub fn events(
             }
         }
         while let Ok(e) = TrayIconEvent::receiver().try_recv() {
+            #[cfg(windows)]
+            if matches!(
+                e,
+                TrayIconEvent::Click {
+                    button: MouseButton::Right,
+                    button_state: MouseButtonState::Up,
+                    ..
+                }
+            ) {
+                crate::menu_font::show(&tray.menu, native.0);
+            }
             if matches!(
                 e,
                 TrayIconEvent::Click {
@@ -351,17 +483,17 @@ pub fn events(
             }
         }
         let signature = format!(
-            "{}{}{}{}{}{}",
+            "{}{}{}{}{}{}{}",
             rt.prefs.locale,
             rt.prefs.skin_id,
             rt.prefs.roaming,
             rt.prefs.always_on_top,
             rt.skins.len(),
-            rt.desktop.areas.len()
+            rt.desktop.areas.len(),
+            rt.brain.forced_sleep || rt.brain.state == State::Sleep
         );
         if signature != tray.signature {
             let (m, a) = menu(&rt);
-            tray._icon.set_menu(Some(Box::new(m.clone())));
             tray.menu = m;
             tray.actions = a;
             tray.signature = signature;
@@ -486,6 +618,25 @@ pub fn cap_frame(rt: Res<Runtime>, mut previous: Local<Option<std::time::Instant
 #[cfg(test)]
 mod tests {
     use super::drag_direction;
+    #[test]
+    fn foreground_windows_occlude_only_covered_title_edge() {
+        use pet_core::desktop::Rect;
+        let edges = super::exposed_surfaces(&[
+            (1, Rect::new(300., 100., 200., 500.), true),
+            (2, Rect::new(100., 300., 600., 400.), true),
+        ]);
+        let back: Vec<_> = edges
+            .iter()
+            .filter(|s| s.id == 2)
+            .map(|s| (s.left, s.right))
+            .collect();
+        assert_eq!(back, vec![(100., 300.), (500., 700.)]);
+        let hidden = super::exposed_surfaces(&[
+            (1, Rect::new(0., 0., 1000., 800.), false),
+            (2, Rect::new(100., 300., 600., 400.), true),
+        ]);
+        assert!(hidden.is_empty());
+    }
 
     #[test]
     fn drag_facing_tracks_reversals_and_keeps_direction_while_stationary() {

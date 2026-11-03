@@ -156,7 +156,7 @@ pub fn update(
                 ),
                 0.17 + phase * 0.12,
                 (phase * std::f32::consts::PI).sin() * effect.sleep * 0.82,
-                0.,
+                (phase * std::f32::consts::TAU).sin() * 0.12,
             )
         } else if effect.kind == 3 {
             let breath = 0.5 - (effect.clock * std::f32::consts::TAU / 5.5).cos() * 0.5;
@@ -200,16 +200,21 @@ pub fn update(
             Visibility::Hidden
         };
         if let Some(material) = materials.get_mut(&effect.material) {
-            material.base_color = Color::srgba(0.51, 0.72, 0.76, alpha);
+            material.base_color = if effect.kind < 3 {
+                Color::srgba(0., 0., 0., alpha)
+            } else {
+                Color::srgba(0.51, 0.72, 0.76, alpha)
+            };
         }
     }
     for (parent, mut transform) in &mut eyes {
         if let Ok((a, _)) = avatars.get(parent.parent()) {
-            let blink = if a.state == State::Sleep {
-                1.
-            } else {
-                (1. - ((a.clock % 4.3 - 3.7) / 0.11).abs()).max(0.)
-            };
+            let blink = crate::expressions::eye_closure(
+                a.state,
+                a.expression_clock,
+                a.clock,
+                transform.translation.x.signum(),
+            );
             transform.scale.y = 1. - blink * 0.9;
         }
     }

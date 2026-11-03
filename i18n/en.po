@@ -1168,3 +1168,60 @@ msgstr "Project home"
 
 msgid "反馈问题"
 msgstr "Report an issue"
+
+msgid "唤醒"
+msgstr "Wake up"
+
+msgid "一键睡觉"
+msgstr "Sleep now"
+
+msgid "一键睡觉后持续休息，点击、拖动或唤醒即可结束"
+msgstr "Keep sleeping until clicked, dragged, or woken up"
+
+msgid "桌面窗口捕捉"
+msgstr "Stand on windows"
+
+msgid "落在可见窗口顶边；窗口关闭或最小化后自然下落"
+msgstr "Land on visible window tops; fall when a window closes or minimizes"
+
+msgid "待机原地转圈"
+msgstr "Idle twirl"
+
+msgid "待机时偶尔转一圈，保持原地站立"
+msgstr "Occasionally turn around in place while idle"
+
+msgid "动作时间"
+msgstr "Activity timing"
+
+msgid "各动作持续时间（秒），自动活动有少量随机变化"
+msgstr "Duration in seconds, with slight variation during autonomous activity"
+
+msgid "待机间隔"
+msgstr "Idle interval"
+
+msgid "走路时长"
+msgstr "Walking duration"
+
+msgid "跑步时长"
+msgstr "Running duration"
+
+msgid "自动睡眠时长"
+msgstr "Automatic sleep duration"
+
+msgid "转圈间隔"
+msgstr "Twirl interval"
+
+msgid "恢复默认动作时间"
+msgstr "Reset activity timing"
+
+msgid "查看此版本"
+msgstr "View this release"
+
+msgid "下载 Windows 版本"
+msgstr "Download for Windows"
+
+msgid "更新说明"
+msgstr "Release notes"
+
+msgid "GitHub 项目"
+msgstr "GitHub project"

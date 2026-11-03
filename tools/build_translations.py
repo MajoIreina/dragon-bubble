@@ -284,6 +284,25 @@ GLB 缺少有效网格尺寸|The GLB has no valid mesh bounds|GLB に有効な�
 需要 1–256 张图片帧|Between 1 and 256 image frames are required|1～256 枚の画像フレームが必要です
 序列帧为空或解码后超过 128 MB|The image sequence is empty or exceeds 128 MB decoded|連番画像が空か、展開後 128 MB を超えています
 动作 %s 的帧索引超出图片范围|The frame index for action %s is outside the image range|動作 %s のフレーム番号が画像の範囲外です
+唤醒|Wake up|起こす
+一键睡觉|Sleep now|今すぐ寝る
+一键睡觉后持续休息，点击、拖动或唤醒即可结束|Keep sleeping until clicked, dragged, or woken up|クリック・ドラッグ・起こす操作まで眠り続けます
+桌面窗口捕捉|Stand on windows|ウィンドウの上に立つ
+落在可见窗口顶边；窗口关闭或最小化后自然下落|Land on visible window tops; fall when a window closes or minimizes|表示中のウィンドウ上辺に着地し、閉じる・最小化で落下します
+待机原地转圈|Idle twirl|待機中の回転
+待机时偶尔转一圈，保持原地站立|Occasionally turn around in place while idle|待機中にその場で一回転します
+动作时间|Activity timing|動作の時間
+各动作持续时间（秒），自动活动有少量随机变化|Duration in seconds, with slight variation during autonomous activity|各動作の秒数。自動動作には少し変化が加わります
+待机间隔|Idle interval|待機時間
+走路时长|Walking duration|歩く時間
+跑步时长|Running duration|走る時間
+自动睡眠时长|Automatic sleep duration|自動睡眠の時間
+转圈间隔|Twirl interval|回転の間隔
+恢复默认动作时间|Reset activity timing|動作時間を初期化
+查看此版本|View this release|このリリースを見る
+下载 Windows 版本|Download for Windows|Windows 版をダウンロード
+更新说明|Release notes|リリースノート
+GitHub 项目|GitHub project|GitHub プロジェクト
 """
 
 

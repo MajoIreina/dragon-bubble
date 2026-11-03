@@ -4,6 +4,8 @@ mod composite;
 mod effects;
 mod expressions;
 mod layered;
+#[cfg(windows)]
+mod menu_font;
 mod platform;
 mod runtime;
 mod soft_body;

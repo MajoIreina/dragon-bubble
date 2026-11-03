@@ -33,6 +33,18 @@ pub struct UiState {
     update_outcome: Option<crate::updates::Outcome>,
     update_checked: Option<std::time::SystemTime>,
 }
+impl UiState {
+    fn check_updates(&mut self) {
+        if self.update_receiver.is_some() {
+            return;
+        }
+        let (send, receive) = std::sync::mpsc::channel();
+        self.update_receiver = Some(std::sync::Mutex::new(receive));
+        std::thread::spawn(move || {
+            let _ = send.send(crate::updates::check());
+        });
+    }
+}
 pub fn setup(mut commands: Commands, mut settings: ResMut<EguiGlobalSettings>, rt: Res<Runtime>) {
     settings.auto_create_primary_context = false;
     let window = commands
@@ -103,6 +115,10 @@ pub fn draw(
     avatars: Query<&Avatar>,
     mut state: Local<UiState>,
 ) {
+    if rt.check_updates_requested {
+        rt.check_updates_requested = false;
+        state.check_updates();
+    }
     if let Some(outcome) =
         state
             .update_receiver
@@ -166,8 +182,8 @@ pub fn draw(
         let mut fonts = egui::FontDefinitions::default();
         let mut system_fonts = Vec::new();
         for file in [
-            "C:/Windows/Fonts/segoeui.ttf",
             "C:/Windows/Fonts/msyh.ttc",
+            "C:/Windows/Fonts/segoeui.ttf",
             "C:/Windows/Fonts/YuGothM.ttc",
             "C:/Windows/Fonts/simhei.ttf",
         ] {
@@ -184,6 +200,17 @@ pub fn draw(
             .entry(egui::FontFamily::Proportional)
             .or_default()
             .splice(0..0, system_fonts);
+        let mut bold = fonts.families[&egui::FontFamily::Proportional].clone();
+        if let Ok(bytes) = std::fs::read("C:/Windows/Fonts/msyhbd.ttc") {
+            fonts.font_data.insert(
+                "yahei-bold".into(),
+                std::sync::Arc::new(egui::FontData::from_owned(bytes)),
+            );
+            bold.insert(0, "yahei-bold".into());
+        }
+        fonts
+            .families
+            .insert(egui::FontFamily::Name("YaHeiBold".into()), bold);
         ctx.set_fonts(fonts);
         apply_theme(ctx, crate::platform::prefers_dark_theme());
         if let Ok(logo) = image::load_from_memory(include_bytes!("../../../assets/tray.ico")) {
@@ -197,6 +224,10 @@ pub fn draw(
                 egui::TextureOptions::LINEAR,
             ));
         }
+        // egui installs new font families at the beginning of the next pass.
+        // Drawing named bold fonts in this pass would access the previous atlas.
+        ctx.request_repaint();
+        return;
     }
     let locale = rt.prefs.locale.clone();
     let tr = |s: &str| pet_core::i18n::tr(&locale, s);
@@ -245,8 +276,13 @@ pub fn draw(
                 }
                 ui.vertical(|ui| {
                     ui.add(
-                        egui::Label::new(egui::RichText::new(tr("龙泡泡")).size(18.).strong())
-                            .truncate(),
+                        egui::Label::new(
+                            egui::RichText::new(tr("龙泡泡"))
+                                .size(18.)
+                                .strong()
+                                .family(egui::FontFamily::Name("YaHeiBold".into())),
+                        )
+                        .truncate(),
                     );
                     ui.add(
                         egui::Label::new(egui::RichText::new("My Dragon Bubble").size(11.).weak())
@@ -330,7 +366,8 @@ pub fn draw(
                     "搜索结果"
                 }))
                 .size(28.)
-                .strong(),
+                .strong()
+                .family(egui::FontFamily::Name("YaHeiBold".into())),
             );
             ui.label(
                 egui::RichText::new(tr(if state.search.is_empty() {
@@ -455,7 +492,7 @@ fn search_pages(query: &str, locale: &str) -> Vec<usize> {
     let query = query.trim().to_lowercase();
     let terms = [
         "skin appearance import 外观 模型 导入 画像 スキン",
-        "roam behavior sleep 行为 走动 睡眠 互动 動作",
+        "roam behavior sleep spin interval window 行为 走动 睡眠 睡觉 唤醒 互动 转圈 间隔 时间 窗口 捕捉 動作",
         "window scale monitor display top 显示 大小 置顶 屏幕 位置 画面",
         "animation mapping converter blender 动作 适配 转换 朝向 翻转 アニメーション",
         "fps aa taa resolution quality performance vsync 性能 画质 帧率 分辨率 抗锯齿 同步 環境遮蔽",
@@ -599,7 +636,12 @@ fn error_color(ui: &egui::Ui) -> egui::Color32 {
 }
 fn section(ui: &mut egui::Ui, title: &str) {
     ui.add_space(10.);
-    ui.label(egui::RichText::new(title).size(15.).strong());
+    ui.label(
+        egui::RichText::new(title)
+            .size(15.)
+            .strong()
+            .family(egui::FontFamily::Name("YaHeiBold".into())),
+    );
     ui.add_space(4.);
 }
 fn setting_row(
@@ -742,7 +784,7 @@ fn navigation_item(ui: &mut egui::Ui, index: usize, selected: bool, label: &str)
         egui::pos2(rect.left() + 48., rect.center().y),
         egui::Align2::LEFT_CENTER,
         label,
-        egui::FontId::proportional(14.),
+        egui::FontId::new(14., egui::FontFamily::Name("YaHeiBold".into())),
         ui.visuals().text_color(),
     );
     response.widget_info(|| {

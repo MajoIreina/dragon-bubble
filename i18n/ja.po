@@ -1168,3 +1168,60 @@ msgstr "プロジェクトのホームページ"
 
 msgid "反馈问题"
 msgstr "問題を報告"
+
+msgid "唤醒"
+msgstr "起こす"
+
+msgid "一键睡觉"
+msgstr "今すぐ寝る"
+
+msgid "一键睡觉后持续休息，点击、拖动或唤醒即可结束"
+msgstr "クリック・ドラッグ・起こす操作まで眠り続けます"
+
+msgid "桌面窗口捕捉"
+msgstr "ウィンドウの上に立つ"
+
+msgid "落在可见窗口顶边；窗口关闭或最小化后自然下落"
+msgstr "表示中のウィンドウ上辺に着地し、閉じる・最小化で落下します"
+
+msgid "待机原地转圈"
+msgstr "待機中の回転"
+
+msgid "待机时偶尔转一圈，保持原地站立"
+msgstr "待機中にその場で一回転します"
+
+msgid "动作时间"
+msgstr "動作の時間"
+
+msgid "各动作持续时间（秒），自动活动有少量随机变化"
+msgstr "各動作の秒数。自動動作には少し変化が加わります"
+
+msgid "待机间隔"
+msgstr "待機時間"
+
+msgid "走路时长"
+msgstr "歩く時間"
+
+msgid "跑步时长"
+msgstr "走る時間"
+
+msgid "自动睡眠时长"
+msgstr "自動睡眠の時間"
+
+msgid "转圈间隔"
+msgstr "回転の間隔"
+
+msgid "恢复默认动作时间"
+msgstr "動作時間を初期化"
+
+msgid "查看此版本"
+msgstr "このリリースを見る"
+
+msgid "下载 Windows 版本"
+msgstr "Windows 版をダウンロード"
+
+msgid "更新说明"
+msgstr "リリースノート"
+
+msgid "GitHub 项目"
+msgstr "GitHub プロジェクト"
