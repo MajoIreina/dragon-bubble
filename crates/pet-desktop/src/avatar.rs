@@ -280,19 +280,23 @@ pub fn request(
             .id();
         match skin.r#type.as_str() {
             "model3d" => {
-                let path = match pet_core::import::cached_model(&skin, &rt.data) {
-                    Ok(path) => path,
-                    Err(e) => {
-                        rt.status = format!("模型加载失败：{e:#}");
-                        commands.entity(root).despawn();
-                        continue;
-                    }
+                let handle = if let Some(path) = crate::bundled::asset_path(&skin) {
+                    server.load(path)
+                } else {
+                    let path = match pet_core::import::cached_model(&skin, &rt.data) {
+                        Ok(path) => path,
+                        Err(e) => {
+                            rt.status = format!("模型加载失败：{e:#}");
+                            commands.entity(root).despawn();
+                            continue;
+                        }
+                    };
+                    let relative = path.strip_prefix(&rt.data).unwrap();
+                    server.load(format!(
+                        "user://{}",
+                        relative.to_string_lossy().replace(char::from(92), "/")
+                    ))
                 };
-                let relative = path.strip_prefix(&rt.data).unwrap();
-                let handle = server.load(format!(
-                    "user://{}",
-                    relative.to_string_lossy().replace(char::from(92), "/")
-                ));
                 avatar.source = handle.clone();
                 commands.entity(root).insert((avatar, Loading { handle }));
             }
@@ -1020,13 +1024,25 @@ pub fn performance(
 mod tests {
     use super::*;
 
+    // Exercise Shu-specific motion without depending on any private model files.
+    fn motion_test_skin() -> Skin {
+        serde_json::from_value(serde_json::json!({
+            "schema_version": 1, "id": "builtin.shu", "name": "Motion fixture",
+            "type": "model3d", "asset": "fixture.glb",
+            "animations": {"idle": "Idle", "walk": "Walk", "run": "Run",
+                "sleep": "Sleep", "petted": "Happy", "dragged": "PickedUp",
+                "airborne": "PickedUp", "fall": "Land"}
+        }))
+        .unwrap()
+    }
+
     #[test]
     fn idle_spin_completes_a_full_turn_in_place_and_drag_interrupts() {
         let root = std::env::temp_dir().join(format!("lpp-spin-{}", std::process::id()));
         let mut rt = Runtime::new(root.clone(), true);
         rt.prefs.behavior.idle_spin = true;
         rt.brain.change(State::Idle, 120.);
-        let skin = serde_json::from_str(include_str!("../../../skins/shu/skin.json")).unwrap();
+        let skin = motion_test_skin();
         let mut avatar = Avatar::new(skin, false);
         avatar.ready = true;
         let mut app = App::new();
@@ -1125,8 +1141,7 @@ mod tests {
         let root = std::env::temp_dir().join(format!("lpp-facing-{}", std::process::id()));
         let mut rt = Runtime::new(root.clone(), true);
         rt.show_settings = false;
-        let skin: Skin = serde_json::from_str(include_str!("../../../skins/shu/skin.json"))
-            .expect("Shu manifest");
+        let skin = motion_test_skin();
         let mut avatar = Avatar::new(skin, false);
         avatar.ready = true;
         avatar.state = State::Walk;

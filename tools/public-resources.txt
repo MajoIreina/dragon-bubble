@@ -1,0 +1,6 @@
+# Explicit public package resources. Private/local skins are never auto-discovered.
+assets/tray.ico
+assets/tray.svg
+converters/model_to_glb.py
+i18n/en.po
+i18n/ja.po

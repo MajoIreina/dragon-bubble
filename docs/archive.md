@@ -1,57 +1,35 @@
-# 项目归档与恢复
+# 开发目录归档
 
-归档日期：2026-11-02（Asia/Hong_Kong）。
+2026-11-03 整理后，根目录 Rust Windows 工作区是默认开发版本。`archives/` 是统一的本地资料库，整个目录被 Git 忽略；当前源码不再跟踪 Godot 工程或角色资产。
 
-## 收录范围
+## 本地布局
 
-Git 收录程序、场景、外观、翻译、图标、测试、构建 / 建模工具、文档、当前 Blender 源工程、原始旧模型和 `source_models/shu-plush/revisions/` 中的历史模型。Blender 的 `.blend1` 自动备份也作为本次初始快照保留。
-
-原有目录不移动，以保留脚本和 Godot 资源引用。临时工作区中有保留价值的资料复制整理到 `archive/`；预览图和动画复制到 `docs/media/`。这些副本是历史材料，可能引用归档前的本机绝对路径，不作为当前运行入口。
-
-| 目录 | 说明 |
+| 路径（相对于 archives/） | 内容 |
 | --- | --- |
-| `archive/development/` | `work/before-*` 与 `physics-before-settling` 历史代码和对照 |
-| `archive/references/` | 建模参考图、细节参考与角饰 / 脚尾修正参考 |
-| `archive/diagnostics/` | 工作区的一次性诊断脚本、JSON 报告与检查截图 |
-| `docs/media/` | `outputs/` 中的 PNG / GIF 预览快照，排除 Godot 缓存元数据 |
+| `cleanup-2026-11-03/legacy-godot/` | 原 Godot 场景、脚本、工程配置、旧测试 / 工具、引擎缓存和导入元数据 |
+| `cleanup-2026-11-03/private-models/` | 黍泡泡 Blender 源工程、模型修订、贴图源文件与原建模说明 |
+| `cleanup-2026-11-03/historical-materials/` | 原 archive/ 中的历史开发、诊断与参考资料 |
+| `cleanup-2026-11-03/documentation/` | 历史文档与预览媒体 |
+| `cleanup-2026-11-03/example-skins/` | 已移除的其他示例角色，仅本地留档 |
+| `cleanup-2026-11-03/outputs/`、`work/` | 整理前的构建、预览、诊断和临时快照 |
+| `cleanup-2026-11-03/previous-archives/` | 2026-11-02 已有的 Git bundle、预览包和清单 |
+| `builds/` | 此后重新打包时自动收纳的旧构建 |
 
-`archive/` 和 `docs/media/` 放置 `.gdignore`，避免 Godot 将历史脚本和文档图片导入运行工程。
+黍泡泡当前可用资源仍保留于根目录 `skins/shu/`，不进入 Git。`macos/` 独立移植目录及其已有修改保留在原位；其内的模型同样不加入 Windows 主线。Cargo 缓存与仍使用的开发工具保留在 `target/` 和 `work/tools/`。
 
-## 不进入 Git 的本机文件
+`cleanup-2026-11-03/files.json` 记录本次批量归档文件的原路径、目标路径、字节数和 SHA-256；移动后已逐项校验。追加归档的示例外观清单保存在 `example-skins-manifest.json`。`local-shu-manifest.json` 记录仍在使用的本地黍泡泡资源。所有归档均不上传 GitHub。
 
-- `.godot/`：Godot 可重建缓存。
-- `work/`：Godot / Blender / GitHub CLI、本地测试样本、逐帧渲染、日志、临时文件；原文件仍保留。
-- `outputs/`：生成的 EXE、PCK、预览图和旧的 `LPP.exe` / `LPP.pck`；原文件仍保留。
-- `archives/`：本次本地归档产物。
-- Python 缓存、编辑器配置、临时文件、日志和本地凭据。
+## 恢复资料
 
-## 从 Git 恢复
-
-```powershell
-git clone <GitHub 仓库地址> MyDragonBubble
-cd MyDragonBubble
-./start.ps1 -GodotPath 'C:/Tools/Godot/Godot_v4.5.1-stable_win64.exe' -Editor
-```
-
-等待首次资源导入完成后运行主场景。亦可关闭编辑器后去掉 `-Editor` 启动。构建开发预览使用 `./build.ps1 -GodotPath 'Godot 控制台版路径'`，同一目录需有对应 GUI 引擎；具体版本与命令见项目首页和模型说明。
-
-模型、GLB、纹理使用普通 Git 保存，本次各个文件均低于 GitHub 100 MiB 单文件限制。
-
-## 本地离线备份
-
-`archives/dragon-bubble-2026-11-02.bundle` 保存本次 Git 提交与归档标签，可验证和恢复：
+`cleanup-2026-11-03/before-cleanup.bundle` 保存整理前全部本地分支、远端引用和标签；已通过 `git bundle verify`。`preexisting.patch` 保存整理前 README 修改，`refs-before.txt` 保存引用清单。
 
 ```powershell
-git bundle verify ./archives/dragon-bubble-2026-11-02.bundle
-git clone ./archives/dragon-bubble-2026-11-02.bundle ../MyDragonBubble-restored
+git bundle verify ./archives/cleanup-2026-11-03/before-cleanup.bundle
+git clone ./archives/cleanup-2026-11-03/before-cleanup.bundle ../dragon-bubble-restored
 ```
 
-`archives/source-manifest-2026-11-02.json` 记录归档文件的路径、原始字节数和 SHA-256。`archives/manifest-sha256.txt` 记录清单本身的校验值。Git 的文本换行规范化可能改变其他平台检出的原始字节，跨平台时以 Git 提交校验为准。
+历史脚本可能依赖原目录结构或本机路径；需要重现旧 Godot 工程时应使用 bundle 恢复到单独目录。归档用于保存资料，不是当前运行入口。
 
-`archives/My-Dragon-Bubble-Windows-preview-2026-11-02.zip` 收录现有开发预览程序、配套 PCK 与 Godot 许可证；这是开发预览快照，版本说明见 README。EXE 与 PCK 必须一起解压使用。
+## GitHub 边界
 
-项目自身未新增开源许可证；`LICENSE-GODOT.txt` 仅说明 Godot 引擎的许可，不代表项目代码、角色、参考照片或其他素材已授权开源使用。
-
-## 归档验证
-
-本次从 Git 暂存区导出干净副本，使用本机 Godot 4.5.1 完成首次无界面资源导入，并执行现有 9 组测试：核心、运行时模型、运动、多屏桌面、性能、翻译、软体、步态、转身 / 待机。合计 914 项检查，0 失败。日志和结果位于本机 `archives/validation/`。这次验证不包含图形界面交互或新机器上的显示兼容性验证。
+当前源码排除角色模型、纹理源文件、历史媒体和本地归档；Releases 允许内嵌黍泡泡模型的 EXE，不再包含外置模型或其他示例角色。既有 Git 历史、标签和旧发布按维护者选择保留，因此历史版本仍可能含原始模型；本次不进行历史重写或强制推送。

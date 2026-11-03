@@ -237,10 +237,25 @@ fn tolerant_preferences_and_atomic_replace() {
     assert_eq!(Preferences::load(&file), p2);
 }
 #[test]
-fn builtins_validate_and_sprite_decodes() {
-    let (skins, errors) = assets::scan(&[project().join("skins")]);
+fn generated_skin_validates_and_sprite_decodes() {
+    let fixture = tempfile::tempdir().unwrap();
+    let skin_dir = fixture.path().join("sprite-fixture");
+    fs::create_dir(&skin_dir).unwrap();
+    image::RgbaImage::from_pixel(8, 8, image::Rgba([120, 180, 220, 255]))
+        .save(skin_dir.join("sprite.png"))
+        .unwrap();
+    fs::write(
+        skin_dir.join("skin.json"),
+        serde_json::to_vec(&json!({
+            "schema_version": 1, "id": "test.sprite", "name": "Generated fixture",
+            "type": "sprite", "asset": "sprite.png"
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let (skins, errors) = assets::scan(&[fixture.path().to_owned()]);
     assert!(errors.is_empty(), "{errors:?}");
-    assert!(skins.len() >= 5);
+    assert_eq!(skins.len(), 1);
     for skin in skins {
         if skin.r#type == "sprite" {
             let pack = pet_core::sprite::SpritePack::load(&skin).unwrap();

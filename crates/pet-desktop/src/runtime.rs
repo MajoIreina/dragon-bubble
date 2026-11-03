@@ -77,8 +77,9 @@ impl Runtime {
         };
         let _ = std::fs::create_dir_all(&data);
         let mut prefs = Preferences::load(&data.join("preferences.json"));
-        let (skins, diagnostics) =
+        let (mut skins, diagnostics) =
             pet_core::assets::scan(&[root.join("skins"), data.join("skins")]);
+        crate::bundled::add_skin(&mut skins);
         if !skins.iter().any(|s| s.id == prefs.skin_id) {
             prefs.skin_id = skins
                 .iter()
@@ -165,6 +166,7 @@ impl Runtime {
     pub fn rescan(&mut self) {
         (self.skins, self.diagnostics) =
             pet_core::assets::scan(&[self.root.join("skins"), self.data.join("skins")]);
+        crate::bundled::add_skin(&mut self.skins);
     }
     pub fn set_zoom(&mut self, value: f32) {
         let old = self.prefs.zoom;
@@ -541,7 +543,7 @@ pub fn smoke(
                     }
                     15 => rt.prefs.performance.aa = "off".into(),
                     16 => rt.prefs.performance.aa = "msaa4".into(),
-                    18 => rt.actions.push(Action::SelectSkin("example.sprite".into())),
+                    18 => rt.need_preview = true,
                     19 => rt.actions.push(Action::SelectSkin("builtin.shu".into())),
                     20 => {
                         rt.prefs.performance.resolution = 816;
@@ -641,13 +643,7 @@ pub fn smoke(
             );
     } else if rt.smoke_step < skin_start + rt.skins.len() + PERFORMANCE_CHECKS {
         let step = rt.smoke_step - skin_start - rt.skins.len();
-        if active.skin.id
-            != if step == 18 {
-                "example.sprite"
-            } else {
-                "builtin.shu"
-            }
-        {
+        if active.skin.id != "builtin.shu" {
             return;
         }
         if step == 13 || step == 14 {

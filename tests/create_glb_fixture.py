@@ -5,7 +5,7 @@ from pathlib import Path
 import struct
 
 root = Path(__file__).resolve().parents[1]
-destination = root / 'skins' / 'glb-demo'
+destination = root / 'work' / 'glb-fixture'
 destination.mkdir(parents=True, exist_ok=True)
 positions, normals, triangles = [], [], []
 rows, columns = 20, 32

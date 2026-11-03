@@ -1,5 +1,6 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 mod avatar;
+mod bundled;
 mod composite;
 mod effects;
 mod expressions;
@@ -30,16 +31,21 @@ use bevy::{
 use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 fn project_root() -> std::path::PathBuf {
     let current = std::env::current_dir().unwrap_or_default();
-    if current.join("skins").is_dir() {
+    if current.join("Cargo.toml").is_file() && current.join("converters/model_to_glb.py").is_file()
+    {
         return current;
     }
     if let Ok(exe) = std::env::current_exe() {
         let mut p = exe.parent();
         while let Some(parent) = p {
-            if parent.join("skins").is_dir() {
+            if parent.join("skins").is_dir() || parent.join("converters/model_to_glb.py").is_file()
+            {
                 return parent.to_owned();
             }
             p = parent.parent();
+        }
+        if let Some(parent) = exe.parent() {
+            return parent.to_owned();
         }
     }
     current
@@ -156,5 +162,6 @@ fn main() -> AppExit {
     .add_systems(EguiPrimaryContextPass, ui::draw)
     .add_systems(Update, runtime::smoke)
     .add_systems(Last, (layered::present, platform::cap_frame).chain());
+    bundled::register(&mut app);
     app.run()
 }
