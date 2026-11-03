@@ -1,0 +1,45 @@
+name: macOS port
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ["macos/**", ".github/workflows/macos.yml"]
+  pull_request:
+    paths: ["macos/**", ".github/workflows/macos.yml"]
+
+jobs:
+  build:
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            target: aarch64-apple-darwin
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        working-directory: macos
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: macos
+      - name: Test and package
+        run: bash build.sh --target "${{ matrix.target }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dragon-bubble-${{ matrix.target }}
+          path: macos/outputs/${{ matrix.target }}/My Dragon Bubble.zip
+          if-no-files-found: error

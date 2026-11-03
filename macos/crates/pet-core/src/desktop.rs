@@ -1,0 +1,110 @@
+use glam::Vec2;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Rect {
+    pub min: Vec2,
+    pub max: Vec2,
+}
+impl Rect {
+    pub fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
+        Self {
+            min: Vec2::new(x, y),
+            max: Vec2::new(x + w, y + h),
+        }
+    }
+    pub fn contains(self, p: Vec2) -> bool {
+        p.cmpge(self.min).all() && p.cmplt(self.max).all()
+    }
+    pub fn clamp(self, p: Vec2) -> Vec2 {
+        p.clamp(self.min, self.max.max(self.min))
+    }
+    pub fn size(self) -> Vec2 {
+        self.max - self.min
+    }
+}
+#[derive(Clone, Debug)]
+pub struct Desktop {
+    pub areas: Vec<Rect>,
+    pub extent: Vec2,
+}
+impl Default for Desktop {
+    fn default() -> Self {
+        Self {
+            areas: vec![Rect::new(0., 0., 1920., 1080.)],
+            extent: Vec2::new(320., 248.),
+        }
+    }
+}
+impl Desktop {
+    pub fn screen_at(&self, p: Vec2) -> usize {
+        if let Some(i) = self.areas.iter().position(|r| r.contains(p)) {
+            return i;
+        }
+        self.areas
+            .iter()
+            .enumerate()
+            .min_by(|(_, a), (_, b)| {
+                p.distance_squared(a.clamp(p))
+                    .total_cmp(&p.distance_squared(b.clamp(p)))
+            })
+            .map_or(0, |(i, _)| i)
+    }
+    pub fn current(&self, p: Vec2) -> usize {
+        self.screen_at(p + Vec2::new(self.extent.x * 0.5, self.extent.y - 1.))
+    }
+    pub fn bounds_for(&self, p: Vec2) -> Rect {
+        let Some(area) = self.areas.get(self.current(p)).copied() else {
+            return Rect::new(0., 0., 1600., 800.);
+        };
+        let mut low = area.min;
+        let mut high = (area.max - self.extent).max(low);
+        for other in &self.areas {
+            if p.y >= other.min.y && p.y + self.extent.y <= other.max.y + 0.01 {
+                if (area.max.x - other.min.x).abs() < 0.5 {
+                    high.x = high.x.max(other.max.x - self.extent.x);
+                }
+                if (area.min.x - other.max.x).abs() < 0.5 {
+                    low.x = low.x.min(other.min.x);
+                }
+            }
+            if p.x >= other.min.x && p.x + self.extent.x <= other.max.x {
+                if (area.max.y - other.min.y).abs() < 0.5 {
+                    high.y = high.y.max(other.max.y - self.extent.y);
+                }
+                if (area.min.y - other.max.y).abs() < 0.5 {
+                    low.y = low.y.min(other.min.y);
+                }
+            }
+        }
+        Rect {
+            min: low,
+            max: high.max(low),
+        }
+    }
+    pub fn clamp_origin(&self, p: Vec2) -> Vec2 {
+        let area = self
+            .areas
+            .get(self.current(p))
+            .copied()
+            .unwrap_or(Rect::new(0., 0., 1920., 1080.));
+        let anchor = p + Vec2::new(self.extent.x * 0.5, self.extent.y - 1.);
+        if area.contains(anchor) {
+            self.bounds_for(p).clamp(p)
+        } else {
+            Rect {
+                min: area.min,
+                max: (area.max - self.extent).max(area.min),
+            }
+            .clamp(p)
+        }
+    }
+    pub fn place_on(&self, index: usize) -> Vec2 {
+        let a = self.areas.get(index).copied().unwrap_or(self.areas[0]);
+        Rect {
+            min: a.min,
+            max: (a.max - self.extent).max(a.min),
+        }
+        .clamp(a.max - self.extent - Vec2::new(40., 0.))
+    }
+}

@@ -2,6 +2,8 @@
 
 Windows 桌宠，使用纯 Rust 技术栈：Bevy 0.17 / wgpu Vulkan、egui、原生 Win32 透明窗口与系统托盘。运行时无需 Godot。迁移核对与已知边界见 [迁移记录](docs/rust-migration.md)。
 
+macOS 移植版单独存放于 [`macos/`](macos/README.md)，使用 Rust / Bevy / wgpu Metal，包含独立源码、资源和 `.app` 打包脚本。
+
 ## 启动与构建
 
 需要 Windows Vulkan 驱动，以及 Rust stable MSVC 工具链（含 Visual Studio C++ Build Tools）。

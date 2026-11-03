@@ -1,0 +1,178 @@
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+mod avatar;
+mod composite;
+mod effects;
+mod expressions;
+mod layered;
+#[cfg(target_os = "macos")]
+mod macos;
+mod platform;
+mod runtime;
+mod soft_body;
+mod suspension;
+mod temporal;
+mod toon;
+mod ui;
+mod updates;
+use bevy::{
+    asset::{
+        AssetPlugin,
+        io::{AssetSource, file::FileAssetReader},
+    },
+    prelude::*,
+    render::{
+        RenderPlugin,
+        settings::{Backends, RenderCreation, WgpuSettings},
+    },
+    window::{ExitCondition, WindowPlugin, WindowResolution},
+    winit::{UpdateMode, WinitSettings},
+};
+use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
+fn project_root() -> std::path::PathBuf {
+    // Finder launches with an arbitrary working directory. Prefer bundled resources.
+    if let Ok(exe) = std::env::current_exe()
+        && let Some(contents) = exe.parent().and_then(std::path::Path::parent)
+    {
+        let resources = contents.join("Resources");
+        if resources.join("skins").is_dir() {
+            return resources;
+        }
+    }
+    let current = std::env::current_dir().unwrap_or_default();
+    if current.join("skins").is_dir() {
+        return current;
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        let mut p = exe.parent();
+        while let Some(parent) = p {
+            if parent.join("skins").is_dir() {
+                return parent.to_owned();
+            }
+            p = parent.parent();
+        }
+    }
+    current
+}
+fn main() -> AppExit {
+    let smoke = std::env::args().any(|s| s == "--smoke-test");
+    let root = project_root();
+    let mut runtime = runtime::Runtime::new(root.clone(), smoke, platform::desktop());
+    runtime.loading = Some(runtime.prefs.skin_id.clone());
+    runtime.desktop.extent = Vec2::new(
+        320. * runtime.prefs.zoom,
+        runtime.ground * runtime.prefs.zoom,
+    );
+    let data = runtime.data.clone();
+    let mut app = App::new();
+    app.register_asset_source(
+        "user",
+        AssetSource::build().with_reader(move || Box::new(FileAssetReader::new(data.clone()))),
+    );
+    app.insert_resource(runtime)
+        .init_resource::<layered::DesktopFrame>()
+        .insert_resource(ClearColor(Color::NONE))
+        .insert_resource(AmbientLight {
+            color: Color::srgb(0.91, 0.93, 1.),
+            brightness: 700.,
+            ..default()
+        })
+        .insert_resource(WinitSettings {
+            focused_mode: UpdateMode::Continuous,
+            unfocused_mode: UpdateMode::Continuous,
+        });
+    app.add_plugins(
+        DefaultPlugins
+            .build()
+            .disable::<bevy::anti_alias::AntiAliasPlugin>()
+            .set(RenderPlugin {
+                render_creation: RenderCreation::Automatic(WgpuSettings {
+                    backends: Some(if cfg!(target_os = "macos") {
+                        Backends::METAL
+                    } else {
+                        Backends::VULKAN
+                    }),
+                    ..default()
+                }),
+                // Keep the old frame visible until a new material pipeline is ready.
+                synchronous_pipeline_compilation: true,
+                ..default()
+            })
+            .set(AssetPlugin {
+                file_path: root.to_string_lossy().into(),
+                ..default()
+            })
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "龙泡泡 · My Dragon Bubble".into(),
+                    resolution: if cfg!(target_os = "macos") {
+                        WindowResolution::new(320, 320)
+                    } else {
+                        WindowResolution::new(320, 320).with_scale_factor_override(1.)
+                    },
+                    transparent: true,
+                    composite_alpha_mode: bevy::window::CompositeAlphaMode::PreMultiplied,
+                    decorations: false,
+                    resizable: false,
+                    skip_taskbar: true,
+                    focused: false,
+                    visible: !cfg!(windows),
+                    ..default()
+                }),
+                exit_condition: ExitCondition::DontExit,
+                close_when_requested: false,
+                ..default()
+            }),
+    )
+    .add_plugins((
+        bevy::anti_alias::fxaa::FxaaPlugin,
+        temporal::TemporalAntiAliasPlugin,
+        composite::CompositePlugin,
+        toon::ToonPlugin,
+    ))
+    .add_plugins(EguiPlugin::default())
+    .add_systems(
+        Startup,
+        (
+            avatar::setup,
+            ui::setup,
+            platform::setup_tray,
+            layered::setup,
+        ),
+    )
+    .add_systems(
+        Update,
+        (
+            platform::events,
+            platform::input,
+            runtime::actions,
+            avatar::request,
+            avatar::load_scenes,
+            runtime::simulate,
+            avatar::animate,
+            expressions::reset,
+            suspension::reset,
+            effects::update,
+            avatar::resize_output,
+            avatar::performance,
+            platform::sync_windows,
+        )
+            .chain(),
+    )
+    .add_systems(
+        PostUpdate,
+        (expressions::apply, suspension::apply)
+            .chain()
+            .after(bevy::app::AnimationSystems)
+            .before(bevy::transform::TransformSystems::Propagate),
+    )
+    .add_systems(
+        PostUpdate,
+        (avatar::finish, soft_body::install, soft_body::update)
+            .chain()
+            .after(bevy::transform::TransformSystems::Propagate),
+    )
+    .add_systems(EguiPrimaryContextPass, ui::draw)
+    .add_systems(Update, runtime::smoke)
+    .add_systems(Last, (layered::present, platform::cap_frame).chain());
+    app.run()
+}

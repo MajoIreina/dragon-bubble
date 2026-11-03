@@ -1,0 +1,23 @@
+[package]
+name = "pet-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+glam = { version = "0.30", features = ["serde"] }
+gltf = { version = "1.4", features = ["KHR_materials_unlit", "names", "extras"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "tga", "ico"] }
+percent-encoding = "2"
+rand = "0.9"
+regex = "1"
+resvg = "0.45"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tobj = "4"
+fbx-rs = "0.1.4"
+
+[dev-dependencies]
+tempfile = "3"
