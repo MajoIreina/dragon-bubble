@@ -50,4 +50,8 @@ bash start.sh --release --smoke-test
 
 当前已在 Windows 主机通过 25 项单元/回归测试（另有 1 项需要 Blender 生成的 FBX 样本而跳过），并借助交叉 C 编译器通过 `aarch64-apple-darwin` 和 `x86_64-apple-darwin` 两个目标的全 workspace / all-targets Clippy 检查（`-D warnings`）。格式、脚本语法和应用清单检查也已通过。
 
-尚未在真实 Mac 上运行图形界面，也未在此 Windows 主机生成可运行的 `.app`；链接、签名及桌面交互需在 Mac 上验证。仓库的 `.github/workflows/macos.yml` 提供 Apple Silicon 和 Intel 的编译/测试、打包及构建产物。
+2026-11-03 已通过 GitHub 的 Apple Silicon macOS 构建机完成原生 ARM64 Release `.app` 构建，25 项测试通过、1 项可选 Blender 测试跳过，Clippy、应用清单和 `codesign --verify --deep --strict` 检查通过。构建源码提交为 `5feb7dffc1382a66ef3b041e6b7b53fd74a47c15`，Actions run 为 `41559582411`，ARM64 job 为 `125666673196`。
+
+实机测试包已下载至 `outputs/ci/dragon-bubble-aarch64-apple-darwin/My Dragon Bubble.zip`（39,273,869 字节）。已验证 ZIP 完整性、ARM64 Mach-O 架构、macOS 11.0 最低版本、可执行权限、资源及签名记录；动态库依赖均来自 macOS 系统。包的 SHA-256 为 `96f4b202c0b97f79dabe32ef637d7160c753e9ea6431720fe053b6993dcac7e5`，同目录的 `verification.json` 保存详细校验信息。
+
+安装和日志采集见 [实机测试说明](TESTING.md)。图形界面、透明区域穿透和多屏交互尚待实机验收。工作流同时提供 Intel 构建；此次优先交付用户测试机所需的 Apple Silicon 包。
