@@ -47,6 +47,8 @@ jobs:
         run: bash build.sh --skip-checks --skip-tests --target aarch64-apple-darwin
       - name: Launch packaged app and verify Metal rendering
         run: python3 tests/launch_app.py "outputs/aarch64-apple-darwin/My Dragon Bubble.zip"
+      - name: Exercise graphics modes and physical rebounds
+        run: python3 tests/graphics.py "outputs/aarch64-apple-darwin/My Dragon Bubble.app"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -55,6 +57,7 @@ jobs:
             macos/outputs/aarch64-apple-darwin/launch-check/result.json
             macos/outputs/aarch64-apple-darwin/launch-check/direct/
             macos/outputs/aarch64-apple-darwin/launch-check/finder/
+            macos/outputs/aarch64-apple-darwin/graphics-check/
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:

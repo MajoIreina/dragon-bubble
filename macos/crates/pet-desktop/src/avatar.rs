@@ -8,7 +8,10 @@ use bevy::{
     gltf::Gltf,
     mesh::VertexAttributeValues,
     prelude::*,
-    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
+    render::{
+        render_resource::{Extent3d, TextureDimension, TextureFormat, TextureFormatFeatureFlags},
+        renderer::{RenderAdapter, RenderDevice},
+    },
     scene::SceneInstanceReady,
 };
 use pet_core::{assets::Skin, behavior::State, sprite::SpritePack};
@@ -1057,10 +1060,28 @@ pub fn animate(
         }
     }
 }
+fn supported_msaa(aa: &str, formats: TextureFormatFeatureFlags) -> Msaa {
+    let requested = match aa {
+        "msaa2" => 2,
+        "msaa4" => 4,
+        "msaa8" => 8,
+        _ => 1,
+    };
+    for (samples, mode) in [(8, Msaa::Sample8), (4, Msaa::Sample4), (2, Msaa::Sample2)] {
+        if samples <= requested && formats.sample_count_supported(samples) {
+            return mode;
+        }
+    }
+    Msaa::Off
+}
+
 #[allow(clippy::type_complexity, clippy::too_many_arguments)] // Bevy camera and resource parameters.
 pub fn performance(
     mut commands: Commands,
-    rt: Res<Runtime>,
+    mut rt: ResMut<Runtime>,
+    adapter: Option<Res<RenderAdapter>>,
+    device: Option<Res<RenderDevice>>,
+    mut sample_support: Local<Option<TextureFormatFeatureFlags>>,
     mut views: ResMut<RenderViews>,
     mut images: ResMut<Assets<Image>>,
     mut composites: ResMut<Assets<crate::composite::PetComposite>>,
@@ -1078,6 +1099,41 @@ pub fn performance(
     avatars: Query<(Entity, &Avatar)>,
     mut previous: Local<Option<(u32, bool, Option<Entity>, Option<Entity>, i32, State, State)>>,
 ) {
+    let formats = *sample_support.get_or_insert_with(|| {
+        // Both the color attachment and depth buffer must accept the sample
+        // count. Apple M4 supports 2x/4x, but requesting 8x panics in wgpu.
+        let features = device
+            .as_ref()
+            .map_or_else(Default::default, |device| device.features());
+        let flags = |format: TextureFormat| {
+            if features.contains(
+                bevy::render::render_resource::WgpuFeatures::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+            ) && let Some(adapter) = &adapter
+            {
+                adapter.get_texture_format_features(format).flags
+            } else {
+                format.guaranteed_format_features(features).flags
+            }
+        };
+        flags(TextureFormat::bevy_default()) & flags(TextureFormat::Depth32Float)
+    });
+    let next_msaa = supported_msaa(&rt.prefs.performance.aa, formats);
+    if rt.prefs.performance.aa.starts_with("msaa") {
+        let actual = match next_msaa {
+            Msaa::Sample8 => "msaa8",
+            Msaa::Sample4 => "msaa4",
+            Msaa::Sample2 => "msaa2",
+            _ => "off",
+        };
+        if rt.prefs.performance.aa != actual {
+            warn!(
+                "Antialiasing {} is unsupported by this GPU; using {actual}",
+                rt.prefs.performance.aa
+            );
+            rt.prefs.performance.aa = actual.into();
+            rt.dirty = true;
+        }
+    }
     let p = &rt.prefs.performance;
     let resolution = p.resolution.max(views.output_size);
     let active = rt.active.and_then(|e| avatars.get(e).ok());
@@ -1116,12 +1172,6 @@ pub fn performance(
     for (e, view, mut camera, mut msaa, fxaa, ao, taa) in &mut cameras {
         let was_active = camera.is_active;
         camera.is_active = !view.0 || (rt.show_settings && (rt.page == 0 || rt.page == 3));
-        let next_msaa = match p.aa.as_str() {
-            "msaa2" => Msaa::Sample2,
-            "msaa4" => Msaa::Sample4,
-            "msaa8" => Msaa::Sample8,
-            _ => Msaa::Off,
-        };
         // SSAO requires single-sample prepasses; TAA also smooths coverage alpha.
         let use_taa = p.aa == "taa" || (p.ao && p.aa.starts_with("msaa"));
         msaa.set_if_neq(if p.ao { Msaa::Off } else { next_msaa });
@@ -1182,6 +1232,23 @@ pub fn performance(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unsupported_msaa_falls_back_before_creating_gpu_textures() {
+        let m4 =
+            TextureFormatFeatureFlags::MULTISAMPLE_X2 | TextureFormatFeatureFlags::MULTISAMPLE_X4;
+        assert_eq!(supported_msaa("msaa8", m4), Msaa::Sample4);
+        assert_eq!(supported_msaa("msaa2", m4), Msaa::Sample2);
+        let depth = TextureFormatFeatureFlags::MULTISAMPLE_X4;
+        assert_eq!(supported_msaa("msaa2", m4 & depth), Msaa::Off);
+        assert_eq!(supported_msaa("msaa8", m4 & depth), Msaa::Sample4);
+        assert_eq!(supported_msaa("taa", m4), Msaa::Off);
+        assert_eq!(supported_msaa("fxaa", m4), Msaa::Off);
+        assert_eq!(
+            supported_msaa("msaa8", m4 | TextureFormatFeatureFlags::MULTISAMPLE_X8),
+            Msaa::Sample8
+        );
+    }
 
     // Exercise Shu-specific motion without depending on any private model files.
     fn motion_test_skin() -> Skin {
