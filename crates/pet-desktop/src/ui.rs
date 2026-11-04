@@ -120,6 +120,7 @@ fn choice(
             }
         });
 }
+#[allow(clippy::too_many_arguments)] // Separate Bevy queries plus the macOS main-thread marker.
 pub fn draw(
     mut context: Single<&mut EguiContext, With<PrimaryEguiContext>>,
     mut rt: ResMut<Runtime>,
