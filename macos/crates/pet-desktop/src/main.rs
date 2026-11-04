@@ -4,6 +4,8 @@ mod autostart;
 mod avatar;
 mod bundled;
 mod composite;
+#[path = "../../../../crates/pet-desktop/src/desktop_mode.rs"]
+mod desktop_mode;
 mod effects;
 mod expressions;
 mod face;
@@ -13,6 +15,8 @@ mod macos;
 mod platform;
 #[path = "../../../../crates/pet-desktop/src/popup.rs"]
 mod popup;
+#[path = "../../../../crates/pet-desktop/src/resource_probe.rs"]
+mod resource_probe;
 mod runtime;
 mod soft_body;
 mod startup;
@@ -71,9 +75,11 @@ fn main() -> AppExit {
     run()
 }
 fn run() -> AppExit {
+    let resource_test = std::env::args().any(|arg| arg == "--resource-test");
     let menu_test = std::env::args().any(|arg| arg == "--menu-test");
     let bounce_test = std::env::args().any(|s| s == "--bounce-test");
-    let smoke = menu_test || bounce_test || std::env::args().any(|s| s == "--smoke-test");
+    let smoke =
+        resource_test || menu_test || bounce_test || std::env::args().any(|s| s == "--smoke-test");
     let root = project_root();
     // NSScreen and NSStatusItem require an initialized AppKit event loop.
     // Startup runs after winit has created that event loop, on the main thread.
@@ -114,6 +120,7 @@ fn run() -> AppExit {
                     } else {
                         Backends::VULKAN
                     }),
+                    memory_hints: bevy::render::settings::MemoryHints::MemoryUsage,
                     ..default()
                 }),
                 // Keep the old frame visible until a new material pipeline is ready.
@@ -175,6 +182,7 @@ fn run() -> AppExit {
     .add_systems(
         Update,
         (
+            desktop_mode::detect,
             platform::events,
             platform::wheel,
             platform::input,
@@ -188,6 +196,7 @@ fn run() -> AppExit {
             effects::update,
             avatar::resize_output,
             avatar::performance,
+            desktop_mode::sync,
             platform::sync_windows,
             popup::sync,
             platform::frame_pacing,
@@ -210,7 +219,9 @@ fn run() -> AppExit {
     .add_systems(EguiPrimaryContextPass, ui::draw)
     .add_systems(popup::MenuPass, popup::draw)
     .add_systems(Last, layered::present);
-    if menu_test {
+    if resource_test {
+        app.add_systems(Update, resource_probe::run.after(platform::frame_pacing));
+    } else if menu_test {
         app.add_systems(Update, popup::probe.after(avatar::animate));
     } else if bounce_test {
         app.add_systems(Update, runtime::bounce_smoke.after(avatar::animate));

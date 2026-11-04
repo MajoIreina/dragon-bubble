@@ -17,6 +17,7 @@ def main():
         ("smoke", "--smoke-test", "SMOKE PASS:", 240),
         ("bounce", "--bounce-test", "BOUNCE PASS:", 60),
         ("menu", "--menu-test", "MENU PASS:", 60),
+        ("resources", "--resource-test", "RESOURCE PASS:", 240),
     ]:
         folder = out / name
         folder.mkdir(parents=True, exist_ok=True)

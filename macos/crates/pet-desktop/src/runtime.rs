@@ -39,6 +39,7 @@ pub struct Runtime {
     pub ground: f32,
     pub actions: Vec<Action>,
     pub show_settings: bool,
+    pub obscured: bool,
     wheel_remainder: i32,
     pub check_updates_requested: bool,
     pub page: usize,
@@ -134,6 +135,7 @@ impl Runtime {
             data: data.clone(),
             show_settings: !std::env::args().any(|arg| arg == "--autostart")
                 && !data.join("welcome_seen").exists(),
+            obscured: false,
             prefs,
             skins,
             diagnostics,
@@ -428,6 +430,9 @@ pub fn simulate(
     avatars: Query<&crate::avatar::Avatar>,
     #[cfg(target_os = "macos")] _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
+    if rt.obscured {
+        return;
+    }
     let dt = time.delta_secs().min(0.1);
     if rt.smoke {
         rt.brain.inactive = 0.;

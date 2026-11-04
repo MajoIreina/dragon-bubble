@@ -66,7 +66,7 @@ pub fn frame_update_mode(
         bevy::winit::UpdateMode::Continuous
     } else {
         bevy::winit::UpdateMode::reactive_low_power(std::time::Duration::from_secs_f64(
-            1. / limit.clamp(24, 360) as f64,
+            1. / limit.clamp(1, 360) as f64,
         ))
     }
 }
@@ -88,7 +88,11 @@ pub fn frame_pacing(
         cache.refresh_poll = 0.;
     }
     let key = (
-        rt.prefs.performance.fps,
+        if rt.obscured && !rt.show_settings {
+            5
+        } else {
+            rt.prefs.performance.fps
+        },
         rt.prefs.performance.vsync,
         cache.refresh_hz,
     );
@@ -388,6 +392,12 @@ pub fn input(
     #[cfg(target_os = "macos")] frame: Res<crate::layered::DesktopFrame>,
     _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
+    if rt.obscured {
+        let (_, left, right) = pointer();
+        rt.last_left = left;
+        rt.last_right = right;
+        return;
+    }
     bevy::winit::WINIT_WINDOWS.with(|windows| {
         let windows = windows.borrow();
         let Ok((entity, win, mut cursor_options)) = pet.single_mut() else {
@@ -558,6 +568,10 @@ pub fn sync_windows(
 ) {
     for (entity, mut w, pet, settings) in &mut windows {
         if pet.is_some() {
+            #[cfg(not(windows))]
+            {
+                w.visible = !rt.obscured;
+            }
             let size = (320. * rt.prefs.zoom).round() as u32;
             #[cfg(target_os = "macos")]
             if (w.resolution.width() - size as f32).abs() > 0.5 {

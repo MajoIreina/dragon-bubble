@@ -7,6 +7,7 @@ use bevy::{
 };
 use bevy_egui::{EguiContext, EguiMultipassSchedule, egui};
 use pet_core::behavior::State;
+const MENU_WIDTH: f32 = 208.;
 
 #[derive(Component)]
 pub struct MenuWindow;
@@ -36,7 +37,7 @@ pub fn setup(mut commands: Commands) {
         .spawn((
             Window {
                 title: "龙泡泡 · 菜单".into(),
-                resolution: WindowResolution::new(278, 426),
+                resolution: WindowResolution::new(MENU_WIDTH as u32, 360),
                 decorations: false,
                 transparent: !cfg!(windows),
                 #[cfg(target_os = "macos")]
@@ -112,7 +113,7 @@ pub fn sync(
         });
     }
     if menu.height > 0. && (win.height() - menu.height).abs() > 0.5 {
-        win.resolution.set(278., menu.height);
+        win.resolution.set(MENU_WIDTH, menu.height);
     }
     #[cfg(windows)]
     bevy::winit::WINIT_WINDOWS.with(|windows| {
@@ -201,10 +202,14 @@ pub fn draw(
                 .fill(ui.visuals().panel_fill)
                 .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
                 .corner_radius(12)
-                .inner_margin(12)
+                .inner_margin(9)
                 .show(ui, |ui| {
                     ui.set_width(ui.available_width());
-                    ui.spacing_mut().item_spacing.y = 3.;
+                    ui.spacing_mut().item_spacing.y = 2.;
+                    ui.style_mut().override_font_id = Some(egui::FontId::new(
+                        14.,
+                        egui::FontFamily::Name("YaHeiBold".into()),
+                    ));
                     ui.label(
                         egui::RichText::new(tr("龙泡泡"))
                             .strong()
@@ -240,7 +245,7 @@ pub fn draw(
                     ] {
                         if ui
                             .add_sized(
-                                [ui.available_width(), 32.],
+                                [ui.available_width(), 29.],
                                 egui::Button::new(label).frame(false),
                             )
                             .clicked()
@@ -249,19 +254,6 @@ pub fn draw(
                         }
                     }
                     ui.separator();
-                    egui::ComboBox::from_id_salt("menu-skin")
-                        .width(ui.available_width() - 8.)
-                        .selected_text(tr("外观"))
-                        .show_ui(ui, |ui| {
-                            for skin in &rt.skins {
-                                if ui
-                                    .selectable_label(skin.id == rt.prefs.skin_id, tr(&skin.name))
-                                    .clicked()
-                                {
-                                    action = Some(Action::SelectSkin(skin.id.clone()));
-                                }
-                            }
-                        });
                     egui::ComboBox::from_id_salt("menu-screen")
                         .width(ui.available_width() - 8.)
                         .selected_text(tr("移动到屏幕"))
@@ -275,7 +267,7 @@ pub fn draw(
                     ui.separator();
                     if ui
                         .add_sized(
-                            [ui.available_width(), 32.],
+                            [ui.available_width(), 29.],
                             egui::Button::new(tr("退出")).frame(false),
                         )
                         .clicked()

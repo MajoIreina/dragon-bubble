@@ -116,6 +116,27 @@ pub fn prefers_dark_theme() -> bool {
         .is_some_and(|style| style.to_string() == "Dark")
 }
 
+pub fn fullscreen_at(point: Vec2) -> bool {
+    let top = primary_top();
+    let display = NSScreen::screens(main_thread()).iter().find_map(|screen| {
+        let f = screen.frame();
+        let rect = Rect::new(
+            f.origin.x as f32,
+            (top - f.origin.y - f.size.height) as f32,
+            f.size.width as f32,
+            f.size.height as f32,
+        );
+        rect.contains(point).then_some(rect)
+    });
+    let Some(display) = display else {
+        return false;
+    };
+    visible_windows()
+        .into_iter()
+        .find(|(_, _, normal)| *normal)
+        .is_some_and(|(_, bounds, _)| crate::desktop_mode::covers_display(bounds, display))
+}
+
 /// Quartz reports window bounds in global logical points, top-left origin.
 /// Read geometry only; no screen capture, window titles, or accessibility hooks.
 fn desktop_window_layer(layer: i64) -> bool {

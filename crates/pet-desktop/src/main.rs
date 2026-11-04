@@ -3,12 +3,14 @@ mod autostart;
 mod avatar;
 mod bundled;
 mod composite;
+mod desktop_mode;
 mod effects;
 mod expressions;
 mod face;
 mod layered;
 mod platform;
 mod popup;
+mod resource_probe;
 mod runtime;
 mod soft_body;
 mod suspension;
@@ -52,9 +54,11 @@ fn project_root() -> std::path::PathBuf {
     current
 }
 fn main() -> AppExit {
+    let resource_test = std::env::args().any(|arg| arg == "--resource-test");
     let menu_test = std::env::args().any(|arg| arg == "--menu-test");
     let bounce_test = std::env::args().any(|s| s == "--bounce-test");
-    let smoke = menu_test || bounce_test || std::env::args().any(|s| s == "--smoke-test");
+    let smoke =
+        resource_test || menu_test || bounce_test || std::env::args().any(|s| s == "--smoke-test");
     let root = project_root();
     let mut runtime = runtime::Runtime::new(root.clone(), smoke);
     runtime.loading = Some(runtime.prefs.skin_id.clone());
@@ -88,6 +92,7 @@ fn main() -> AppExit {
             .set(RenderPlugin {
                 render_creation: RenderCreation::Automatic(WgpuSettings {
                     backends: Some(Backends::VULKAN),
+                    memory_hints: bevy::render::settings::MemoryHints::MemoryUsage,
                     ..default()
                 }),
                 // Keep the old frame visible until a new material pipeline is ready.
@@ -135,6 +140,7 @@ fn main() -> AppExit {
     .add_systems(
         Update,
         (
+            desktop_mode::detect,
             platform::events,
             platform::wheel,
             platform::input,
@@ -148,6 +154,7 @@ fn main() -> AppExit {
             effects::update,
             avatar::resize_output,
             avatar::performance,
+            desktop_mode::sync,
             platform::sync_windows,
             popup::sync,
             platform::frame_pacing,
@@ -170,7 +177,9 @@ fn main() -> AppExit {
     .add_systems(EguiPrimaryContextPass, ui::draw)
     .add_systems(popup::MenuPass, popup::draw)
     .add_systems(Last, layered::present);
-    if menu_test {
+    if resource_test {
+        app.add_systems(Update, resource_probe::run.after(platform::frame_pacing));
+    } else if menu_test {
         app.add_systems(Update, popup::probe.after(avatar::animate));
     } else if bounce_test {
         app.add_systems(Update, runtime::bounce_smoke.after(avatar::animate));

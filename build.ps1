@@ -65,4 +65,5 @@ if (-not $WithoutBundledModel) {
     Compress-Archive -Path "$destination/*" -DestinationPath $zip -Force
     & python tools/check_public_files.py --zip $zip
     if ($LASTEXITCODE -ne 0) { throw 'ZIP validation failed' }
+    & "$PSScriptRoot/tools/test_memory.ps1" -Executable (Join-Path $destination 'My Dragon Bubble.exe') -Output "work/release-memory-v$version"
 }

@@ -10,7 +10,7 @@ pub(super) fn appearance_page(
 ) {
     let locale = rt.prefs.locale.clone();
     let tr = |s: &str| pet_core::i18n::tr(&locale, s);
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         let texture = textures.add_image(EguiTextureHandle::Weak(views.preview.id()));
         let size = (ui.available_width() * 0.34).clamp(100., 210.);
@@ -150,7 +150,7 @@ pub(super) fn behavior_page(ui: &mut egui::Ui, rt: &mut Runtime) {
         },
     );
     section(ui, &tr("动作时间"));
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.label(tr("各动作持续时间（秒），自动活动有少量随机变化"));
         for (label, value, range) in [
             ("待机间隔", &mut rt.prefs.behavior.idle, 3.0..=120.0),
@@ -176,7 +176,7 @@ pub(super) fn behavior_page(ui: &mut egui::Ui, rt: &mut Runtime) {
         }
     });
     section(ui, &tr("互动指南"));
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         for (title, description) in [
             ("点击", "点击：摸摸回应"),
@@ -220,7 +220,7 @@ pub(super) fn display_page(ui: &mut egui::Ui, rt: &mut Runtime) {
             }
         },
     );
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         ui.label(tr("桌宠大小"));
         ui.label(
@@ -275,7 +275,7 @@ pub(super) fn adaptation_page(
 ) {
     let locale = rt.prefs.locale.clone();
     let tr = |s: &str| pet_core::i18n::tr(&locale, s);
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         let texture = textures.add_image(EguiTextureHandle::Weak(views.preview.id()));
         let size = (ui.available_width() * 0.32).clamp(100., 180.);
@@ -380,7 +380,7 @@ pub(super) fn adaptation_page(
             },
         );
         section(ui, &tr("状态动作映射"));
-        card(ui).show(ui, |ui| {
+        show_card(ui, |ui| {
             ui.set_min_width(ui.available_width());
             egui::Grid::new("animation-mapping")
                 .num_columns(2)
@@ -437,7 +437,7 @@ pub(super) fn adaptation_page(
         },
     );
     section(ui, &tr("模型转换器"));
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         ui.label(tr("Blender 路径"));
         ui.label(
@@ -502,7 +502,7 @@ pub(super) fn performance_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut 
     );
     let p = &mut rt.prefs.performance;
     section(ui, &tr("渲染与流畅度"));
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         ui.spacing_mut().slider_width = ui.available_width();
         ui.horizontal(|ui| {
@@ -537,7 +537,7 @@ pub(super) fn performance_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut 
             p.resolution = RenderOptions::RESOLUTIONS[level];
         }
     });
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         ui.spacing_mut().slider_width = ui.available_width();
         let mut unlimited = p.fps == 0;
@@ -722,7 +722,7 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
         },
     );
     section(ui, &tr("应用更新"));
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         ui.horizontal_wrapped(|ui| {
             ui.label(
@@ -838,7 +838,7 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
         });
     });
     section(ui, &tr("关于"));
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         ui.horizontal(|ui| {
             if let Some(logo) = &state.logo {

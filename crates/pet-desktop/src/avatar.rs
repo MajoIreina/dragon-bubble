@@ -285,7 +285,12 @@ pub fn request(
         }
         requests.push((id, false));
     }
-    if rt.need_preview && rt.show_settings {
+    let preview_visible = rt.show_settings && (rt.page == 0 || rt.page == 3);
+    if !preview_visible && let Some(entity) = rt.preview.take() {
+        commands.entity(entity).despawn();
+        rt.need_preview = true;
+    }
+    if rt.need_preview && preview_visible {
         rt.need_preview = false;
         requests.push((rt.prefs.skin_id.clone(), true));
     }
@@ -755,7 +760,7 @@ pub fn animate(
                 }
             }
         }
-        if !a.ready || a.preview && !preview_visible {
+        if !a.ready || a.preview && !preview_visible || !a.preview && rt.obscured {
             continue;
         }
         let desired = if a.preview {
@@ -1095,7 +1100,11 @@ pub fn performance(
     }
     for (e, view, mut camera, mut msaa, fxaa, ao, taa) in &mut cameras {
         let was_active = camera.is_active;
-        camera.is_active = !view.0 || (rt.show_settings && (rt.page == 0 || rt.page == 3));
+        camera.is_active = if view.0 {
+            rt.show_settings && (rt.page == 0 || rt.page == 3)
+        } else {
+            !rt.obscured
+        };
         let next_msaa = match p.aa.as_str() {
             "msaa2" => Msaa::Sample2,
             "msaa4" => Msaa::Sample4,

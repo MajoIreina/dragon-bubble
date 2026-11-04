@@ -570,12 +570,20 @@ fn search_pages(query: &str, locale: &str) -> Vec<usize> {
         .collect()
 }
 pub(crate) fn apply_theme(ctx: &egui::Context, dark: bool) {
+    ctx.set_theme(if dark {
+        egui::Theme::Dark
+    } else {
+        egui::Theme::Light
+    });
     let mut style = (*ctx.style()).clone();
     style.visuals = if dark {
         egui::Visuals::dark()
     } else {
         egui::Visuals::light()
     };
+    // Both palettes use the same glyph coverage. Changing it rebuilds the
+    // entire font atlas (and GPU texture) on every light/dark transition.
+    style.visuals.text_alpha_from_coverage = egui::epaint::AlphaFromCoverage::LIGHT_MODE_DEFAULT;
     style.visuals.override_text_color = Some(if dark {
         egui::Color32::from_gray(245)
     } else {
@@ -684,6 +692,26 @@ fn card(ui: &egui::Ui) -> egui::Frame {
         .corner_radius(7)
         .inner_margin(18)
 }
+/// All cards occupy the content column, with padding independent of text length.
+fn show_card(ui: &mut egui::Ui, contents: impl FnOnce(&mut egui::Ui)) {
+    let frame = card(ui);
+    let background = ui.painter().add(egui::Shape::Noop);
+    let bounds = ui.available_rect_before_wrap() - frame.total_margin();
+    let width = bounds.width().max(0.);
+    let mut child = ui.new_child(
+        egui::UiBuilder::new()
+            .max_rect(bounds)
+            .layout(egui::Layout::top_down(egui::Align::LEFT)),
+    );
+    child.set_width(width);
+    child.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
+    child.set_clip_rect(child.clip_rect().intersect(bounds));
+    contents(&mut child);
+    let content =
+        egui::Rect::from_min_size(bounds.min, egui::vec2(width, child.min_rect().height()));
+    ui.painter().set(background, frame.paint(content));
+    ui.allocate_rect(frame.outer_rect(content), egui::Sense::hover());
+}
 fn error_color(ui: &egui::Ui) -> egui::Color32 {
     if ui.visuals().dark_mode {
         egui::Color32::from_rgb(255, 170, 170)
@@ -710,7 +738,7 @@ fn setting_row(
     control: impl FnOnce(&mut egui::Ui),
 ) {
     let mut control = Some(control);
-    card(ui).show(ui, |ui| {
+    show_card(ui, |ui| {
         ui.set_min_width(ui.available_width());
         ui.spacing_mut().slider_width = (control_width - 90.).max(90.);
         let stacked = ui.available_width() < 540. && control_width > 140.;
@@ -879,16 +907,18 @@ fn open_picker(state: &mut UiState, converter: bool) {
 }
 
 pub(crate) fn configure_context(ctx: &egui::Context) {
+    static FONTS: std::sync::OnceLock<egui::FontDefinitions> = std::sync::OnceLock::new();
+    ctx.set_fonts(FONTS.get_or_init(system_fonts).clone());
+    apply_theme(ctx, crate::platform::prefers_dark_theme());
+}
+fn system_fonts() -> egui::FontDefinitions {
     let mut fonts = egui::FontDefinitions::default();
     let mut system_fonts = Vec::new();
     for file in [
-        "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
         "/System/Library/Fonts/PingFang.ttc",
+        "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
         "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
         "C:/Windows/Fonts/msyh.ttc",
-        "C:/Windows/Fonts/segoeui.ttf",
-        "C:/Windows/Fonts/YuGothM.ttc",
-        "C:/Windows/Fonts/simhei.ttf",
     ] {
         if let Ok(bytes) = std::fs::read(file) {
             fonts.font_data.insert(
@@ -896,6 +926,9 @@ pub(crate) fn configure_context(ctx: &egui::Context) {
                 std::sync::Arc::new(egui::FontData::from_owned(bytes)),
             );
             system_fonts.push(file.to_string());
+            // One native CJK family plus egui's small built-in fallback is
+            // enough. Share its Arc-backed bytes across settings and menu.
+            break;
         }
     }
     fonts
@@ -914,13 +947,66 @@ pub(crate) fn configure_context(ctx: &egui::Context) {
     fonts
         .families
         .insert(egui::FontFamily::Name("YaHeiBold".into()), bold);
-    ctx.set_fonts(fonts);
-    apply_theme(ctx, crate::platform::prefers_dark_theme());
+    fonts
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn repeated_theme_changes_reuse_the_font_atlas() {
+        let ctx = egui::Context::default();
+        configure_context(&ctx);
+        for index in 0..80 {
+            apply_theme(&ctx, index % 2 == 0);
+            let output = ctx.run(egui::RawInput::default(), |ctx| {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.label("龙泡泡 Microsoft YaHei 日本語");
+                });
+            });
+            if index > 3 {
+                assert!(
+                    output
+                        .textures_delta
+                        .set
+                        .iter()
+                        .all(|(_, delta)| delta.pos.is_some()),
+                    "Theme switching must not recreate the font texture"
+                );
+            }
+        }
+    }
+    #[test]
+    fn card_width_and_padding_do_not_follow_label_length() {
+        let ctx = egui::Context::default();
+        let mut widths = Vec::new();
+        let _ = ctx.run(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(800., 600.),
+                )),
+                ..Default::default()
+            },
+            |ctx| {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    let long =
+                        "A very long description that should wrap inside the same card boundary. "
+                            .repeat(12);
+                    for text in ["Short", long.as_str()] {
+                        let before = ui.cursor().min.y;
+                        show_card(ui, |child| {
+                            widths.push(child.max_rect().width());
+                            child.label(text);
+                        });
+                        assert!(ui.cursor().min.y > before);
+                        assert!(ui.min_rect().right() <= ui.max_rect().right() + 0.5);
+                    }
+                });
+            },
+        );
+        assert_eq!(widths[0], widths[1]);
+    }
     #[test]
     fn search_includes_new_page_and_keeps_existing_setting_keywords() {
         for term in [

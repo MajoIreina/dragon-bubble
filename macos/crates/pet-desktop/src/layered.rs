@@ -286,6 +286,17 @@ pub fn present(
     mut top: Local<Option<bool>>,
 ) {
     use windows_sys::Win32::{Foundation::*, Graphics::Gdi::*, UI::WindowsAndMessaging::*};
+    if rt.obscured {
+        unsafe {
+            ShowWindow(native.hwnd, SW_HIDE);
+        }
+        return;
+    }
+    unsafe {
+        if IsWindowVisible(native.hwnd) == 0 {
+            ShowWindow(native.hwnd, SW_SHOWNOACTIVATE);
+        }
+    }
     let size = output_size(rt.prefs.zoom);
     if frame.rgba.is_empty() || frame.size != size || *last == (frame.serial, size) {
         return;
