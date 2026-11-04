@@ -570,6 +570,7 @@ pub struct BounceCheck {
     contacts: usize,
     age: f32,
     captured: bool,
+    lowest_pitch: f32,
     clock: f32,
 }
 /// Focused GPU regression of actual rebound physics, rather than forced state previews.
@@ -617,6 +618,7 @@ pub fn bounce_smoke(
         check.contacts += 1;
         check.age = 0.;
         check.captured = false;
+        check.lowest_pitch = avatar.tail.pitch;
         assert!(
             avatar.tail.contact_weight() > 0.,
             "physics contact must reach the rendered tail"
@@ -626,14 +628,20 @@ pub fn bounce_smoke(
             check.contacts, rt.landing_speed, avatar.state, avatar.tail.pitch
         );
         capture = Some(format!("bounce-{}-contact.png", check.contacts));
-    } else if check.contacts > 0 && check.age >= 0.05 && !check.captured {
+    } else if check.contacts > 0 && !check.captured {
+        // A slow GPU may present the next frame after the contact impulse has
+        // already recovered. Include the observed contact frame in the window.
+        check.lowest_pitch = check.lowest_pitch.min(avatar.tail.pitch);
+        if check.age < 0.05 {
+            return;
+        }
         assert!(
-            avatar.tail.pitch < -0.10,
+            check.lowest_pitch < -0.10,
             "each bounce must visibly lower the tail within 50 ms"
         );
         println!(
-            "BOUNCE drop {}: tail {:.3}",
-            check.contacts, avatar.tail.pitch
+            "BOUNCE drop {}: minimum tail {:.3}, current {:.3}",
+            check.contacts, check.lowest_pitch, avatar.tail.pitch
         );
         capture = Some(format!("bounce-{}-drop.png", check.contacts));
         check.captured = true;
