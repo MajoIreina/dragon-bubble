@@ -35,6 +35,11 @@ pub struct UiState {
     update_receiver: Option<UpdateResult>,
     update_outcome: Option<crate::updates::Outcome>,
     update_checked: Option<std::time::SystemTime>,
+    update_loaded: bool,
+    install_receiver:
+        Option<std::sync::Mutex<std::sync::mpsc::Receiver<Result<std::path::PathBuf, String>>>>,
+    install_status: String,
+    confirm_update: bool,
 }
 impl UiState {
     fn check_updates(&mut self) {
@@ -122,8 +127,38 @@ pub fn draw(
     mut textures: ResMut<EguiUserTextures>,
     avatars: Query<&Avatar>,
     mut state: Local<UiState>,
+    mut windows: Query<&mut Window, With<SettingsWindow>>,
     #[cfg(target_os = "macos")] _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
+    if !state.update_loaded {
+        state.update_loaded = true;
+        if let Ok(body) = std::fs::read(rt.data.join("updates.json"))
+            && let Ok((stamp, outcome)) =
+                serde_json::from_slice::<(u64, Option<crate::updates::Outcome>)>(&body)
+        {
+            state.update_checked =
+                Some(std::time::UNIX_EPOCH + std::time::Duration::from_secs(stamp));
+            state.update_outcome = outcome;
+        }
+    }
+    if !rt.smoke
+        && state
+            .update_checked
+            .is_none_or(|t| t.elapsed().unwrap_or_default().as_secs() >= 86400)
+    {
+        state.check_updates();
+    }
+    if let Some(result) = state
+        .install_receiver
+        .as_ref()
+        .and_then(|r| r.lock().ok()?.try_recv().ok())
+    {
+        state.install_receiver = None;
+        match result.and_then(crate::updates::launch_installer) {
+            Ok(_) => rt.actions.push(Action::Quit),
+            Err(error) => state.install_status = error,
+        }
+    }
     if rt.check_updates_requested {
         rt.check_updates_requested = false;
         state.check_updates();
@@ -143,6 +178,13 @@ pub fn draw(
         state.update_receiver = None;
         state.update_outcome = Some(outcome);
         state.update_checked = Some(std::time::SystemTime::now());
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        if let Ok(body) = serde_json::to_vec(&(stamp, &state.update_outcome)) {
+            let _ = pet_core::preferences::atomic_write(&rt.data.join("updates.json"), &body);
+        }
     }
     if let Some((converter, path)) = state
         .picker
@@ -208,7 +250,53 @@ pub fn draw(
     let locale = rt.prefs.locale.clone();
     let tr = |s: &str| pet_core::i18n::tr(&locale, s);
     let before = rt.prefs.clone();
-    let dark = ctx.style().visuals.dark_mode;
+    let dark = match rt.prefs.theme.as_str() {
+        "dark" => true,
+        "light" => false,
+        _ => crate::platform::prefers_dark_theme(),
+    };
+    for mut window in &mut windows {
+        let theme = Some(if dark {
+            bevy::window::WindowTheme::Dark
+        } else {
+            bevy::window::WindowTheme::Light
+        });
+        if window.window_theme != theme {
+            window.window_theme = theme;
+        }
+    }
+    if ctx.style().visuals.dark_mode != dark {
+        apply_theme(ctx, dark);
+    }
+    if state.confirm_update {
+        egui::Window::new(tr("确认更新"))
+            .collapsible(false)
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.label(tr(
+                    "从 GitHub 下载并校验安装包，保存设置后退出并安装更新。安装完成后可重新启动。",
+                ));
+                if ui.button(tr("确认下载并更新")).clicked() {
+                    if let Some(crate::updates::Outcome::Available(release)) = &state.update_outcome
+                        && let Some(url) = release
+                            .download
+                            .clone()
+                            .filter(|u| u.ends_with("-setup.exe"))
+                    {
+                        let (send, receive) = std::sync::mpsc::channel();
+                        state.install_receiver = Some(std::sync::Mutex::new(receive));
+                        state.install_status = "正在下载并校验更新…".into();
+                        std::thread::spawn(move || {
+                            let _ = send.send(crate::updates::prepare_installer(&url));
+                        });
+                    }
+                    state.confirm_update = false;
+                }
+                if ui.button(tr("取消")).clicked() {
+                    state.confirm_update = false;
+                }
+            });
+    }
     let background = if dark {
         egui::Color32::from_rgb(32, 32, 32)
     } else {
@@ -248,8 +336,22 @@ pub fn draw(
             // Search results live in the content pane; navigation stays stable.
             ui.spacing_mut().item_spacing.y = 4.;
             for (i, page) in PAGES.iter().enumerate() {
-                if navigation_item(ui, i, state.search.is_empty() && rt.page == i, &tr(page))
-                    .clicked()
+                if navigation_item(
+                    ui,
+                    i,
+                    state.search.is_empty() && rt.page == i,
+                    &if i == 5
+                        && matches!(
+                            state.update_outcome,
+                            Some(crate::updates::Outcome::Available(_))
+                        )
+                    {
+                        format!("{} •", tr(page))
+                    } else {
+                        tr(page)
+                    },
+                )
+                .clicked()
                 {
                     rt.page = i;
                     state.search.clear();

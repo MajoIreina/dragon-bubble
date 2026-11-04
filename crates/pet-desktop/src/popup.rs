@@ -169,6 +169,14 @@ pub fn draw(
     #[cfg(target_os = "macos")] _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
     let ctx = context.get_mut();
+    let dark = match rt.prefs.theme.as_str() {
+        "dark" => true,
+        "light" => false,
+        _ => crate::platform::prefers_dark_theme(),
+    };
+    if ctx.style().visuals.dark_mode != dark {
+        crate::ui::apply_theme(ctx, dark);
+    }
     if !*initialized {
         crate::ui::configure_context(ctx);
         *initialized = true;

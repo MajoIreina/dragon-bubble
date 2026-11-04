@@ -15,7 +15,7 @@
 ## 终端接入 · 下载与启动
 
 1. 前往 [Releases](https://github.com/MajoIreina/dragon-bubble/releases/latest)，按系统下载同一版本的 `windows-x64.zip` 或 `macos-arm64.zip`，可使用 `SHA256SUMS.txt` 校验。
-2. Windows 完整解压后运行 `My Dragon Bubble.exe`；macOS 解压后将 `My Dragon Bubble.app` 放入应用程序目录。
+2. Windows 可运行 `windows-x64-setup.exe` 自选目录安装，也可完整解压 ZIP 后运行 `My Dragon Bubble.exe`；macOS 解压后将 `My Dragon Bubble.app` 放入应用程序目录。
 3. 右键黍泡泡或系统托盘图标，即可打开设置，安排她的桌面日常。
 
 Windows 版需要 **Windows x64** 与支持 **Vulkan** 的显卡及驱动；macOS 版需要 **macOS 11 或更新版本、Apple Silicon 与 Metal**。升级时先从托盘退出旧版，再将新版解压到独立目录；已有设置继续保留。
@@ -42,7 +42,7 @@ Windows 版需要 **Windows x64** 与支持 **Vulkan** 的显卡及驱动；macO
 - **一点小表情**：独立眨眼、眯眼、交替单眼，加上四种点击反馈，让每次互动多一点变化。
 - **按博士的节奏来**：待机、走路、跑步、自动睡眠和转圈间隔均可调整；也可以一键让她睡个好觉。
 - **终端设置**：微软雅黑界面，中 / 日 / 英语言，画质与性能调整、外观导入及动作适配。
-- **工程部通讯**：内置 GitHub 更新检查、版本说明、下载与反馈入口，更新由博士自行下载。
+- **工程部通讯**：内置 GitHub 更新检查、版本说明、下载与反馈入口，每天自动检测新版本；Windows 经博士确认后下载、校验并安装更新。
 
 窗口驻留支持普通顶层窗口的可见顶边。应用内部子面板，以及上方空间不足的最大化窗口，不作为落脚点。
 

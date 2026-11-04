@@ -156,7 +156,7 @@ pub(super) fn behavior_page(ui: &mut egui::Ui, rt: &mut Runtime) {
             ("待机间隔", &mut rt.prefs.behavior.idle, 3.0..=120.0),
             ("走路时长", &mut rt.prefs.behavior.walk, 1.0..=30.0),
             ("跑步时长", &mut rt.prefs.behavior.run, 0.5..=15.0),
-            ("自动睡眠时长", &mut rt.prefs.behavior.sleep, 5.0..=600.0),
+            ("无互动后入睡", &mut rt.prefs.behavior.sleep, 5.0..=600.0),
             ("转圈间隔", &mut rt.prefs.behavior.spin_interval, 4.0..=60.0),
         ] {
             ui.add(
@@ -705,6 +705,22 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
             }
         },
     );
+    setting_row(
+        ui,
+        "◐",
+        &tr("界面主题"),
+        &tr("深色、浅色或跟随系统自动切换"),
+        190.,
+        |ui| {
+            choice(
+                ui,
+                &locale,
+                "theme",
+                &mut rt.prefs.theme,
+                &[("system", "跟随系统"), ("light", "浅色"), ("dark", "深色")],
+            );
+        },
+    );
     section(ui, &tr("应用更新"));
     card(ui).show(ui, |ui| {
         ui.set_min_width(ui.available_width());
@@ -728,6 +744,10 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
                 );
             });
         });
+        ui.label(tr("每天自动检查一次，发现新版本时在此提醒"));
+        if !state.install_status.is_empty() {
+            ui.label(&state.install_status);
+        }
         ui.add_space(8.);
         if state.update_receiver.is_some() {
             ui.horizontal(|ui| {
@@ -750,6 +770,20 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
             };
             ui.colored_label(color, text);
             if let Outcome::Available(release) = outcome {
+                if cfg!(windows)
+                    && release
+                        .download
+                        .as_ref()
+                        .is_some_and(|u| u.ends_with("-setup.exe"))
+                    && ui
+                        .add_enabled(
+                            state.install_receiver.is_none(),
+                            egui::Button::new(tr("下载并更新…")),
+                        )
+                        .clicked()
+                {
+                    state.confirm_update = true;
+                }
                 ui.horizontal_wrapped(|ui| {
                     ui.hyperlink_to(tr("查看此版本"), &release.url);
                     if let Some(url) = &release.download {

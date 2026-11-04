@@ -940,7 +940,12 @@ pub fn animate(
         let clip = if (a.turning || spinning) && a.clips.contains_key("Turn") {
             Some("Turn".to_string())
         } else {
-            a.mapping.get(desired.key()).cloned()
+            let key = if a.skin.id == "builtin.shu" && desired == State::Sleep {
+                "idle"
+            } else {
+                desired.key()
+            };
+            a.mapping.get(key).cloned()
         };
         a.native = clip.is_some();
         if changed || spin_changed || turn_started || (!a.turning && a.resume_clock < dt * 1.5) {
@@ -994,11 +999,12 @@ pub fn animate(
                     let breath = (t * std::f32::consts::TAU / 4.4).sin();
                     (
                         1. + settle * (0.025 - breath * 0.006),
-                        1. - settle * (0.06 - breath * 0.012),
+                        1. - settle * (0.027 - breath * 0.003),
                         0.,
                         settle * (0.025 + breath * 0.012),
                     )
                 }
+                State::Stretch => (1., 1., 0., 0.),
                 State::Petted => (
                     1.,
                     1. + (t * 10.).sin() * (-t).exp() * 0.08,
@@ -1020,7 +1026,7 @@ pub fn animate(
                 amplitude *= if desired.moving() {
                     0.
                 } else if desired == State::Sleep && a.skin.id == "builtin.shu" {
-                    0.65
+                    1.
                 } else {
                     0.12
                 };
@@ -1033,6 +1039,17 @@ pub fn animate(
             let foot = (160. - a.ground) * 3.9 / 300.;
             transform.translation.y = foot * (1. - sy) + bob;
             transform.rotation *= Quat::from_rotation_z(lean);
+        }
+        if desired == State::Stretch {
+            let smooth = |v: f32| {
+                let v = v.clamp(0., 1.);
+                v * v * (3. - 2. * v)
+            };
+            let w = smooth(a.clock / 1.2) * smooth((5.5 - a.clock) / 1.2);
+            let pivot = Vec3::new(0., (160. - a.ground) * 3.9 / 300., -0.35);
+            let rise = Quat::from_rotation_x(-0.52 * w);
+            transform.translation += pivot - rise * pivot;
+            transform.rotation *= rise;
         }
         if a.skin.id == "builtin.shu" {
             let pivot = a.support_pivot * transform.scale;

@@ -117,6 +117,8 @@ pub struct Preferences {
     pub autostart: bool,
     pub always_on_top: bool,
     pub locale: String,
+    #[serde(default)]
+    pub theme: String,
     pub position: [i32; 2],
     pub performance: RenderOptions,
     #[serde(default)]
@@ -132,6 +134,7 @@ impl Default for Preferences {
             autostart: false,
             always_on_top: true,
             locale: "zh_CN".into(),
+            theme: "system".into(),
             position: [-99999, -99999],
             performance: RenderOptions::default(),
             behavior: Default::default(),
@@ -196,6 +199,11 @@ impl Preferences {
         }
         p.autostart = v["autostart"].as_bool().unwrap_or(false);
         p.locale = crate::i18n::normalize(v["locale"].as_str().unwrap_or("zh_CN"));
+        p.theme = v["theme"]
+            .as_str()
+            .filter(|s| ["system", "light", "dark"].contains(s))
+            .unwrap_or("system")
+            .into();
         p.performance = RenderOptions::from_value(&v["performance"]);
         p.behavior = crate::behavior::BehaviorOptions::from_value(&v["behavior"]);
         if let Some(pos) = v["position"].as_array()

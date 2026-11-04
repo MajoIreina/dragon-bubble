@@ -51,3 +51,18 @@ if (Test-Path -LiteralPath $destination) {
 Move-Item -LiteralPath $staging -Destination $destination
 Write-Output "Rust + Vulkan 版本已生成：$destination/My Dragon Bubble.exe；请保留旁边的资源目录。"
 if (-not $WithoutBundledModel) { Write-Output '黍泡泡模型已内嵌 EXE；包内不提供独立角色模型。' }
+if (-not $WithoutBundledModel) {
+    $version = & python tools/release.py version
+    $compiler = $env:INNO_COMPILER
+    if (-not $compiler) { $compiler = 'C:/Program Files (x86)/Inno Setup 6/ISCC.exe' }
+    if (-not (Test-Path -LiteralPath $compiler)) { throw '安装器编译器缺失：需要 Inno Setup 6.7+，或设置 INNO_COMPILER。正式构建必须同时生成安装器。' }
+    if (-not (Test-Path 'installer/ChineseSimplified.isl')) {
+        Invoke-WebRequest 'https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/ChineseSimplified.isl' -OutFile installer/ChineseSimplified.isl
+    }
+    & $compiler "/DAppVersion=$version" installer/windows.iss
+    if ($LASTEXITCODE -ne 0) { throw 'Windows 安装器编译失败' }
+    $zip = Join-Path $PSScriptRoot "outputs/installers/dragon-bubble-v$version-windows-x64.zip"
+    Compress-Archive -Path "$destination/*" -DestinationPath $zip -Force
+    & python tools/check_public_files.py --zip $zip
+    if ($LASTEXITCODE -ne 0) { throw 'ZIP validation failed' }
+}

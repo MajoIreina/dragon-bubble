@@ -381,7 +381,7 @@ pub fn input(
             }
         });
         if left && !rt.last_left && inside && over_pet {
-            rt.brain.forced_sleep = false;
+            rt.brain.interact();
             rt.pressed = true;
             rt.dragging = false;
             rt.press_cursor = cursor;
@@ -427,6 +427,7 @@ pub fn input(
             rt.dirty = true;
         }
         if right && !rt.last_right && inside && over_pet {
+            rt.brain.interact();
             popup.open(cursor);
         }
         rt.last_left = left;

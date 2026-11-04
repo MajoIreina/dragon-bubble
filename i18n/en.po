@@ -1252,3 +1252,39 @@ msgstr "Start Dragon Bubble automatically when you sign in"
 
 msgid "开机自启设置失败"
 msgstr "Could not change launch at login"
+
+msgid "无互动后入睡"
+msgstr "Sleep after no interaction"
+
+msgid "站起扒屏"
+msgstr "Stand and paw at screen"
+
+msgid "界面主题"
+msgstr "Appearance theme"
+
+msgid "深色、浅色或跟随系统自动切换"
+msgstr "Light, dark, or follow the system"
+
+msgid "跟随系统"
+msgstr "Follow system"
+
+msgid "浅色"
+msgstr "Light"
+
+msgid "深色"
+msgstr "Dark"
+
+msgid "每天自动检查一次，发现新版本时在此提醒"
+msgstr "Checks daily and shows new releases here"
+
+msgid "下载并更新…"
+msgstr "Download and update…"
+
+msgid "确认更新"
+msgstr "Confirm update"
+
+msgid "从 GitHub 下载并校验安装包，保存设置后退出并安装更新。安装完成后可重新启动。"
+msgstr "Download and verify the GitHub installer, save settings, then exit to install the update."
+
+msgid "确认下载并更新"
+msgstr "Confirm download and update"

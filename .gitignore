@@ -41,3 +41,5 @@ export_credentials.cfg
 /target/
 *.pem
 *.key
+
+/installer/ChineseSimplified.isl

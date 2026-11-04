@@ -6,7 +6,7 @@ pub const PROJECT_URL: &str = "https://github.com/MajoIreina/dragon-bubble";
 pub const RELEASES_URL: &str = "https://github.com/MajoIreina/dragon-bubble/releases";
 /// The workspace package version is the release label on both platforms.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Release {
     pub version: String,
     pub url: String,
@@ -14,7 +14,7 @@ pub struct Release {
     pub download: Option<String>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Outcome {
     Current,
     Available(Release),
@@ -138,6 +138,8 @@ pub fn check() -> Outcome {
         Err(_) => Outcome::Failed,
     }
 }
+
+include!("../../../../crates/pet-desktop/src/update_install.rs");
 
 #[cfg(test)]
 mod tests {

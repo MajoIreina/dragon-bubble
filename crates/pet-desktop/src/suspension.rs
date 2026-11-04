@@ -81,6 +81,22 @@ pub fn apply(
         let Ok(a) = avatars.get(foot.owner) else {
             continue;
         };
+        if a.ready && a.state == pet_core::behavior::State::Stretch {
+            // Cat/dog rear-leg support: rise, place front paws, alternate kneading, lower.
+            let smooth = |v: f32| {
+                let v = v.clamp(0., 1.);
+                v * v * (3. - 2. * v)
+            };
+            let w = smooth(a.clock / 1.2) * smooth((5.5 - a.clock) / 1.2);
+            let knead = (a.clock * 3.5 + foot.side * 1.2).sin() * 0.025 * w;
+            transform.rotation *=
+                Quat::from_rotation_x(if foot.rear { -0.15 * w } else { -1.05 * w });
+            if !foot.rear {
+                transform.translation += Vec3::new(0., 0.35 * w + knead, 0.18 * w);
+            }
+            foot.modified = true;
+            continue;
+        }
         if !a.ready || a.suspension.weight < 0.001 {
             continue;
         }

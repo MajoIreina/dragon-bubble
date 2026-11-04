@@ -303,6 +303,18 @@ GLB 缺少有效网格尺寸|The GLB has no valid mesh bounds|GLB に有効な�
 下载 Windows 版本|Download for Windows|Windows 版をダウンロード
 更新说明|Release notes|リリースノート
 GitHub 项目|GitHub project|GitHub プロジェクト
+无互动后入睡|Sleep after no interaction|操作しないと眠る
+站起扒屏|Stand and paw at screen|立って画面に前足をつく
+界面主题|Appearance theme|表示テーマ
+深色、浅色或跟随系统自动切换|Light, dark, or follow the system|ライト、ダーク、システムに合わせる
+跟随系统|Follow system|システムに合わせる
+浅色|Light|ライト
+深色|Dark|ダーク
+每天自动检查一次，发现新版本时在此提醒|Checks daily and shows new releases here|毎日確認し、新しいバージョンをここで通知します
+下载并更新…|Download and update…|ダウンロードして更新…
+确认更新|Confirm update|更新の確認
+从 GitHub 下载并校验安装包，保存设置后退出并安装更新。安装完成后可重新启动。|Download and verify the GitHub installer, save settings, then exit to install the update.|GitHub のインストーラーを検証し、設定保存後に終了して更新します。
+确认下载并更新|Confirm download and update|ダウンロードと更新を確認
 """
 
 

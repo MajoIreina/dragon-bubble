@@ -56,17 +56,19 @@ pub enum State {
     Walk,
     Run,
     Sleep,
+    Stretch,
     Petted,
     Dragged,
     Airborne,
     Fall,
 }
 impl State {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::Idle,
         Self::Walk,
         Self::Run,
         Self::Sleep,
+        Self::Stretch,
         Self::Petted,
         Self::Dragged,
         Self::Airborne,
@@ -78,6 +80,7 @@ impl State {
             Self::Walk => "walk",
             Self::Run => "run",
             Self::Sleep => "sleep",
+            Self::Stretch => "stretch",
             Self::Petted => "petted",
             Self::Dragged => "dragged",
             Self::Airborne => "airborne",
@@ -90,6 +93,7 @@ impl State {
             Self::Walk => "走路",
             Self::Run => "跑步",
             Self::Sleep => "睡眠",
+            Self::Stretch => "站起扒屏",
             Self::Petted => "摸摸回应",
             Self::Dragged => "提起",
             Self::Airborne => "空中 / 下落",
@@ -118,6 +122,7 @@ pub struct Brain {
     pub remaining: f32,
     pub options: BehaviorOptions,
     pub forced_sleep: bool,
+    pub inactive: f32,
 }
 impl Default for Brain {
     fn default() -> Self {
@@ -128,6 +133,7 @@ impl Default for Brain {
             remaining: 4.,
             options: Default::default(),
             forced_sleep: false,
+            inactive: 0.,
         }
     }
 }
@@ -141,8 +147,22 @@ impl Brain {
         self.change(State::Sleep, self.options.sleep);
     }
     pub fn wake(&mut self) {
+        self.inactive = 0.;
         self.forced_sleep = false;
         self.change(State::Idle, self.options.idle);
+    }
+    pub fn interact(&mut self) {
+        self.inactive = 0.;
+        self.forced_sleep = false;
+        if matches!(self.state, State::Sleep | State::Stretch) {
+            self.change(State::Idle, self.options.idle);
+        }
+    }
+    /// Turn only when the obstacle is ahead; silhouette changes can clamp the trailing edge.
+    pub fn avoid_edge(&mut self, x: f32, min: f32, max: f32) {
+        if (self.direction > 0 && x >= max - 1.) || (self.direction < 0 && x <= min + 1.) {
+            self.direction *= -1;
+        }
     }
     pub fn set_roaming(&mut self, value: bool) {
         self.roaming = value;
@@ -158,12 +178,27 @@ impl Brain {
         {
             return;
         }
+        self.inactive += delta;
+        if self.state == State::Sleep {
+            return;
+        }
+        if self.inactive >= self.options.sleep
+            && matches!(self.state, State::Idle | State::Walk | State::Run)
+        {
+            self.change(State::Sleep, self.options.sleep);
+            return;
+        }
         self.remaining -= delta;
         if self.remaining > 0. {
             return;
         }
         let s = match self.state {
-            State::Petted | State::Fall | State::Walk | State::Run | State::Sleep => State::Idle,
+            State::Petted
+            | State::Fall
+            | State::Walk
+            | State::Run
+            | State::Stretch
+            | State::Sleep => State::Idle,
             _ if self.roaming && rng.random_bool(0.65) => {
                 self.direction = if rng.random_bool(0.5) { -1 } else { 1 };
                 if rng.random_bool(0.25) {
@@ -172,15 +207,58 @@ impl Brain {
                     State::Walk
                 }
             }
-            _ => State::Sleep,
+            _ if rng.random_bool(0.3) => State::Stretch,
+            _ => State::Idle,
         };
         let seconds = match s {
             State::Idle => self.options.idle,
             State::Walk => self.options.walk,
             State::Run => self.options.run,
             State::Sleep => self.options.sleep,
+            State::Stretch => 5.5,
             _ => self.options.idle,
         };
         self.change(s, seconds * rng.random_range(0.85..1.15));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::{SeedableRng, rngs::StdRng};
+    #[test]
+    fn changing_silhouette_cannot_reverse_an_inward_turn_at_the_right_edge() {
+        let mut brain = Brain::default();
+        brain.avoid_edge(1800., 0., 1800.);
+        assert_eq!(brain.direction, -1);
+        for width in [1790., 1770., 1750., 1790., 1800.] {
+            brain.avoid_edge(width, 0., width);
+            assert_eq!(brain.direction, -1);
+        }
+        brain.avoid_edge(0., 0., 1800.);
+        assert_eq!(brain.direction, 1);
+    }
+    #[test]
+    fn sleep_requires_uninterrupted_inactivity_and_wakes_on_contact() {
+        let mut brain = Brain::default();
+        brain.options.sleep = 60.;
+        let mut rng = StdRng::seed_from_u64(7);
+        for _ in 0..1000 {
+            brain.interact();
+            brain.tick(1., &mut rng);
+            assert_ne!(brain.state, State::Sleep);
+        }
+        for _ in 0..70 {
+            brain.tick(1., &mut rng);
+        }
+        assert_eq!(brain.state, State::Sleep);
+        brain.tick(600., &mut rng);
+        assert_eq!(brain.state, State::Sleep);
+        brain.interact();
+        assert_eq!(brain.state, State::Idle);
+        assert_eq!(brain.inactive, 0.);
+        brain.change(State::Dragged, 1.);
+        brain.tick(600., &mut rng);
+        assert_eq!(brain.inactive, 0.);
     }
 }

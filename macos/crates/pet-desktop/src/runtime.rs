@@ -211,6 +211,7 @@ impl Runtime {
         self.dirty = true;
     }
     pub fn scroll_zoom(&mut self, delta: i32, cursor: Vec2) {
+        self.brain.interact();
         self.wheel_remainder += delta;
         let steps = self.wheel_remainder / 120;
         self.wheel_remainder %= 120;
@@ -428,6 +429,9 @@ pub fn simulate(
     #[cfg(target_os = "macos")] _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
     let dt = time.delta_secs().min(0.1);
+    if rt.smoke {
+        rt.brain.inactive = 0.;
+    }
     rt.frame_seconds += (time.delta_secs() - rt.frame_seconds) * 0.05;
     if rt.brain.options != rt.prefs.behavior {
         rt.brain.options = rt.prefs.behavior.clone();
@@ -472,6 +476,9 @@ pub fn simulate(
             rt.dirty = true
         }
     }
+    if rt.pressed {
+        rt.brain.interact();
+    }
     if rt.pressed && rt.dragging && rt.brain.state != State::Dragged {
         rt.brain.change(State::Dragged, 1.);
     }
@@ -513,9 +520,8 @@ pub fn simulate(
             * resume
             * rt.brain.direction as f32;
         let clamped = rt.desktop.clamp_origin(rt.position);
-        if clamped != rt.position || distance <= 1. {
-            rt.brain.direction *= -1
-        }
+        let x = rt.position.x;
+        rt.brain.avoid_edge(x, bounds.min.x, bounds.max.x);
         rt.position = clamped;
         rt.dirty = true;
     }
@@ -744,7 +750,7 @@ pub fn smoke(
             let size = if narrow { (760., 560.) } else { (1120., 800.) };
             window.resolution.set(size.0, size.1);
         }
-        if rt.smoke_step < 8 {
+        if rt.smoke_step < State::ALL.len() {
             let step = rt.smoke_step;
             rt.brain.change(State::ALL[step], 60.);
             rt.preview_state = State::ALL[step];

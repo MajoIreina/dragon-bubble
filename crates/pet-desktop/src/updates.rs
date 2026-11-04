@@ -6,7 +6,7 @@ pub const PROJECT_URL: &str = "https://github.com/MajoIreina/dragon-bubble";
 pub const RELEASES_URL: &str = "https://github.com/MajoIreina/dragon-bubble/releases";
 /// The workspace package version is the release label on both platforms.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Release {
     pub version: String,
     pub url: String,
@@ -14,7 +14,7 @@ pub struct Release {
     pub download: Option<String>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Outcome {
     Current,
     Available(Release),
@@ -82,22 +82,30 @@ fn classify_release(body: &str, current: &str) -> Option<Outcome> {
                 .take(6000)
                 .collect(),
             download: release["assets"].as_array().and_then(|assets| {
-                assets.iter().find_map(|a| {
-                    let name = a["name"].as_str()?.to_lowercase();
-                    let url = a["browser_download_url"].as_str()?;
-                    // Never offer macOS/Linux artifacts as Windows downloads.
-                    ((name.contains("windows")
-                        || name.contains("win64")
-                        || name.ends_with(".exe")
-                        || name.ends_with(".msi"))
-                        && !name.contains("arm64")
-                        && !name.contains("aarch64")
-                        && [".zip", ".exe", ".msi"]
-                            .iter()
-                            .any(|ext| name.ends_with(ext))
-                        && url.starts_with(&format!("{RELEASES_URL}/download/")))
-                    .then(|| url.to_string())
-                })
+                assets
+                    .iter()
+                    .filter(|a| {
+                        a["name"]
+                            .as_str()
+                            .is_some_and(|n| n.ends_with("-windows-x64-setup.exe"))
+                    })
+                    .chain(assets.iter())
+                    .find_map(|a| {
+                        let name = a["name"].as_str()?.to_lowercase();
+                        let url = a["browser_download_url"].as_str()?;
+                        // Never offer macOS/Linux artifacts as Windows downloads.
+                        ((name.contains("windows")
+                            || name.contains("win64")
+                            || name.ends_with(".exe")
+                            || name.ends_with(".msi"))
+                            && !name.contains("arm64")
+                            && !name.contains("aarch64")
+                            && [".zip", ".exe", ".msi"]
+                                .iter()
+                                .any(|ext| name.ends_with(ext))
+                            && url.starts_with(&format!("{RELEASES_URL}/download/")))
+                        .then(|| url.to_string())
+                    })
             }),
         })
     } else {
@@ -133,6 +141,8 @@ pub fn check() -> Outcome {
         Err(_) => Outcome::Failed,
     }
 }
+
+include!("update_install.rs");
 
 #[cfg(test)]
 mod tests {
