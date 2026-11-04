@@ -28,6 +28,26 @@ struct FloorHull {
     min: Vec3,
     max: Vec3,
 }
+impl Lattice {
+    /// Native drag probe compares the actual skinned rear-body pose with its
+    /// unbent counterpart; this is only evaluated at diagnostic checkpoints.
+    pub(crate) fn drag_bend_samples(&self) -> (Entity, Vec3, Vec3, Vec3) {
+        let mut neutral = self.body.clone();
+        neutral.inertial_bend = Vec3::ZERO;
+        neutral.rebuild(false, 0.);
+        let axis = Vec3::from(self.body.def.axis).normalize();
+        let difference = |t: f32| {
+            let point = axis * (self.body.def.start + self.body.def.length * t);
+            self.body.deform_point(point) - neutral.deform_point(point)
+        };
+        (
+            self.owner,
+            difference(-0.2),
+            difference(0.5),
+            difference(1.),
+        )
+    }
+}
 fn find(
     root: Entity,
     path: &str,
@@ -281,7 +301,11 @@ pub fn update(
         } else {
             (rt.position - lattice.last_position) / (dt * rt.prefs.zoom)
         };
-        let acceleration = ((velocity - lattice.last_velocity) / dt).clamp_length_max(9000.);
+        let acceleration = if a.drag_motion.active() {
+            a.drag_motion.acceleration
+        } else {
+            ((velocity - lattice.last_velocity) / dt).clamp_length_max(9000.)
+        };
         lattice.last_velocity = velocity;
         lattice.last_position = rt.position;
         let landed = a.tail.contact_weight() > 0.;
@@ -292,6 +316,11 @@ pub fn update(
                 pet_core::behavior::State::Dragged | pet_core::behavior::State::Airborne
             ) && (a.preview || (!rt.pressed && !rt.motion.active)));
         lattice.body.support_response = if a.skin.id == "builtin.shu" { 2.2 } else { 1. };
+        lattice.body.inertial_bend = if a.skin.id == "builtin.shu" {
+            Vec3::new(-a.tail.drag_yaw, a.tail.drag_pitch, 0.)
+        } else {
+            Vec3::ZERO
+        };
         lattice.body.suspension = if a.state == pet_core::behavior::State::Dragged {
             a.suspension.weight
         } else {

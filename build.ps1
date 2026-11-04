@@ -66,4 +66,11 @@ if (-not $WithoutBundledModel) {
     & python tools/check_public_files.py --zip $zip
     if ($LASTEXITCODE -ne 0) { throw 'ZIP validation failed' }
     & "$PSScriptRoot/tools/test_memory.ps1" -Executable (Join-Path $destination 'My Dragon Bubble.exe') -Output "work/release-memory-v$version"
+    & python tools/test_single_instance.py (Join-Path $destination 'My Dragon Bubble.exe')
+    if ($LASTEXITCODE -ne 0) { throw 'Single-instance regression failed' }
+    & "$PSScriptRoot/tools/test_update_launch.ps1"
+    $drag = Start-Process -FilePath (Join-Path $destination 'My Dragon Bubble.exe') -ArgumentList '--drag-test' -PassThru -WindowStyle Hidden -RedirectStandardOutput "$PSScriptRoot/work/release-drag-v$version.log" -RedirectStandardError "$PSScriptRoot/work/release-drag-v$version-error.log"
+    if (-not $drag.WaitForExit(60000)) { Stop-Process -Id $drag.Id; throw 'Drag animation regression timed out' }
+    if ($drag.ExitCode -ne 0 -or -not (Select-String -LiteralPath "$PSScriptRoot/work/release-drag-v$version.log" -Pattern 'DRAG PASS:' -Quiet)) { throw 'Drag animation regression failed' }
+    Write-Output 'RELEASE VALIDATION PASS: memory, single instance, update handoff and drag animation.'
 }

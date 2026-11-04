@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 
 
 def main():
@@ -18,6 +19,7 @@ def main():
         ("bounce", "--bounce-test", "BOUNCE PASS:", 60),
         ("menu", "--menu-test", "MENU PASS:", 60),
         ("resources", "--resource-test", "RESOURCE PASS:", 240),
+        ("drag", "--drag-test", "DRAG PASS:", 60),
     ]:
         folder = out / name
         folder.mkdir(parents=True, exist_ok=True)
@@ -32,6 +34,8 @@ def main():
         results.append(dict(name=name, passed=True,
                             checks=[line for line in text.splitlines() if line.startswith(("SMOKE", "BOUNCE"))]))
     subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
+    subprocess.run([sys.executable, str(Path(__file__).resolve().parents[2] / "tools/test_single_instance.py"),
+                    str(app / "Contents/MacOS/dragon-bubble")], check=True)
     (out / "result.json").write_text(json.dumps(results, indent=2))
     print("GRAPHICS TESTS PASS", flush=True)
 

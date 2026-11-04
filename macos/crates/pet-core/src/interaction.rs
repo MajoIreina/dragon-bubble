@@ -1,15 +1,82 @@
 //! Damped suspension response in screen space, independent of the renderer.
 use glam::Vec2;
 
+/// Pointer motion in unscaled screen pixels (+Y down), independent of body clamping.
+#[derive(Clone, Debug, Default)]
+pub struct DragMotion {
+    pub velocity: Vec2,
+    pub acceleration: Vec2,
+    previous: Option<Vec2>,
+    zoom: f32,
+}
+impl DragMotion {
+    pub fn active(&self) -> bool {
+        self.previous.is_some()
+    }
+    pub fn advance(&mut self, dt: f32, cursor: Vec2, zoom: f32, held: bool) {
+        if !held || !cursor.is_finite() || !zoom.is_finite() || zoom <= 0. {
+            *self = Self::default();
+            return;
+        }
+        let previous = self.previous.replace(cursor);
+        let zoom_changed = (self.zoom - zoom).abs() > 0.0001;
+        self.zoom = zoom;
+        if !dt.is_finite() || dt <= 0. || dt > 0.25 || zoom_changed || previous.is_none() {
+            self.velocity = Vec2::ZERO;
+            self.acceleration = Vec2::ZERO;
+            return;
+        }
+        let measured = ((cursor - previous.unwrap()) / (dt * zoom)).clamp_length_max(2200.);
+        let filtered = self.velocity.lerp(measured, 1. - (-dt * 18.).exp());
+        self.acceleration = ((filtered - self.velocity) / dt).clamp_length_max(9000.);
+        self.velocity = filtered;
+    }
+}
+
 /// Tail pitch relative to its animated rest pose (+Y is up, tail points toward -Z).
 #[derive(Clone, Debug, Default)]
 pub struct TailResponse {
     pub pitch: f32,
+    pub drag_pitch: f32,
+    pub drag_yaw: f32,
+    drag_angular_velocity: Vec2,
     velocity: f32,
     unsupported: bool,
     contact_remaining: f32,
 }
 impl TailResponse {
+    /// Spring lag opposite pointer velocity and acceleration, transformed into the
+    /// tail's local axes. Its tip points along -Z, so positive pitch raises it.
+    pub fn advance_drag(&mut self, dt: f32, motion: &DragMotion, facing_yaw: f32) {
+        if !dt.is_finite() || dt <= 0. {
+            return;
+        }
+        if dt > 0.25 || !facing_yaw.is_finite() {
+            self.drag_pitch = 0.;
+            self.drag_yaw = 0.;
+            self.drag_angular_velocity = Vec2::ZERO;
+            return;
+        }
+        let target = if motion.active() {
+            let drive = motion.velocity * 0.00032 + motion.acceleration * 0.000035;
+            // Screen up is world +Y; inertia is opposite the hand's motion.
+            Vec2::new(drive.y, drive.x * facing_yaw.cos())
+                .clamp(Vec2::splat(-0.50), Vec2::splat(0.50))
+        } else {
+            Vec2::ZERO
+        };
+        let steps = (dt * 120.).ceil().max(1.) as usize;
+        let step = dt / steps as f32;
+        let mut angle = Vec2::new(self.drag_pitch, self.drag_yaw);
+        for _ in 0..steps {
+            self.drag_angular_velocity +=
+                ((target - angle) * 85. - self.drag_angular_velocity * 12.) * step;
+            angle = (angle + self.drag_angular_velocity * step)
+                .clamp(Vec2::splat(-0.56), Vec2::splat(0.56));
+        }
+        self.drag_pitch = angle.x;
+        self.drag_yaw = angle.y;
+    }
     /// A physical impact can occur while the animation remains Airborne across bounces.
     pub fn impact(&mut self, speed: f32) {
         if !speed.is_finite() {
@@ -144,6 +211,93 @@ impl Suspension {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn drag(hz: usize, zoom: f32, speed: Vec2) -> (DragMotion, TailResponse, Vec2) {
+        let mut motion = DragMotion::default();
+        let mut tail = TailResponse::default();
+        let mut cursor = Vec2::new(1200., -800.);
+        motion.advance(1. / hz as f32, cursor, zoom, true);
+        for _ in 0..hz {
+            cursor += speed * zoom / hz as f32;
+            motion.advance(1. / hz as f32, cursor, zoom, true);
+            tail.advance_drag(1. / hz as f32, &motion, 0.);
+        }
+        (motion, tail, cursor)
+    }
+    #[test]
+    fn drag_tail_follows_direction_speed_and_not_zoom_or_frame_rate() {
+        for hz in [24, 60, 144, 240] {
+            for zoom in [0.2, 1., 3.] {
+                for axis in [Vec2::X, Vec2::Y] {
+                    for direction in [-1., 1.] {
+                        let (_, slow, _) = drag(hz, zoom, axis * direction * 160.);
+                        let (_, fast, _) = drag(hz, zoom, axis * direction * 900.);
+                        let angles = |tail: TailResponse| {
+                            if axis == Vec2::Y {
+                                tail.drag_pitch
+                            } else {
+                                tail.drag_yaw
+                            }
+                        };
+                        let slow = angles(slow) * direction;
+                        let fast = angles(fast) * direction;
+                        assert!(slow > 0.04 && slow < 0.065, "slow: {slow}");
+                        assert!(fast > slow * 4. && fast < 0.32, "fast: {fast}");
+                    }
+                }
+            }
+        }
+    }
+    #[test]
+    fn tail_keeps_momentum_on_reversal_and_settles_after_release() {
+        for hz in [24, 60, 144] {
+            let dt = 1. / hz as f32;
+            let (mut motion, mut tail, mut cursor) = drag(hz, 1., -Vec2::Y * 900.);
+            let before = tail.drag_pitch;
+            cursor.y += 900. * dt;
+            motion.advance(dt, cursor, 1., true);
+            tail.advance_drag(dt, &motion, 0.);
+            assert!(
+                tail.drag_pitch < 0.,
+                "cannot snap to the opposite pose in one frame"
+            );
+            assert!(motion.acceleration.y > 0.);
+            for _ in 0..hz / 2 {
+                cursor.y += 900. * dt;
+                motion.advance(dt, cursor, 1., true);
+                tail.advance_drag(dt, &motion, 0.);
+            }
+            assert!(before < -0.2 && tail.drag_pitch > 0.2);
+            motion.advance(dt, cursor, 1., false);
+            for _ in 0..hz * 3 {
+                tail.advance_drag(dt, &motion, 0.);
+            }
+            assert!(tail.drag_pitch.abs() < 0.0001 && tail.drag_yaw.abs() < 0.0001);
+        }
+    }
+    #[test]
+    fn acceleration_affects_tail_and_discontinuous_inputs_do_not_kick_it() {
+        let mut motion = DragMotion::default();
+        motion.advance(1. / 60., Vec2::ZERO, 1., true);
+        motion.advance(1. / 60., Vec2::new(0., -10.), 1., true);
+        let mut accelerating = TailResponse::default();
+        let mut coasting = TailResponse::default();
+        let mut without_acceleration = motion.clone();
+        without_acceleration.acceleration = Vec2::ZERO;
+        for _ in 0..6 {
+            accelerating.advance_drag(1. / 60., &motion, 0.);
+            coasting.advance_drag(1. / 60., &without_acceleration, 0.);
+        }
+        assert!(accelerating.drag_pitch < coasting.drag_pitch - 0.02);
+        for (dt, cursor, zoom) in [
+            (1., Vec2::splat(10000.), 1.),
+            (0.016, Vec2::splat(20000.), 3.),
+            (0.016, Vec2::splat(f32::NAN), 1.),
+        ] {
+            motion.advance(dt, cursor, zoom, true);
+            assert_eq!(motion.velocity, Vec2::ZERO);
+            assert_eq!(motion.acceleration, Vec2::ZERO);
+        }
+    }
     #[test]
     fn every_physical_bounce_drops_the_tail_without_an_animation_state_change() {
         use crate::{desktop::Rect, motion::Motion};

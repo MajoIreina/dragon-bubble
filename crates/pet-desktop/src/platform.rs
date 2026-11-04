@@ -343,6 +343,11 @@ pub fn input(
     #[cfg(windows)] native: NonSend<crate::layered::NativePet>,
     _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
+    // Automated probes supply their own pointer state; physical input must not
+    // release a synthetic drag or change its trajectory.
+    if rt.smoke {
+        return;
+    }
     if rt.obscured {
         let (_, left, right) = pointer();
         rt.last_left = left;

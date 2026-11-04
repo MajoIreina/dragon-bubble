@@ -88,6 +88,9 @@ pub struct SoftBody {
     pub mesh_lower: Vec<f32>,
     pub load: f32,
     pub sway: Vec3,
+    /// Terminal tangent bend in the plane perpendicular to the tail axis (radians).
+    /// Distributed over the rear-body envelope rather than rotating only a tail fin.
+    pub inertial_bend: Vec3,
     /// 0 = normal support, 1 = hanging from a hand rather than resting on feet.
     pub suspension: f32,
     /// Multiplier for supported recovery frequency; 1 preserves authored dynamics.
@@ -146,6 +149,7 @@ impl SoftBody {
             upper,
             load,
             sway: Vec3::ZERO,
+            inertial_bend: Vec3::ZERO,
             suspension: 0.,
             support_response: 1.,
             local_floor: true,
@@ -172,6 +176,7 @@ impl SoftBody {
         self.load = self.def.gravity / 9.8;
         self.load_velocity = 0.;
         self.sway = Vec3::ZERO;
+        self.inertial_bend = Vec3::ZERO;
         self.sway_velocity = Vec3::ZERO;
         self.accumulator = 0.
     }
@@ -250,7 +255,25 @@ impl SoftBody {
                 + Vec3::new(self.sway.x, 0., self.sway.z) * soft
                 + Vec3::Y * (t * std::f32::consts::PI).sin() * flex.max(0.) * 0.12
                 - axis * soft * flex * 0.11;
-            self.transforms[i] = Affine3A::from_mat3_translation(basis, offset)
+            let mut transform = Affine3A::from_mat3_translation(basis, offset);
+            let bend = self.inertial_bend - axis * self.inertial_bend.dot(axis);
+            let angle = bend.length().min(0.65);
+            if angle.is_finite() && angle > 0.00001 {
+                // Constant-curvature centreline: position and tangent remain
+                // continuous at the fixed front/rear boundary. Each cross-section
+                // rotates about its own centre, preserving the body's thickness.
+                let direction = bend.normalize();
+                let theta = angle * t;
+                let radius = self.def.length / angle;
+                let rest = axis * (self.def.start + self.def.length * t);
+                let centre = axis * (self.def.start + radius * theta.sin())
+                    + direction * (radius * (1. - theta.cos()));
+                let tangent = axis * theta.cos() + direction * theta.sin();
+                let rotation = glam::Quat::from_rotation_arc(axis, tangent);
+                transform = Affine3A::from_rotation_translation(rotation, centre - rotation * rest)
+                    * transform;
+            }
+            self.transforms[i] = transform;
         }
     }
     pub fn deform_point(&self, p: Vec3) -> Vec3 {
@@ -321,6 +344,42 @@ impl FloorContacts {
 mod contact_tests {
     use super::*;
     use glam::Quat;
+
+    #[test]
+    fn inertial_curve_bends_rear_body_and_tip_without_moving_front_half() {
+        let def = Definition {
+            node: "Body".into(),
+            profile_mesh: "Shell".into(),
+            gravity: 0.,
+            compression: 0.,
+            ..Default::default()
+        };
+        let vertices: Vec<Vec3> = (0..28)
+            .flat_map(|i| {
+                let z = -2.3 * i as f32 / 27.;
+                [Vec3::new(0., -0.5, z), Vec3::new(0., 0.5, z)]
+            })
+            .collect();
+        let mut body = SoftBody::sample(def, &vertices).unwrap();
+        for direction in [-1., 1.] {
+            body.inertial_bend = Vec3::Y * 0.35 * direction;
+            body.rebuild(false, 0.);
+            let front = Vec3::new(0.2, 0.1, 0.6);
+            assert!(body.deform_point(front).abs_diff_eq(front, 0.00001));
+            assert!(body.deform_point(Vec3::ZERO).length() < 0.00001);
+            let rear = body.deform_point(Vec3::new(0., 0., -1.15));
+            let tip = body.deform_point(Vec3::new(0., 0., -2.3));
+            assert!(rear.y * direction > 0.08, "rear body must participate");
+            assert!(tip.y * direction > rear.y * direction * 3.5);
+            assert!(body.transforms.iter().all(|t| t.is_finite()));
+        }
+        body.inertial_bend = Vec3::ZERO;
+        body.rebuild(false, 0.);
+        assert!(
+            body.deform_point(Vec3::new(0., 0., -2.3))
+                .abs_diff_eq(Vec3::new(0., 0., -2.3), 0.00001)
+        );
+    }
 
     #[test]
     fn horizontal_floor_bends_tail_under_rotated_scaled_body_and_releases() {

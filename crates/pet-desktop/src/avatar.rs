@@ -62,8 +62,7 @@ pub struct Avatar {
     pub tail: pet_core::interaction::TailResponse,
     landing_serial: u64,
     drag_still_time: f32,
-    drag_cursor: Option<Vec2>,
-    drag_velocity: Vec2,
+    pub drag_motion: pet_core::interaction::DragMotion,
     release_yaw: Option<f32>,
     hanging_sway: f32,
 }
@@ -104,8 +103,7 @@ impl Avatar {
             tail: default(),
             landing_serial: 0,
             drag_still_time: 0.,
-            drag_cursor: None,
-            drag_velocity: Vec2::ZERO,
+            drag_motion: default(),
             release_yaw: None,
             hanging_sway: 0.,
         }
@@ -838,22 +836,14 @@ pub fn animate(
         let held_drag = !a.preview && rt.pressed && rt.dragging && desired == State::Dragged;
         if desired != State::Airborne {
             a.release_yaw = None;
-        } else if a.drag_cursor.is_some() && !held_drag {
+        } else if a.drag_motion.active() && !held_drag {
             a.release_yaw = Some(a.yaw);
         }
-        if held_drag {
-            let cursor = rt.drag_cursor;
-            let previous = a.drag_cursor.replace(cursor).unwrap_or(cursor);
-            let measured =
-                ((cursor - previous) / (dt.max(0.0001) * rt.prefs.zoom)).clamp_length_max(2200.);
-            a.drag_velocity = a.drag_velocity.lerp(measured, 1. - (-dt * 18.).exp());
-        } else {
-            a.drag_cursor = None;
-            a.drag_velocity = Vec2::ZERO;
-        }
+        a.drag_motion
+            .advance(dt, rt.drag_cursor, rt.prefs.zoom, held_drag);
         // Allow short pauses and hand jitter before looking toward the viewer.
         // Use pointer motion: screen limits can reposition the body as its silhouette turns.
-        a.drag_still_time = if held_drag && a.drag_velocity.x.abs() < 35. {
+        a.drag_still_time = if held_drag && a.drag_motion.velocity.x.abs() < 35. {
             a.drag_still_time + dt
         } else {
             0.
@@ -863,7 +853,7 @@ pub fn animate(
             if a.drag_still_time >= 0.18 {
                 0.
             } else {
-                drag_yaw(a.drag_velocity.x)
+                drag_yaw(a.drag_motion.velocity.x)
             }
         } else if let Some(yaw) = a.release_yaw {
             yaw
@@ -898,6 +888,9 @@ pub fn animate(
             a.yaw += (target - a.yaw) * (dt * 6.).min(1.);
         }
         a.direction = direction;
+        let motion = a.drag_motion.clone();
+        let facing = a.yaw;
+        a.tail.advance_drag(dt, &motion, facing);
         let sway = if held_drag && a.drag_still_time >= 0.18 {
             let front = 1. - (a.yaw.abs() / FRAC_PI_2).clamp(0., 1.);
             (a.clock * std::f32::consts::TAU / 2.8).sin() * 0.028 * front
@@ -1550,7 +1543,7 @@ mod tests {
                     let avatar = app.world().get::<Avatar>(entity).unwrap();
                     assert_eq!(avatar.state, State::Airborne);
                     assert_eq!(avatar.drag_still_time, 0.);
-                    assert!(avatar.drag_cursor.is_none());
+                    assert!(!avatar.drag_motion.active());
                     assert!((avatar.yaw - released_yaw).abs() < 0.00001);
                 }
                 // Regrabbing clears the release heading; releasing during movement keeps it too.

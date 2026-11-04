@@ -6,6 +6,8 @@ mod bundled;
 mod composite;
 #[path = "../../../../crates/pet-desktop/src/desktop_mode.rs"]
 mod desktop_mode;
+#[path = "../../../../crates/pet-desktop/src/drag_probe.rs"]
+mod drag_probe;
 mod effects;
 mod expressions;
 mod face;
@@ -20,6 +22,8 @@ mod rear_stance;
 #[path = "../../../../crates/pet-desktop/src/resource_probe.rs"]
 mod resource_probe;
 mod runtime;
+#[path = "../../../../crates/pet-desktop/src/single_instance.rs"]
+mod single_instance;
 mod soft_body;
 mod startup;
 mod suspension;
@@ -73,15 +77,30 @@ fn project_root() -> std::path::PathBuf {
     current
 }
 fn main() -> AppExit {
+    let _instance = match single_instance::acquire() {
+        Ok(Some(guard)) => guard,
+        Ok(None) => {
+            eprintln!("Dragon Bubble is already running.");
+            return AppExit::Success;
+        }
+        Err(error) => {
+            eprintln!("Cannot acquire single-instance lock: {error}");
+            return AppExit::error();
+        }
+    };
     startup::install_diagnostics();
     run()
 }
 fn run() -> AppExit {
+    let drag_test = std::env::args().any(|arg| arg == "--drag-test");
     let resource_test = std::env::args().any(|arg| arg == "--resource-test");
     let menu_test = std::env::args().any(|arg| arg == "--menu-test");
     let bounce_test = std::env::args().any(|s| s == "--bounce-test");
-    let smoke =
-        resource_test || menu_test || bounce_test || std::env::args().any(|s| s == "--smoke-test");
+    let smoke = drag_test
+        || resource_test
+        || menu_test
+        || bounce_test
+        || std::env::args().any(|s| s == "--smoke-test");
     let root = project_root();
     // NSScreen and NSStatusItem require an initialized AppKit event loop.
     // Startup runs after winit has created that event loop, on the main thread.
@@ -221,7 +240,9 @@ fn run() -> AppExit {
     .add_systems(EguiPrimaryContextPass, ui::draw)
     .add_systems(popup::MenuPass, popup::draw)
     .add_systems(Last, layered::present);
-    if resource_test {
+    if drag_test {
+        app.add_systems(PostUpdate, drag_probe::run.after(soft_body::update));
+    } else if resource_test {
         app.add_systems(Update, resource_probe::run.after(platform::frame_pacing));
     } else if menu_test {
         app.add_systems(Update, popup::probe.after(avatar::animate));

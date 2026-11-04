@@ -97,7 +97,14 @@ pub fn apply(
             && a.ready
         {
             // Layer pitch over native yaw; never accumulate frame-to-frame rotations.
-            transform.rotation *= Quat::from_rotation_x(a.tail.pitch);
+            // Shu's rear body AND fin share the same curved skinning envelope.
+            // Keep this node's native wag/contact pitch without doubling the bend.
+            transform.rotation *= if a.skin.id == "builtin.shu" {
+                Quat::from_rotation_x(a.tail.pitch)
+            } else {
+                Quat::from_rotation_y(a.tail.drag_yaw)
+                    * Quat::from_rotation_x(a.tail.pitch + a.tail.drag_pitch)
+            };
             tail.modified = true;
         }
     }

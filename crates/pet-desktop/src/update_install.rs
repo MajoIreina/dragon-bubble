@@ -16,7 +16,16 @@ pub fn prepare_installer(url: &str) -> Result<std::path::PathBuf, String> {
 pub fn launch_installer(path: std::path::PathBuf) -> Result<(), String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let folder = exe.parent().ok_or("无法获取安装目录")?;
-    std::process::Command::new(path).arg("/SILENT").arg("/NORESTART").arg("/UPDATE")
-        .arg(format!("/DIR={}", folder.display())).spawn().map_err(|e| e.to_string())?;
+    let helper = pet_core::preferences::user_dir().join("updates/run-update.ps1");
+    std::fs::create_dir_all(helper.parent().ok_or("无法获取更新目录")?)
+        .map_err(|e| e.to_string())?;
+    std::fs::write(&helper, include_str!("../../../tools/run_update.ps1"))
+        .map_err(|e| e.to_string())?;
+    let mut command = std::process::Command::new("powershell.exe");
+    command.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(helper).arg("-ParentProcessId").arg(std::process::id().to_string())
+        .arg("-Installer").arg(path).arg("-InstallDirectory").arg(folder);
+    #[cfg(windows)] { use std::os::windows::process::CommandExt; command.creation_flags(0x08000000); }
+    command.spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
