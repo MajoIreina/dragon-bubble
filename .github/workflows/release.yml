@@ -116,7 +116,13 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
+          choco upgrade innosetup --version=6.7.4 --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup upgrade failed' }
+          $env:INNO_COMPILER = 'C:/Program Files (x86)/Inno Setup 6/ISCC.exe'
+          Invoke-WebRequest 'https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/ChineseSimplified.isl' -OutFile installer/ChineseSimplified.isl
           ./build.ps1 -SkipTests
+          ./tools/test_installer.ps1 -Installer "outputs/installers/dragon-bubble-v$env:RELEASE_VERSION-windows-x64-setup.exe"
+          ./tools/test_update_download.ps1
           $smoke = Start-Process -FilePath './outputs/rust/My Dragon Bubble.exe' -ArgumentList '--smoke-test' -Wait -PassThru -WindowStyle Hidden
           if ($smoke.ExitCode -ne 0) { throw 'Windows rendering smoke test failed' }
           $menu = Start-Process -FilePath './outputs/rust/My Dragon Bubble.exe' -ArgumentList '--menu-test' -Wait -PassThru -WindowStyle Hidden
@@ -124,6 +130,7 @@ jobs:
           New-Item -ItemType Directory -Path release -Force | Out-Null
           Compress-Archive -Path outputs/rust/* -DestinationPath "release/dragon-bubble-v$env:RELEASE_VERSION-windows-x64.zip"
           python tools/check_public_files.py --zip "release/dragon-bubble-v$env:RELEASE_VERSION-windows-x64.zip"
+          Copy-Item "outputs/installers/*-setup.exe" release/
       - name: Package macOS and verify Metal rendering
         if: runner.os == 'macOS'
         working-directory: macos
@@ -139,7 +146,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}
-          path: release/*.zip
+          path: release/*
           if-no-files-found: error
 
   publish:
@@ -163,7 +170,8 @@ jobs:
         run: |
           test -f "release/dragon-bubble-v$VERSION-windows-x64.zip"
           test -f "release/dragon-bubble-v$VERSION-macos-arm64.zip"
-          (cd release && sha256sum *.zip > SHA256SUMS.txt)
+          test -f "release/dragon-bubble-v$VERSION-windows-x64-setup.exe"
+          (cd release && sha256sum *.zip *.exe > SHA256SUMS.txt)
           if gh release view "v$VERSION" --json isDraft > release-state.json 2>/dev/null; then
             test "$(python3 -c 'import json; print(json.load(open("release-state.json"))["isDraft"])')" = True
             gh release upload "v$VERSION" release/* --clobber
