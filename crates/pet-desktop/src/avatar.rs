@@ -799,6 +799,12 @@ pub fn animate(
             a.state = desired;
             a.clock = 0.;
             a.turning = false;
+            if desired == State::Stretch && a.skin.id == "builtin.shu" {
+                // Supporting feet must not inherit a previous drag's pendulum or spin.
+                a.suspension = default();
+                a.hanging_sway = 0.;
+                a.spin_angle = 0.;
+            }
         }
         a.clock += dt;
         a.expression_clock += dt;

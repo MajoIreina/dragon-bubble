@@ -350,7 +350,7 @@ mod contact_tests {
             let world = Affine3A::from_scale_rotation_translation(scale, rotation, position);
             let floor = -1.025 * scale.y;
             let mut contact = FloorContacts::new(world, floor);
-            for (i, pair) in vertices.chunks_exact(2).enumerate() {
+            for (i, pair) in vertices.as_chunks::<2>().0.iter().enumerate() {
                 contact.include_hull(&body, i, Affine3A::IDENTITY, pair[0], pair[1]);
             }
             assert!(contact.apply(&mut body) > 0.2);
@@ -370,7 +370,7 @@ mod contact_tests {
                 Vec3::ZERO,
             );
             let mut contact = FloorContacts::new(rest, floor);
-            for (i, pair) in vertices.chunks_exact(2).enumerate() {
+            for (i, pair) in vertices.as_chunks::<2>().0.iter().enumerate() {
                 contact.include_hull(&body, i, Affine3A::IDENTITY, pair[0], pair[1]);
             }
             assert_eq!(contact.apply(&mut body), 0.);

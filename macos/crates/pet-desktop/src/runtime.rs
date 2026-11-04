@@ -691,16 +691,20 @@ pub fn smoke(
     mut prepared: Local<bool>,
     views: Res<crate::avatar::RenderViews>,
     frame: Res<crate::layered::DesktopFrame>,
-    feet: Query<(&crate::suspension::SuspendedFoot, Entity, &Transform)>,
+    feet: Query<
+        (&crate::suspension::SuspendedFoot, Entity, &Transform),
+        Without<crate::avatar::ViewCamera>,
+    >,
     mut previous_feet: Local<std::collections::HashMap<Entity, Transform>>,
     mut moving_feet: Local<usize>,
-    cameras: Query<
+    mut cameras: Query<
         (
             &Msaa,
             Option<&crate::temporal::TemporalAntiAliasing>,
             Option<&bevy::render::camera::TemporalJitter>,
             Option<&bevy::core_pipeline::prepass::DepthPrepass>,
             Option<&bevy::core_pipeline::prepass::MotionVectorPrepass>,
+            &mut Transform,
         ),
         With<crate::avatar::ViewCamera>,
     >,
@@ -818,6 +822,15 @@ pub fn smoke(
     }
     let _ = std::fs::create_dir_all(&folder);
     if !*prepared {
+        for (_, _, _, _, _, mut camera) in &mut cameras {
+            let position = if rt.smoke_step == State::ALL.len() + 4 {
+                Vec3::new(6., 0.05, 0.)
+            } else {
+                Vec3::new(0., 0.05, 6.)
+            };
+            *camera =
+                Transform::from_translation(position).looking_at(Vec3::new(0., 0.05, 0.), Vec3::Y);
+        }
         // Exercise both desktop and compact layouts without changing user preferences.
         let narrow = rt.smoke_step == 7
             || rt.smoke_step == skin_start + rt.skins.len() + PERFORMANCE_CHECKS - 1;
@@ -1022,7 +1035,7 @@ pub fn smoke(
                 ));
         }
         let use_taa = p.aa == "taa" || (p.ao && p.aa.starts_with("msaa"));
-        for (msaa, taa, jitter, depth, motion) in &cameras {
+        for (msaa, taa, jitter, depth, motion, _) in &cameras {
             assert_eq!(taa.is_some(), use_taa, "TAA enable/disable");
             assert_eq!(jitter.is_some(), use_taa, "jitter cleanup");
             assert_eq!(motion.is_some(), use_taa, "motion prepass cleanup");
