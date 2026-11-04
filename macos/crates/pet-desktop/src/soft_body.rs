@@ -8,7 +8,7 @@ use bevy::{
     },
     prelude::*,
 };
-use pet_core::soft_body::{Definition, SoftBody};
+use pet_core::soft_body::{Definition, FloorContacts, SoftBody};
 #[derive(Component)]
 pub struct InstallSoftBody;
 #[derive(Component)]
@@ -20,8 +20,13 @@ pub struct Lattice {
     bindings: Vec<(Entity, Handle<SkinnedMeshInverseBindposes>)>,
     last_velocity: Vec2,
     last_position: Vec2,
-    rest_lower: Vec<f32>,
-    tail_floor_vertices: Vec<(Entity, Vec<Vec3>)>,
+    floor_hulls: Vec<FloorHull>,
+}
+struct FloorHull {
+    mesh: Entity,
+    section: usize,
+    min: Vec3,
+    max: Vec3,
 }
 fn find(
     root: Entity,
@@ -155,6 +160,21 @@ pub fn install(
             if !valid || candidates.is_empty() {
                 continue;
             }
+            if avatar.skin.id == "builtin.shu" {
+                // Include the full tail tip instead of clamping it to one rigid end bone.
+                let axis = Vec3::from(body.def.axis).normalize();
+                let end = candidates
+                    .iter()
+                    .flat_map(|(_, _, p, _)| p.iter())
+                    .map(|p| p.dot(axis))
+                    .fold(body.def.start + body.def.length, f32::max);
+                let mut def = body.def.clone();
+                let ratio = (end - def.start) / def.length;
+                def.length = end - def.start;
+                def.sections = ((def.sections as f32 * ratio).ceil() as usize).clamp(4, 48);
+                body = SoftBody::sample(def, &points).expect("validated tail envelope");
+                body.local_floor = false;
+            }
             let joints = (0..body.def.sections)
                 .map(|_| {
                     let e = commands
@@ -165,19 +185,13 @@ pub fn install(
                 })
                 .collect::<Vec<_>>();
             let mut bindings = vec![];
-            let mut tail_floor_vertices = vec![];
-            let tail = find(target, "TailWag", &children, &names);
+            let mut floor_hulls = vec![];
             for (e, mut mesh, points, relative) in candidates {
-                if tail.is_some_and(|tail| children.iter_descendants(tail).any(|child| child == e))
-                    && !names
-                        .get(e)
-                        .is_ok_and(|name| name.as_str().contains("MicroPile"))
-                    && let Some(VertexAttributeValues::Float32x3(vertices)) =
-                        mesh.attribute(Mesh::ATTRIBUTE_POSITION)
-                {
-                    tail_floor_vertices
-                        .push((e, vertices.iter().map(|p| Vec3::from(*p)).collect()));
-                }
+                let mut bounds = vec![
+                    (Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY));
+                    body.def.sections
+                ];
+                let mesh_inverse = relative.inverse();
                 let mut indices = Vec::with_capacity(points.len());
                 let mut weights = Vec::with_capacity(points.len());
                 for p in points {
@@ -188,6 +202,21 @@ pub fn install(
                     indices.push([i as u16, j as u16, 0, 0]);
                     weights.push([1. - blend, blend, 0., 0.]);
                     body.include_vertex(p);
+                    let original = mesh_inverse.transform_point3(p);
+                    for section in [i, j] {
+                        bounds[section].0 = bounds[section].0.min(original);
+                        bounds[section].1 = bounds[section].1.max(original);
+                    }
+                }
+                for (section, (min, max)) in bounds.into_iter().enumerate() {
+                    if min.is_finite() {
+                        floor_hulls.push(FloorHull {
+                            mesh: e,
+                            section,
+                            min,
+                            max,
+                        });
+                    }
                 }
                 mesh.insert_attribute(
                     Mesh::ATTRIBUTE_JOINT_INDEX,
@@ -216,9 +245,8 @@ pub fn install(
                 .spawn(Lattice {
                     owner: root,
                     target,
-                    rest_lower: body.mesh_lower.clone(),
+                    floor_hulls,
                     body,
-                    tail_floor_vertices,
                     joints,
                     bindings,
                     last_velocity: Vec2::ZERO,
@@ -281,25 +309,6 @@ pub fn update(
             continue;
         };
         let inverse = target.affine().inverse();
-        // Pitch changes the tail's lowest points. Recompute only its floor envelope
-        // before solving the lattice, so a fast landing never pushes it through the floor.
-        if grounded && !lattice.tail_floor_vertices.is_empty() {
-            let Lattice {
-                body,
-                rest_lower,
-                tail_floor_vertices,
-                ..
-            } = &mut *lattice;
-            body.mesh_lower.copy_from_slice(rest_lower);
-            for (entity, vertices) in tail_floor_vertices {
-                if let Ok(global) = globals.p0().get(*entity) {
-                    let relative = inverse * global.affine();
-                    for p in vertices {
-                        body.include_vertex(relative.transform_point3(*p));
-                    }
-                }
-            }
-        }
         lattice.body.advance(
             dt,
             Vec3::new(acceleration.x, acceleration.y, 0.),
@@ -308,6 +317,51 @@ pub fn update(
             grounded,
             flex,
         );
+        if grounded && a.skin.id == "builtin.shu" {
+            // This plane stays horizontal while the model rotates about its rear feet.
+            let floor = a
+                .base
+                .transform_point(Vec3::Y * ((160. - a.ground) * 3.9 / 300. + 0.05))
+                .y;
+            let mut contact = FloorContacts::new(target.affine(), floor);
+            for hull in &lattice.floor_hulls {
+                if let Ok(g) = globals.p0().get(hull.mesh) {
+                    contact.include_hull(
+                        &lattice.body,
+                        hull.section,
+                        inverse * g.affine(),
+                        hull.min,
+                        hull.max,
+                    );
+                }
+            }
+            let lift = contact.apply(&mut lattice.body);
+            if rt.smoke && a.state == pet_core::behavior::State::Stretch {
+                let mut check = FloorContacts::new(target.affine(), floor);
+                for hull in &lattice.floor_hulls {
+                    if let Ok(g) = globals.p0().get(hull.mesh) {
+                        check.include_hull(
+                            &lattice.body,
+                            hull.section,
+                            inverse * g.affine(),
+                            hull.min,
+                            hull.max,
+                        );
+                    }
+                }
+                assert!(
+                    check.apply(&mut lattice.body) < 0.0001,
+                    "tail penetrated world floor"
+                );
+                if (1.2..1.3).contains(&a.clock) {
+                    assert!(lift > 0.01, "standing tail should encounter the plane");
+                    println!(
+                        "STANCE CONTACT: world correction {lift:.4}, sections {}",
+                        lattice.body.def.sections
+                    );
+                }
+            }
+        }
         for (mesh, handle) in &lattice.bindings {
             if let Ok(g) = globals.p0().get(*mesh) {
                 let matrix = Mat4::from(inverse * g.affine());

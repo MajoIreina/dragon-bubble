@@ -21,11 +21,6 @@ pub fn raise_body(transform: &mut Transform, rear_ankles: Vec3, clock: f32) {
     transform.rotation = after;
 }
 
-pub fn tail(clock: f32) -> Quat {
-    // Counter the body's pitch first, then lift the tail clear of the supporting feet.
-    rise(clock).inverse() * Quat::from_rotation_x(0.65 * weight(clock))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -16,6 +16,11 @@ pub struct ResponsiveTail {
     rest: Transform,
     modified: bool,
 }
+#[derive(Component)]
+pub struct StanceBody {
+    owner: Entity,
+    rest: Transform,
+}
 pub fn capture(
     commands: &mut Commands,
     owner: Entity,
@@ -27,6 +32,9 @@ pub fn capture(
             continue;
         };
         let name = name.as_str();
+        if name == "PlushBody" {
+            commands.entity(e).insert(StanceBody { owner, rest: *rest });
+        }
         if name == "TailWag" {
             commands.entity(e).insert(ResponsiveTail {
                 owner,
@@ -63,21 +71,33 @@ pub fn reset(
         }
     }
 }
+#[allow(clippy::type_complexity)] // Disjoint Bevy transform queries.
 pub fn apply(
     avatars: Query<&Avatar>,
     mut feet: Query<(&mut SuspendedFoot, &mut Transform), Without<ResponsiveTail>>,
     mut tails: Query<(&mut ResponsiveTail, &mut Transform), Without<SuspendedFoot>>,
+    mut bodies: Query<
+        (&StanceBody, &mut Transform),
+        (Without<SuspendedFoot>, Without<ResponsiveTail>),
+    >,
 ) {
+    for (body, mut transform) in &mut bodies {
+        if let Ok(a) = avatars.get(body.owner)
+            && a.ready
+            && a.skin.id == "builtin.shu"
+            && a.state == pet_core::behavior::State::Stretch
+        {
+            // A stopped native clip retains its last pose. Remove that pose before
+            // applying the rear-foot hinge, otherwise its residual tilt moves the soles.
+            *transform = body.rest;
+        }
+    }
     for (mut tail, mut transform) in &mut tails {
         if let Ok(a) = avatars.get(tail.owner)
             && a.ready
         {
             // Layer pitch over native yaw; never accumulate frame-to-frame rotations.
-            if a.state == pet_core::behavior::State::Stretch && a.skin.id == "builtin.shu" {
-                transform.rotation = crate::rear_stance::tail(a.clock) * tail.rest.rotation;
-            } else {
-                transform.rotation *= Quat::from_rotation_x(a.tail.pitch);
-            }
+            transform.rotation *= Quat::from_rotation_x(a.tail.pitch);
             tail.modified = true;
         }
     }

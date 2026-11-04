@@ -92,6 +92,8 @@ pub struct SoftBody {
     pub suspension: f32,
     /// Multiplier for supported recovery frequency; 1 preserves authored dynamics.
     pub support_response: f32,
+    /// Authored local floor is disabled when a horizontal world plane is used.
+    pub local_floor: bool,
     load_velocity: f32,
     sway_velocity: Vec3,
     accumulator: f32,
@@ -146,6 +148,7 @@ impl SoftBody {
             sway: Vec3::ZERO,
             suspension: 0.,
             support_response: 1.,
+            local_floor: true,
             load_velocity: 0.,
             sway_velocity: Vec3::ZERO,
             accumulator: 0.,
@@ -233,7 +236,7 @@ impl SoftBody {
                     * self.load;
             let mut shift = bottom - self.lower[i] * squash + self.sway.y * soft
                 - self.def.length * 0.045 * soft * self.suspension;
-            if grounded {
+            if grounded && self.local_floor {
                 shift = shift.max(self.def.floor_height - self.mesh_lower[i] * squash)
             }
             let spread = 1. + (1. - squash) * 0.35;
@@ -257,5 +260,121 @@ impl SoftBody {
         self.transforms[i]
             .transform_point3(p)
             .lerp(self.transforms[j].transform_point3(p), t - i as f32)
+    }
+}
+
+/// Unilateral contact with a fixed world-space horizontal plane. Each hull is
+/// assigned to every bone influencing its vertices, so blended skinning also
+/// remains above the plane. Storage is bounded by the validated section limit.
+pub struct FloorContacts {
+    model_to_world: Affine3A,
+    floor: f32,
+    lifts: [f32; 48],
+}
+impl FloorContacts {
+    pub fn new(model_to_world: Affine3A, floor: f32) -> Self {
+        Self {
+            model_to_world,
+            floor,
+            lifts: [0.; 48],
+        }
+    }
+    pub fn include_hull(
+        &mut self,
+        body: &SoftBody,
+        section: usize,
+        mesh_to_model: Affine3A,
+        min: Vec3,
+        max: Vec3,
+    ) {
+        let to_world = self.model_to_world * body.transforms[section] * mesh_to_model;
+        for x in [min.x, max.x] {
+            for y in [min.y, max.y] {
+                for z in [min.z, max.z] {
+                    self.lifts[section] = self.lifts[section]
+                        .max(self.floor - to_world.transform_point3(Vec3::new(x, y, z)).y);
+                }
+            }
+        }
+    }
+    pub fn apply(mut self, body: &mut SoftBody) -> f32 {
+        let count = body.transforms.len();
+        // Spread contact into neighbouring sections to produce a bend, while
+        // keeping hard nonpenetration at the touching sections.
+        for _ in 0..2 {
+            let previous = self.lifts;
+            for i in 0..count {
+                for j in [i.saturating_sub(1), (i + 1).min(count - 1)] {
+                    self.lifts[i] = self.lifts[i].max(previous[j] * 0.55);
+                }
+            }
+        }
+        let local_up = self.model_to_world.inverse().transform_vector3(Vec3::Y);
+        for (i, transform) in body.transforms.iter_mut().enumerate() {
+            transform.translation += glam::Vec3A::from(local_up * self.lifts[i]);
+        }
+        self.lifts[..count].iter().copied().fold(0., f32::max)
+    }
+}
+
+#[cfg(test)]
+mod contact_tests {
+    use super::*;
+    use glam::Quat;
+
+    #[test]
+    fn horizontal_floor_bends_tail_under_rotated_scaled_body_and_releases() {
+        let def = Definition {
+            node: "Body".into(),
+            profile_mesh: "Shell".into(),
+            length: 3.2,
+            sections: 36,
+            gravity: 0.,
+            compression: 0.,
+            ..Default::default()
+        };
+        let vertices = (0..36)
+            .flat_map(|i| {
+                let z = -3.2 * i as f32 / 35.;
+                [Vec3::new(-0.1, -0.4, z), Vec3::new(0.1, 0.3, z)]
+            })
+            .collect::<Vec<_>>();
+        for yaw in [-1.57, -0.32, 0., 0.32, 1.57] {
+            let mut body = SoftBody::sample(def.clone(), &vertices).unwrap();
+            body.local_floor = false;
+            let pivot = Vec3::new(0., -0.835, -0.69);
+            let rotation = Quat::from_rotation_y(yaw) * Quat::from_rotation_x(-0.52);
+            let scale = Vec3::splat(0.63);
+            let position =
+                Quat::from_rotation_y(yaw) * (pivot * scale) - rotation * (pivot * scale);
+            let world = Affine3A::from_scale_rotation_translation(scale, rotation, position);
+            let floor = -1.025 * scale.y;
+            let mut contact = FloorContacts::new(world, floor);
+            for (i, pair) in vertices.chunks_exact(2).enumerate() {
+                contact.include_hull(&body, i, Affine3A::IDENTITY, pair[0], pair[1]);
+            }
+            assert!(contact.apply(&mut body) > 0.2);
+            assert_eq!(
+                body.transforms[0],
+                Affine3A::IDENTITY,
+                "airborne front stays free"
+            );
+            for p in &vertices {
+                assert!(world.transform_point3(body.deform_point(*p)).y >= floor - 0.00001);
+            }
+            // Returning the body to its rest pose removes the obstruction and the bend.
+            body.rebuild(true, 0.);
+            let rest = Affine3A::from_scale_rotation_translation(
+                scale,
+                Quat::from_rotation_y(yaw),
+                Vec3::ZERO,
+            );
+            let mut contact = FloorContacts::new(rest, floor);
+            for (i, pair) in vertices.chunks_exact(2).enumerate() {
+                contact.include_hull(&body, i, Affine3A::IDENTITY, pair[0], pair[1]);
+            }
+            assert_eq!(contact.apply(&mut body), 0.);
+            assert!(body.transforms.iter().all(|t| *t == Affine3A::IDENTITY));
+        }
     }
 }

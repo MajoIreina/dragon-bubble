@@ -682,7 +682,10 @@ pub fn smoke(
     time: Res<Time>,
     mut commands: Commands,
     mut rt: ResMut<Runtime>,
-    avatars: Query<&crate::avatar::Avatar>,
+    mut avatars: Query<&mut crate::avatar::Avatar>,
+    foot_globals: Query<(&Name, &GlobalTransform)>,
+    mut stance_feet: Local<Option<[f32; 2]>>,
+    mut stance_images: Local<u8>,
     mut settings: Query<(Entity, &mut Window), With<crate::platform::SettingsWindow>>,
     mut exit: MessageWriter<AppExit>,
     mut prepared: Local<bool>,
@@ -744,10 +747,75 @@ pub fn smoke(
         }
         assert_eq!(count, 4, "Shu must have four suspended feet");
     }
-    if !active.ready || rt.smoke_clock < 1.2 {
+    let folder = rt.data.join("screenshots");
+    if *prepared && active.ready && active.state == State::Stretch {
+        let mut heights = [0.; 2];
+        let mut count = 0;
+        for (foot, entity, _) in &feet {
+            if Some(foot.owner) != rt.active {
+                continue;
+            }
+            let Ok((name, global)) = foot_globals.get(entity) else {
+                continue;
+            };
+            if !name.as_str().starts_with("RearFoot.") {
+                continue;
+            }
+            let side = usize::from(name.as_str().ends_with(".R"));
+            heights[side] = global.transform_point(Vec3::new(0., -0.19, 0.)).y;
+            assert!(
+                global.affine().matrix3.y_axis.normalize().y > 0.999,
+                "rear sole must stay horizontal throughout standing"
+            );
+            count += 1;
+        }
+        assert_eq!(count, 2);
+        if let Some(previous) = *stance_feet {
+            assert!(
+                (heights[0] - previous[0]).abs() < 0.001
+                    && (heights[1] - previous[1]).abs() < 0.001,
+                "rear feet must remain planted through rise, hold and lower"
+            );
+        } else {
+            *stance_feet = Some(heights);
+        }
+        for (i, (at, label)) in [(0.55, "rise"), (1.25, "contact"), (4.9, "lower")]
+            .into_iter()
+            .enumerate()
+        {
+            if active.clock >= at && *stance_images & (1 << i) == 0 {
+                *stance_images |= 1 << i;
+                let path = folder.join(format!("stance-{}-{label}.png", rt.smoke_step));
+                commands
+                    .spawn(bevy::render::view::screenshot::Screenshot::image(
+                        views.output.clone(),
+                    ))
+                    .observe(
+                        move |event: On<bevy::render::view::screenshot::ScreenshotCaptured>| {
+                            event
+                                .image
+                                .clone()
+                                .try_into_dynamic()
+                                .expect("stance pixels")
+                                .save(&path)
+                                .expect("stance screenshot");
+                        },
+                    );
+                println!(
+                    "STANCE phase {label}: rear feet planted, clock {:.3}",
+                    active.clock
+                );
+            }
+        }
+    }
+    let delay = if *prepared && active.state == State::Stretch {
+        5.4
+    } else {
+        1.2
+    };
+    if !active.ready || rt.smoke_clock < delay {
         return;
     }
-    let folder = rt.data.join("screenshots");
     let _ = std::fs::create_dir_all(&folder);
     if !*prepared {
         // Exercise both desktop and compact layouts without changing user preferences.
@@ -844,6 +912,13 @@ pub fn smoke(
             rt.show_settings = false;
         }
         *prepared = true;
+        if let Some(entity) = rt.active
+            && let Ok(mut avatar) = avatars.get_mut(entity)
+        {
+            avatar.clock = 0.;
+        }
+        *stance_feet = None;
+        *stance_images = 0;
         rt.smoke_clock = 0.;
         return;
     }
