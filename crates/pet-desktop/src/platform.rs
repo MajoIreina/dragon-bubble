@@ -210,15 +210,7 @@ pub fn window_surfaces() -> Vec<pet_core::desktop::Surface> {
             }
             let mut class = [0u16; 128];
             let len = GetClassNameW(hwnd, class.as_mut_ptr(), class.len() as i32);
-            let name = String::from_utf16_lossy(&class[..len.max(0) as usize]);
-            if [
-                "Progman",
-                "WorkerW",
-                "Shell_TrayWnd",
-                "Shell_SecondaryTrayWnd",
-            ]
-            .contains(&name.as_str())
-            {
+            if crate::desktop_mode::is_desktop_host_class(&class[..len.max(0) as usize]) {
                 return 1;
             }
             let mut r: RECT = std::mem::zeroed();

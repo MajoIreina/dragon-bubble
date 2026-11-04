@@ -12,67 +12,41 @@ pub(crate) fn covers_display(window: Rect, display: Rect) -> bool {
         && window.max.cmpge(display.max - tolerance).all()
 }
 
+/// Desktop hosts can cover a monitor without being a full-screen application.
+/// Keep this filter shared with the window-edge/perching enumeration.
+#[cfg(any(windows, test))]
+pub(crate) fn is_desktop_host_class(name: &[u16]) -> bool {
+    [
+        "Progman",
+        "WorkerW",
+        "SHELLDLL_DefView",
+        "Shell_TrayWnd",
+        "Shell_SecondaryTrayWnd",
+    ]
+    .iter()
+    .any(|candidate| name.iter().copied().eq(candidate.encode_utf16()))
+}
+
 #[cfg(windows)]
-fn fullscreen_at(point: Vec2) -> bool {
-    use windows_sys::Win32::{
-        Foundation::*,
-        Graphics::{Dwm::*, Gdi::*},
-        UI::WindowsAndMessaging::*,
-    };
-    unsafe {
-        let window = GetForegroundWindow();
-        if window.is_null()
-            || window == GetShellWindow()
-            || IsIconic(window) != 0
-            || IsWindowVisible(window) == 0
-        {
-            return false;
-        }
-        let mut pid = 0;
-        GetWindowThreadProcessId(window, &mut pid);
-        if pid == std::process::id() {
-            return false;
-        }
-        let monitor = MonitorFromPoint(
-            POINT {
-                x: point.x as i32,
-                y: point.y as i32,
-            },
-            MONITOR_DEFAULTTONEAREST,
-        );
-        if monitor != MonitorFromWindow(window, MONITOR_DEFAULTTONULL) {
-            return false;
-        }
-        let mut info: MONITORINFO = std::mem::zeroed();
-        info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
-        let mut bounds: RECT = std::mem::zeroed();
-        if GetMonitorInfoW(monitor, &mut info) == 0 || GetWindowRect(window, &mut bounds) == 0 {
-            return false;
-        }
-        // Use visible bounds, excluding the invisible resize border.
-        DwmGetWindowAttribute(
-            window,
-            DWMWA_EXTENDED_FRAME_BOUNDS as u32,
-            (&mut bounds as *mut RECT).cast(),
-            std::mem::size_of::<RECT>() as u32,
-        );
-        let rect = |r: RECT| {
-            Rect::new(
-                r.left as f32,
-                r.top as f32,
-                (r.right - r.left) as f32,
-                (r.bottom - r.top) as f32,
-            )
-        };
-        covers_display(rect(bounds), rect(info.rcMonitor))
-    }
+#[path = "desktop_mode_windows.rs"]
+mod windows;
+
+#[derive(Default)]
+pub struct FullscreenDetector {
+    #[cfg(windows)]
+    native: windows::Detector,
+}
+
+#[cfg(windows)]
+fn fullscreen_at(point: Vec2, detector: &mut FullscreenDetector) -> bool {
+    detector.native.poll(point)
 }
 #[cfg(target_os = "macos")]
-fn fullscreen_at(point: Vec2) -> bool {
+fn fullscreen_at(point: Vec2, _: &mut FullscreenDetector) -> bool {
     crate::macos::fullscreen_at(point)
 }
 #[cfg(not(any(windows, target_os = "macos")))]
-fn fullscreen_at(_: Vec2) -> bool {
+fn fullscreen_at(_: Vec2, _: &mut FullscreenDetector) -> bool {
     false
 }
 
@@ -80,6 +54,7 @@ pub fn detect(
     time: Res<Time>,
     mut rt: ResMut<Runtime>,
     mut elapsed: Local<f32>,
+    mut detector: Local<FullscreenDetector>,
     _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
     *elapsed += time.delta_secs();
@@ -90,7 +65,7 @@ pub fn detect(
     if rt.smoke {
         return;
     }
-    let hidden = fullscreen_at(rt.position + rt.desktop.extent * 0.5);
+    let hidden = fullscreen_at(rt.position + rt.desktop.extent * 0.5, &mut detector);
     if hidden != rt.obscured {
         rt.obscured = hidden;
         rt.pressed = false;
@@ -130,6 +105,31 @@ pub fn sync(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn desktop_hosts_are_shared_between_fullscreen_and_perching_filters() {
+        for class in [
+            "Progman",
+            "WorkerW",
+            "SHELLDLL_DefView",
+            "Shell_TrayWnd",
+            "Shell_SecondaryTrayWnd",
+        ] {
+            assert!(is_desktop_host_class(
+                &class.encode_utf16().collect::<Vec<_>>()
+            ));
+        }
+        for class in [
+            "",
+            "Chrome_WidgetWin_1",
+            "SDL_app",
+            "WorkerWindow",
+            "Notepad",
+        ] {
+            assert!(!is_desktop_host_class(
+                &class.encode_utf16().collect::<Vec<_>>()
+            ));
+        }
+    }
     #[test]
     fn fullscreen_uses_full_monitor_and_supports_negative_monitor_origins() {
         let display = Rect::new(-1920., 0., 1920., 1080.);

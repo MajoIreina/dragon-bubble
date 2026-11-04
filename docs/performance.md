@@ -22,3 +22,17 @@ Windows 使用 wgpu 的 Vulkan 后端。SSAO 使用单采样深度与法线预�
 `cargo test --workspace` 验证性能配置容错和持久化；`./start.ps1 -SmokeTest` 实际切换省电、高画质（SSAO）和全部六种抗锯齿、TAA 与 SSAO 组合、20% / 117% / 200% / 300% 缩放、左右拖动、关闭 TAA 后的组件清理、预览重开和模型切换，截图位于 `work/rust-smoke-data/screenshots/performance-*.png`。冒烟不会改动正常用户配置。
 
 TAA 使用 8 相位子像素采样、运动矢量重投影、Catmull–Rom 历史重建和邻域裁剪。历史以半精度 RGBA 保存，透明覆盖率与颜色同步积累；正交镜头使用与深度无关的像素偏移。每个相机独立持有历史，在外观、尺寸、动作或方向变化以及预览重开时清空。它主要改善运动中的细纹和边缘稳定性，默认仍为 MSAA 4×。快速运动或缺少运动矢量的半透明材质仍可能有轻微拖影，可切回 MSAA。
+
+## Windows 全屏避让与壁纸兼容
+
+全屏避让按桌宠所在显示器判断：前台应用的可见边界覆盖该显示器时，暂停桌宠渲染、像素回读和互动。普通最大化窗口未覆盖整块显示器时不触发。桌面宿主 `WorkerW`、`Progman`、`SHELLDLL_DefView`、任务栏及桌面宿主下的渲染子窗口均不作为全屏应用；隐藏、最小化、DWM 隐藏和不参与交互的工具 / 透明窗口也排除。不会按进程名称排除整个 Wallpaper Engine，避免影响它的正常应用窗口。
+
+如仍发生壁纸误判，先退出桌宠，再从 PowerShell 启动诊断模式：
+
+```powershell
+& '你的安装目录/My Dragon Bubble.exe' --fullscreen-diagnostics
+```
+
+保持壁纸运行，复现桌宠消失、恢复以及正常全屏切换。记录保存在 `%APPDATA%/LPPDesktopPet/fullscreen-diagnostics.jsonl`（使用 `LPP_DATA_DIR` 时在该目录）。每条包含前台窗口 / 根窗口类名、进程名与 PID、窗口与显示器物理边界、判定原因及 `paused`，不记录窗口标题。只在采样变化时写入，单文件约 1 MiB 后轮换，最多保留当前与前一份；常规运行不开启文件记录，不保留采样历史。退出后正常启动即可关闭诊断。
+
+诊断同时记录 [SHQueryUserNotificationState](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shqueryusernotificationstate) 的返回状态（查询失败为 `null`）。它反映整个用户会话，包含演示、独占 Direct3D 等状态，不能定位显示器，因此目前作为诊断参考，不直接决定桌宠是否隐藏。
