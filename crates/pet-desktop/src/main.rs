@@ -10,6 +10,7 @@ mod face;
 mod layered;
 mod platform;
 mod popup;
+mod rear_stance;
 mod resource_probe;
 mod runtime;
 mod soft_body;

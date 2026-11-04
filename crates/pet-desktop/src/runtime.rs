@@ -696,11 +696,13 @@ pub fn smoke(
 ) {
     const PERFORMANCE_CHECKS: usize = 23;
     const REACTION_CHECKS: usize = 4;
-    const DIRECTION_CHECKS: [(State, i32, &str); 4] = [
+    const DIRECTION_CHECKS: [(State, i32, &str); 6] = [
         (State::Dragged, -1, "dragged-left"),
         (State::Dragged, 1, "dragged-right"),
         (State::Airborne, -1, "airborne-left"),
         (State::Airborne, 1, "airborne-right"),
+        (State::Stretch, -1, "rear-stance-left"),
+        (State::Stretch, 1, "rear-stance-right"),
     ];
     let skin_start = State::ALL.len() + DIRECTION_CHECKS.len();
     if !rt.smoke {
@@ -843,8 +845,18 @@ pub fn smoke(
             (State::ALL[step], format!("pet-{step}.png"))
         } else {
             let (state, direction, label) = DIRECTION_CHECKS[step - State::ALL.len()];
-            let expected_yaw = direction as f32 * std::f32::consts::FRAC_PI_2;
-            if (active.yaw - expected_yaw).abs() > 0.00001 || active.turning {
+            let expected_yaw = direction as f32
+                * if state == State::Stretch {
+                    0.32
+                } else {
+                    std::f32::consts::FRAC_PI_2
+                };
+            let tolerance = if state == State::Stretch {
+                0.02
+            } else {
+                0.00001
+            };
+            if (active.yaw - expected_yaw).abs() > tolerance || active.turning {
                 eprintln!("SMOKE FAILED: {label} yaw {}", active.yaw);
                 exit.write(AppExit::error());
                 return;

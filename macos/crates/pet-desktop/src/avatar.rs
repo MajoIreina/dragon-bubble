@@ -62,6 +62,7 @@ pub struct Avatar {
     pub base: Transform,
     pub suspension: pet_core::interaction::Suspension,
     pub support_pivot: Vec3,
+    pub rear_support: Option<Vec3>,
     pub reaction: u64,
     pub tail: pet_core::interaction::TailResponse,
     landing_serial: u64,
@@ -103,6 +104,7 @@ impl Avatar {
             base: Transform::IDENTITY,
             suspension: default(),
             support_pivot: Vec3::ZERO,
+            rear_support: None,
             reaction: 0,
             tail: default(),
             landing_serial: 0,
@@ -730,6 +732,20 @@ pub fn finish(
                 a.support_pivot = (centre - (min + max) * 0.5) * scale;
                 a.support_pivot.y = 0.;
             }
+            let rear = descendants
+                .iter()
+                .filter_map(|e| {
+                    let (_, global, name) = rest_spatial.get(*e).ok()?;
+                    ["RearFoot.L", "RearFoot.R"]
+                        .contains(&name?.as_str())
+                        .then_some(global.translation())
+                })
+                .collect::<Vec<_>>();
+            if rear.len() == 2 {
+                // The ankle line is the hinge; soles counterrotate below it.
+                a.rear_support =
+                    Some((rear.iter().copied().sum::<Vec3>() / 2. - (min + max) * 0.5) * scale);
+            }
             for &e in &descendants {
                 if let Ok(mut transform) = transforms.get_mut(e) {
                     transform.scale = Vec3::splat(scale);
@@ -1045,16 +1061,11 @@ pub fn animate(
             transform.translation.y = foot * (1. - sy) + bob;
             transform.rotation *= Quat::from_rotation_z(lean);
         }
-        if desired == State::Stretch {
-            let smooth = |v: f32| {
-                let v = v.clamp(0., 1.);
-                v * v * (3. - 2. * v)
-            };
-            let w = smooth(a.clock / 1.2) * smooth((5.5 - a.clock) / 1.2);
-            let pivot = Vec3::new(0., (160. - a.ground) * 3.9 / 300., -0.35);
-            let rise = Quat::from_rotation_x(-0.52 * w);
-            transform.translation += pivot - rise * pivot;
-            transform.rotation *= rise;
+        if desired == State::Stretch
+            && a.skin.id == "builtin.shu"
+            && let Some(pivot) = a.rear_support
+        {
+            crate::rear_stance::raise_body(&mut transform, pivot, a.clock);
         }
         if a.skin.id == "builtin.shu" {
             let pivot = a.support_pivot * transform.scale;

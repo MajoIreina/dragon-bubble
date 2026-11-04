@@ -15,6 +15,8 @@ mod macos;
 mod platform;
 #[path = "../../../../crates/pet-desktop/src/popup.rs"]
 mod popup;
+#[path = "../../../../crates/pet-desktop/src/rear_stance.rs"]
+mod rear_stance;
 #[path = "../../../../crates/pet-desktop/src/resource_probe.rs"]
 mod resource_probe;
 mod runtime;

@@ -73,7 +73,11 @@ pub fn apply(
             && a.ready
         {
             // Layer pitch over native yaw; never accumulate frame-to-frame rotations.
-            transform.rotation *= Quat::from_rotation_x(a.tail.pitch);
+            if a.state == pet_core::behavior::State::Stretch && a.skin.id == "builtin.shu" {
+                transform.rotation = crate::rear_stance::tail(a.clock) * tail.rest.rotation;
+            } else {
+                transform.rotation *= Quat::from_rotation_x(a.tail.pitch);
+            }
             tail.modified = true;
         }
     }
@@ -83,15 +87,14 @@ pub fn apply(
         };
         if a.ready && a.state == pet_core::behavior::State::Stretch {
             // Cat/dog rear-leg support: rise, place front paws, alternate kneading, lower.
-            let smooth = |v: f32| {
-                let v = v.clamp(0., 1.);
-                v * v * (3. - 2. * v)
-            };
-            let w = smooth(a.clock / 1.2) * smooth((5.5 - a.clock) / 1.2);
+            let w = crate::rear_stance::weight(a.clock);
             let knead = (a.clock * 3.5 + foot.side * 1.2).sin() * 0.025 * w;
-            transform.rotation *=
-                Quat::from_rotation_x(if foot.rear { -0.15 * w } else { -1.05 * w });
-            if !foot.rear {
+            if foot.rear {
+                // Keep both ankle centres and the entire sole fixed while the body rises.
+                transform.rotation =
+                    crate::rear_stance::rise(a.clock).inverse() * foot.rest.rotation;
+            } else {
+                transform.rotation *= Quat::from_rotation_x(-1.05 * w);
                 transform.translation += Vec3::new(0., 0.35 * w + knead, 0.18 * w);
             }
             foot.modified = true;
