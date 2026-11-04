@@ -13,7 +13,6 @@ DisableDirPage=no
 DisableProgramGroupPage=yes
 WizardStyle=modern dynamic windows11
 WizardSizePercent=120
-DialogFontName=Microsoft YaHei UI
 WizardBackColor=$F3F3F3
 WizardBackColorDynamicDark=$202020
 WizardSmallImageBackColor=$F3F3F3
@@ -31,6 +30,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 RestartApplications=no
 AppMutex=DragonBubbleDesktopPet
+[LangOptions]
+DialogFontName=Microsoft YaHei UI
 [Languages]
 Name: "chinesesimp"; MessagesFile: "ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
