@@ -705,7 +705,13 @@ fn show_card(ui: &mut egui::Ui, contents: impl FnOnce(&mut egui::Ui)) {
     );
     child.set_width(width);
     child.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
-    child.set_clip_rect(child.clip_rect().intersect(bounds));
+    // A scrolling UI's available height is only a layout estimate. Clipping to
+    // that height hides the lower controls and whole following cards. Constrain
+    // horizontal overflow while leaving vertical clipping to the scroll viewport.
+    child.set_clip_rect(child.clip_rect().intersect(egui::Rect::from_x_y_ranges(
+        bounds.x_range(),
+        egui::Rangef::EVERYTHING,
+    )));
     contents(&mut child);
     let content =
         egui::Rect::from_min_size(bounds.min, egui::vec2(width, child.min_rect().height()));
@@ -1006,6 +1012,45 @@ mod tests {
             },
         );
         assert_eq!(widths[0], widths[1]);
+    }
+    #[test]
+    fn scrolling_cards_keep_visible_controls_inside_the_viewport_clip() {
+        for dark in [false, true] {
+            for width in [420., 900.] {
+                let ctx = egui::Context::default();
+                apply_theme(&ctx, dark);
+                for offset in [0., 180., 420., 0.] {
+                    // Multiple frames exercise the scroll area's cached content height.
+                    for _ in 0..2 {
+                        let _ = ctx.run(egui::RawInput {
+                            screen_rect: Some(egui::Rect::from_min_size(
+                                egui::Pos2::ZERO, egui::vec2(width, 320.))),
+                            ..Default::default()
+                        }, |ctx| {
+                            egui::CentralPanel::default().show(ctx, |ui| {
+                                egui::ScrollArea::vertical().vertical_scroll_offset(offset)
+                                    .auto_shrink([false, false]).show(ui, |ui| {
+                                        let viewport = ui.clip_rect();
+                                        for count in [8, 3, 3] {
+                                            show_card(ui, |child| {
+                                                for _ in 0..count {
+                                                    let response = child.add_sized(
+                                                        [160., 42.], egui::Label::new("Setting control"));
+                                                    let visible = response.rect.intersect(viewport);
+                                                    if visible.is_positive() {
+                                                        assert!(child.clip_rect().contains_rect(visible),
+                                                            "Visible setting was clipped by card height");
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                            });
+                        });
+                    }
+                }
+            }
+        }
     }
     #[test]
     fn search_includes_new_page_and_keeps_existing_setting_keywords() {
