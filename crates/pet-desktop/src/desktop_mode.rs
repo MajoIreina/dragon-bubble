@@ -65,7 +65,22 @@ pub fn detect(
     if rt.smoke {
         return;
     }
-    let hidden = fullscreen_at(rt.position + rt.desktop.extent * 0.5, &mut detector);
+    let hidden = if rt.prefs.hide_for_any_fullscreen {
+        #[cfg(windows)]
+        {
+            detector.native.any_fullscreen()
+        }
+        #[cfg(target_os = "macos")]
+        {
+            crate::macos::any_fullscreen()
+        }
+        #[cfg(not(any(windows, target_os = "macos")))]
+        {
+            false
+        }
+    } else {
+        fullscreen_at(rt.position + rt.desktop.extent * 0.5, &mut detector)
+    };
     if hidden != rt.obscured {
         rt.obscured = hidden;
         rt.pressed = false;
@@ -100,6 +115,12 @@ pub fn sync(
                 ));
         }
     }
+}
+
+#[cfg(windows)]
+pub fn native_status() {
+    let mut detector = FullscreenDetector::default();
+    println!("FULLSCREEN STATUS: {}", detector.native.any_fullscreen());
 }
 
 #[cfg(test)]

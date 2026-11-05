@@ -19,6 +19,7 @@ def main():
         ("bounce", "--bounce-test", "BOUNCE PASS:", 60),
         ("menu", "--menu-test", "MENU PASS:", 60),
         ("resources", "--resource-test", "RESOURCE PASS:", 240),
+        ("practice", "--practice-test", "PRACTICE PASS:", 110),
         ("drag", "--drag-test", "DRAG PASS:", 60),
     ]:
         folder = out / name

@@ -116,6 +116,10 @@ pub struct Preferences {
     #[serde(default)]
     pub autostart: bool,
     pub always_on_top: bool,
+    #[serde(default)]
+    pub hide_for_any_fullscreen: bool,
+    #[serde(default)]
+    pub low_gravity: bool,
     pub locale: String,
     #[serde(default)]
     pub theme: String,
@@ -133,6 +137,8 @@ impl Default for Preferences {
             roaming: true,
             autostart: false,
             always_on_top: true,
+            hide_for_any_fullscreen: false,
+            low_gravity: false,
             locale: "zh_CN".into(),
             theme: "system".into(),
             position: [-99999, -99999],
@@ -197,6 +203,8 @@ impl Preferences {
         if let Some(b) = v["always_on_top"].as_bool() {
             p.always_on_top = b
         }
+        p.hide_for_any_fullscreen = v["hide_for_any_fullscreen"].as_bool().unwrap_or(false);
+        p.low_gravity = v["low_gravity"].as_bool().unwrap_or(false);
         p.autostart = v["autostart"].as_bool().unwrap_or(false);
         p.locale = crate::i18n::normalize(v["locale"].as_str().unwrap_or("zh_CN"));
         p.theme = v["theme"]
@@ -264,4 +272,20 @@ pub fn save_override(id: &str, value: Option<Value>, path: &Path) -> anyhow::Res
     }
     atomic_write(path, &serde_json::to_vec_pretty(&all)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod mode_tests {
+    use super::*;
+    #[test]
+    fn modes_default_off_and_survive_tolerant_preferences_loading() {
+        let old = Preferences::from_value(&serde_json::json!({"zoom":1.5}));
+        assert!(!old.hide_for_any_fullscreen && !old.low_gravity);
+        assert_eq!(old.zoom, 1.5);
+        let enabled = Preferences::from_value(
+            &serde_json::json!({"hide_for_any_fullscreen":true,"low_gravity":true}),
+        );
+        let restored = Preferences::from_value(&serde_json::to_value(enabled).unwrap());
+        assert!(restored.hide_for_any_fullscreen && restored.low_gravity);
+    }
 }

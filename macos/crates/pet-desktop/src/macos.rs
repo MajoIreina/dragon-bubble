@@ -116,6 +116,23 @@ pub fn prefers_dark_theme() -> bool {
         .is_some_and(|style| style.to_string() == "Dark")
 }
 
+pub fn any_fullscreen() -> bool {
+    let top = primary_top();
+    let windows = visible_windows();
+    NSScreen::screens(main_thread()).iter().any(|screen| {
+        let f = screen.frame();
+        let display = Rect::new(
+            f.origin.x as f32,
+            (top - f.origin.y - f.size.height) as f32,
+            f.size.width as f32,
+            f.size.height as f32,
+        );
+        windows.iter().any(|(_, bounds, normal)| {
+            *normal && crate::desktop_mode::covers_display(*bounds, display)
+        })
+    })
+}
+
 pub fn fullscreen_at(point: Vec2) -> bool {
     let top = primary_top();
     let display = NSScreen::screens(main_thread()).iter().find_map(|screen| {

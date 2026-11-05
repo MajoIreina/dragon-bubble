@@ -86,6 +86,18 @@ pub(super) fn appearance_page(
 pub(super) fn behavior_page(ui: &mut egui::Ui, rt: &mut Runtime) {
     let locale = rt.prefs.locale.clone();
     let tr = |s: &str| pet_core::i18n::tr(&locale, s);
+    setting_row(
+        ui,
+        "↓",
+        &tr("低重力模式"),
+        &tr("降低重力和碰撞能量损耗，抛掷后持续漂浮与反弹"),
+        80.,
+        |ui| {
+            if toggle(ui, &mut rt.prefs.low_gravity, &tr("低重力模式")).changed() {
+                rt.dirty = true;
+            }
+        },
+    );
     let mut roaming = rt.prefs.roaming;
     setting_row(
         ui,
@@ -207,6 +219,24 @@ pub(super) fn behavior_page(ui: &mut egui::Ui, rt: &mut Runtime) {
 pub(super) fn display_page(ui: &mut egui::Ui, rt: &mut Runtime) {
     let locale = rt.prefs.locale.clone();
     let tr = |s: &str| pet_core::i18n::tr(&locale, s);
+    setting_row(
+        ui,
+        "▣",
+        &tr("任意屏幕全屏时隐藏"),
+        &tr("任一屏幕存在可见全屏应用时隐藏桌宠，包括失焦的全屏应用；最小化后恢复"),
+        80.,
+        |ui| {
+            if toggle(
+                ui,
+                &mut rt.prefs.hide_for_any_fullscreen,
+                &tr("任意屏幕全屏时隐藏"),
+            )
+            .changed()
+            {
+                rt.dirty = true;
+            }
+        },
+    );
     let mut top = rt.prefs.always_on_top;
     setting_row(
         ui,
@@ -881,5 +911,200 @@ pub(super) fn other_page(ui: &mut egui::Ui, rt: &mut Runtime, state: &mut UiStat
                 format!("{}/issues", crate::updates::PROJECT_URL),
             );
         });
+    });
+}
+
+pub(super) fn practice_page(ui: &mut egui::Ui, rt: &mut Runtime) {
+    let now = std::time::Instant::now();
+    show_card(ui, |ui| {
+        ui.label(
+            egui::RichText::new("POINTER LAB / 60")
+                .small()
+                .color(ui.visuals().hyperlink_color),
+        );
+        ui.add_space(6.);
+        if let Some(start) = rt.game.countdown {
+            let remaining = 3_u64.saturating_sub(now.duration_since(start).as_secs());
+            ui.label(
+                egui::RichText::new(format!("{remaining}"))
+                    .size(64.)
+                    .strong(),
+            );
+            ui.label("准备好鼠标；倒计时结束后设置页自动隐藏。");
+            ui.ctx().request_repaint();
+        } else if rt.game.started.is_some() {
+            ui.label(
+                egui::RichText::new(format!(
+                    "{} 次 · {:.0} 秒",
+                    rt.game.hits,
+                    rt.game.remaining(now).ceil()
+                ))
+                .size(32.)
+                .strong(),
+            );
+            ui.add(egui::ProgressBar::new(rt.game.remaining(now) / 60.).animate(false));
+        } else if let Some(result) = &rt.game.result {
+            ui.label(egui::RichText::new("练习完成").size(22.).strong());
+            ui.horizontal(|ui| {
+                ui.label(
+                    egui::RichText::new(result.hits.to_string())
+                        .size(64.)
+                        .strong(),
+                );
+                ui.vertical(|ui| {
+                    ui.label("一分钟有效点击");
+                    ui.label(format!("{:.2} 次 / 秒", result.hits as f32 / 60.));
+                });
+            });
+            let best = rt.game.history.iter().map(|r| r.hits).max().unwrap_or(0);
+            ui.label(format!(
+                "个人最佳 {best} 次 · 已完成 {} 局",
+                rt.game.history.len()
+            ));
+        } else {
+            ui.label(egui::RichText::new("追上黍泡泡").size(28.).strong());
+            ui.label("在 60 秒内点击目标。每次命中后，它会随机出现在所选屏幕的新位置。");
+        }
+        ui.add_space(12.);
+        if rt.game.active() {
+            if ui.button("取消本轮").clicked() {
+                crate::game::cancel(rt, "本轮已取消，不计入历史。");
+            }
+        } else {
+            ui.horizontal(|ui| {
+                egui::ComboBox::from_id_salt("practice-screen")
+                    .selected_text(format!("屏幕 {}", rt.game.screen + 1))
+                    .show_ui(ui, |ui| {
+                        for (i, area) in rt.desktop.areas.iter().enumerate() {
+                            ui.selectable_value(
+                                &mut rt.game.screen,
+                                i,
+                                format!(
+                                    "屏幕 {} · {:.0} × {:.0}",
+                                    i + 1,
+                                    area.size().x,
+                                    area.size().y
+                                ),
+                            );
+                        }
+                    });
+                if ui
+                    .add_enabled(
+                        !rt.obscured && rt.active.is_some() && rt.loading.is_none(),
+                        egui::Button::new("开始 · 60 秒"),
+                    )
+                    .clicked()
+                {
+                    crate::game::start(rt);
+                }
+            });
+            ui.label(
+                egui::RichText::new(
+                    "统一使用 55% 大小；练习中右键取消。全屏遮挡时中止，不保存未完成成绩。",
+                )
+                .small()
+                .weak(),
+            );
+        }
+        if !rt.game.message.is_empty() {
+            ui.label(&rt.game.message);
+        }
+    });
+    if crate::leaderboard::ENABLED {
+        leaderboard_card(ui, rt);
+    }
+    section(ui, "我的练习记录");
+    show_card(ui, |ui| {
+        if rt.game.history.is_empty() {
+            ui.label("还没有记录，开始第一局练习吧。");
+        }
+        for record in rt.game.history.iter().rev().take(30) {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(egui::RichText::new(format!("{} 次", record.hits)).strong());
+                ui.label(format!(
+                    "屏幕 {} · {} × {}",
+                    record.screen + 1,
+                    record.width,
+                    record.height
+                ));
+                ui.label(
+                    egui::RichText::new(crate::game::format_timestamp(record.timestamp))
+                        .small()
+                        .weak(),
+                );
+            });
+        }
+        ui.label(
+            egui::RichText::new("本机保留最近 300 局，此处显示最近 30 局。")
+                .small()
+                .weak(),
+        );
+    });
+}
+
+fn leaderboard_card(ui: &mut egui::Ui, rt: &mut Runtime) {
+    section(ui, "公开排行榜");
+    show_card(ui, |ui| {
+        ui.label("输入昵称，无需注册或登录。排行榜为玩家自报成绩。");
+        let edited = ui
+            .add(
+                egui::TextEdit::singleline(&mut rt.leaderboard.profile.nickname)
+                    .char_limit(24)
+                    .hint_text("你的昵称 · 最多 24 字"),
+            )
+            .changed();
+        let consent = ui
+            .checkbox(
+                &mut rt.leaderboard.profile.publish,
+                "每局完成后自动公开成绩（昵称、分数、时间及屏幕尺寸）",
+            )
+            .changed();
+        if edited || consent {
+            rt.leaderboard.save_profile();
+        }
+        ui.label(
+            egui::RichText::new(
+                "开启后会将成绩发送至服务端并保存在 GitHub 仓库。昵称公开可见，请勿填写个人隐私。",
+            )
+            .small()
+            .weak(),
+        );
+        ui.horizontal(|ui| {
+            if ui
+                .add_enabled(!rt.leaderboard.busy(), egui::Button::new("刷新榜单"))
+                .clicked()
+            {
+                rt.leaderboard.refresh();
+            }
+            if ui
+                .add_enabled(
+                    !rt.leaderboard.busy()
+                        && rt.leaderboard.profile.publish
+                        && !rt.leaderboard.profile.nickname.trim().is_empty()
+                        && rt.game.result.is_some(),
+                    egui::Button::new("重新提交本局"),
+                )
+                .clicked()
+                && let Some(record) = rt.game.result.clone()
+            {
+                rt.leaderboard.submit(&record);
+            }
+        });
+        if !rt.leaderboard.status.is_empty() {
+            ui.label(&rt.leaderboard.status);
+        }
+        if rt.leaderboard.entries.is_empty() {
+            ui.label(egui::RichText::new("尚无榜单数据，完成一局练习后分享你的成绩。").weak());
+        }
+        for (i, entry) in rt.leaderboard.entries.iter().enumerate() {
+            ui.separator();
+            ui.horizontal(|ui| {
+                ui.label(egui::RichText::new(format!("{:02}", i + 1)).strong());
+                ui.label(&entry.nickname);
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.label(egui::RichText::new(format!("{} 次", entry.hits)).strong());
+                });
+            });
+        }
     });
 }

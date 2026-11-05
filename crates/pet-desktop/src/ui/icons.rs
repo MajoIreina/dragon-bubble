@@ -70,6 +70,15 @@ pub(super) fn paint(painter: &Painter, rect: Rect, index: usize, color: Color32)
                 std::f32::consts::PI / 8.,
             );
         }
+        6 => {
+            for radius in [0.38, 0.23, 0.07] {
+                painter.circle_stroke(
+                    point(12., 12.),
+                    rect.width() * radius,
+                    Stroke::new(2_f32, color),
+                );
+            }
+        }
         _ => {
             for x in [4., 12., 20.] {
                 painter.circle_filled(point(x, 12.), rect.width() / 12., color);

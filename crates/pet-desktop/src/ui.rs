@@ -484,6 +484,7 @@ pub fn draw(
                                 &avatars,
                             ),
                             4 => performance_page(ui, &mut rt, &mut state),
+                            6 => practice_page(ui, &mut rt),
                             _ => other_page(ui, &mut rt, &mut state),
                         }
                     }
@@ -535,25 +536,35 @@ fn scale_control(ui: &mut egui::Ui, rt: &mut Runtime) {
         rt.actions.push(Action::Scale(percent / 100.));
     }
 }
-const PAGES: [&str; 6] = ["外观", "行为", "显示", "动作与适配", "性能与画质", "其他"];
-const DESCRIPTIONS: [&str; 6] = [
+const PAGES: [&str; 7] = [
+    "外观",
+    "行为",
+    "显示",
+    "动作与适配",
+    "性能与画质",
+    "其他",
+    "定位练习",
+];
+const DESCRIPTIONS: [&str; 7] = [
     "为桌面选择一位伙伴",
     "让每一次互动都有回应",
     "适合你的桌面与屏幕",
     "预览动作，适配你的模型",
     "平衡清晰度、流畅度与功耗",
     "语言、更新与应用信息",
+    "追上黍泡泡，让每一次点击更精准",
 ];
-const ICONS: [&str; 6] = ["◇", "♡", "▣", "▷", "⚙", "…"];
+const ICONS: [&str; 7] = ["◇", "♡", "▣", "▷", "⚙", "…", "◎"];
 fn search_pages(query: &str, locale: &str) -> Vec<usize> {
     let query = query.trim().to_lowercase();
     let terms = [
         "skin appearance import 外观 模型 导入 画像 スキン",
-        "roam behavior sleep spin interval window 行为 走动 睡眠 睡觉 唤醒 互动 转圈 间隔 时间 窗口 捕捉 動作",
-        "window scale monitor display top 显示 大小 置顶 屏幕 位置 画面",
+        "gravity 低重力 碰撞 roam behavior sleep spin interval window 行为 走动 睡眠 睡觉 唤醒 互动 转圈 间隔 时间 窗口 捕捉 動作",
+        "fullscreen 全屏 隐藏 失焦 window scale monitor display top 显示 大小 置顶 屏幕 位置 画面",
         "animation mapping converter blender 动作 适配 转换 朝向 翻转 アニメーション",
         "fps aa taa resolution quality performance vsync 性能 画质 帧率 分辨率 抗锯齿 同步 環境遮蔽",
         "other autostart startup login language update about version その他 言語 更新 バージョン 其他 开机 自启 启动 登录 语言 关于 版本 简体中文 english 日本語",
+        "practice game leaderboard history score 定位 练习 小游戏 排行榜 历史 成绩 点击",
     ];
     (0..PAGES.len())
         .filter(|&i| {

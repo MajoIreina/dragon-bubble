@@ -68,7 +68,7 @@ pub fn run(
         }
         .into();
         rt.show_settings = phase < 10;
-        rt.page = [0, 5, 4, 3, 2, 1][phase % 6];
+        rt.page = [0, 5, 4, 3, 2, 1, 6][phase % 7];
         rt.prefs.performance = pet_core::preferences::RenderOptions::preset(
             ["power", "balanced", "high", "ultra", "extreme", "balanced"][phase % 6],
         );

@@ -27,6 +27,8 @@ pub enum Action {
 }
 #[derive(Resource)]
 pub struct Runtime {
+    pub game: crate::game::Game,
+    pub leaderboard: crate::leaderboard::Client,
     pub root: PathBuf,
     pub data: PathBuf,
     pub prefs: Preferences,
@@ -131,6 +133,8 @@ impl Runtime {
         };
         let original = prefs.skin_id.clone();
         Self {
+            game: crate::game::Game::load(&data.join("practice-history.json")),
+            leaderboard: crate::leaderboard::Client::load(&data),
             root,
             data: data.clone(),
             show_settings: !std::env::args().any(|arg| arg == "--autostart")
@@ -180,6 +184,9 @@ impl Runtime {
         }
     }
     pub fn save(&mut self) {
+        if self.game.active() {
+            return;
+        }
         self.prefs.position = [
             self.position.x.round() as i32,
             self.position.y.round() as i32,
@@ -213,6 +220,9 @@ impl Runtime {
         self.dirty = true;
     }
     pub fn scroll_zoom(&mut self, delta: i32, cursor: Vec2) {
+        if self.game.active() {
+            return;
+        }
         self.brain.interact();
         self.wheel_remainder += delta;
         let steps = self.wheel_remainder / 120;
@@ -306,6 +316,14 @@ mod wheel_tests {
 pub fn actions(mut rt: ResMut<Runtime>) {
     let actions = std::mem::take(&mut rt.actions);
     for action in actions {
+        if rt.game.active()
+            && !matches!(
+                action,
+                Action::ShowSettings(_) | Action::Quit | Action::CheckUpdates
+            )
+        {
+            crate::game::cancel(&mut rt, "设置发生变化，本轮已取消。");
+        }
         match action {
             Action::ShowSettings(page) => {
                 rt.show_settings = true;
@@ -430,9 +448,11 @@ pub fn simulate(
     avatars: Query<&crate::avatar::Avatar>,
     #[cfg(target_os = "macos")] _main_thread: bevy::ecs::system::NonSendMarker,
 ) {
-    if rt.obscured {
+    rt.leaderboard.poll();
+    if crate::game::tick(&mut rt) || rt.obscured {
         return;
     }
+    rt.motion.low_gravity = rt.prefs.low_gravity;
     let dt = time.delta_secs().min(0.1);
     if rt.smoke {
         rt.brain.inactive = 0.;

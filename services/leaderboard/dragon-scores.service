@@ -1,0 +1,23 @@
+[Unit]
+Description=Dragon Bubble anonymous practice leaderboard
+After=network-online.target
+Wants=network-online.target
+[Service]
+User=dragon-scores
+Group=dragon-scores
+WorkingDirectory=/opt/dragon-scores
+Environment=SCORES_BIND=0.0.0.0
+Environment=SCORES_DATA=/var/lib/dragon-scores/repository
+Environment=GIT_SSH_COMMAND=/usr/bin/ssh -i /var/lib/dragon-scores/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes
+ExecStart=/usr/bin/python3 /opt/dragon-scores/server.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/dragon-scores
+MemoryMax=192M
+TasksMax=32
+[Install]
+WantedBy=multi-user.target

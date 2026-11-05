@@ -9,6 +9,7 @@ pub struct Motion {
     pub position: Vec2,
     pub velocity: Vec2,
     pub active: bool,
+    pub low_gravity: bool,
     samples: VecDeque<(Vec2, f64)>,
 }
 #[derive(Default, Debug)]
@@ -66,6 +67,9 @@ impl Motion {
         if !self.active || !dt.is_finite() || dt <= 0. {
             return result;
         }
+        let rebound = if self.low_gravity { 0.86 } else { 0.48 };
+        let floor_rebound = if self.low_gravity { 0.82 } else { 0.32 };
+        let gravity = GRAVITY * if self.low_gravity { 0.18 } else { 1. };
         let mut remaining = dt.min(0.1);
         while remaining > 0.000001 {
             if let Some(d) = desktop {
@@ -79,11 +83,13 @@ impl Motion {
             if self.position.y >= bounds.max.y - 0.01 && self.velocity.y.abs() < 0.00001 {
                 self.position.y = bounds.max.y;
                 self.velocity.y = 0.;
-                self.velocity.x =
-                    self.velocity.x.signum() * (self.velocity.x.abs() - 1250. * step).max(0.);
+                self.velocity.x = self.velocity.x.signum()
+                    * (self.velocity.x.abs()
+                        - (if self.low_gravity { 180. } else { 1250. }) * step)
+                        .max(0.);
             } else {
-                self.velocity.y += GRAVITY * step;
-                self.velocity.x *= (-0.25 * step).exp();
+                self.velocity.y += gravity * step;
+                self.velocity.x *= (-(if self.low_gravity { 0.045 } else { 0.25 }) * step).exp();
             }
             let previous = self.position;
             self.position += self.velocity * step;
@@ -103,18 +109,18 @@ impl Motion {
             if self.position.x < bounds.min.x {
                 self.position.x = bounds.min.x;
                 if self.velocity.x < 0. {
-                    self.velocity.x *= -0.48;
+                    self.velocity.x *= -rebound;
                 }
             } else if self.position.x > bounds.max.x {
                 self.position.x = bounds.max.x;
                 if self.velocity.x > 0. {
-                    self.velocity.x *= -0.48;
+                    self.velocity.x *= -rebound;
                 }
             }
             if self.position.y < bounds.min.y {
                 self.position.y = bounds.min.y;
                 if self.velocity.y < 0. {
-                    self.velocity.y *= -0.48;
+                    self.velocity.y *= -rebound;
                 }
             }
             if self.position.y >= bounds.max.y {
@@ -122,11 +128,12 @@ impl Motion {
                 if self.velocity.y > 0. {
                     result.landed = true;
                     result.speed = result.speed.max(self.velocity.y);
-                    self.velocity.y = if self.velocity.y > 180. {
-                        -self.velocity.y * 0.32
-                    } else {
-                        0.
-                    };
+                    self.velocity.y =
+                        if self.velocity.y > (if self.low_gravity { 65. } else { 180. }) {
+                            -self.velocity.y * floor_rebound
+                        } else {
+                            0.
+                        };
                 }
             }
             if self.position.y >= bounds.max.y - 0.01
@@ -140,5 +147,37 @@ impl Motion {
             }
         }
         result
+    }
+}
+
+#[cfg(test)]
+mod mode_tests {
+    use super::*;
+    #[test]
+    fn low_gravity_preserves_more_airtime_and_rebounds_without_escaping() {
+        let bounds = Rect::new(0., 0., 1000., 700.);
+        let simulate = |low| {
+            let mut motion = Motion {
+                low_gravity: low,
+                ..Default::default()
+            };
+            motion.launch(Vec2::new(500., 300.), Vec2::new(1800., -1200.));
+            let mut contacts = 0;
+            let mut moving = 0;
+            for _ in 0..1200 {
+                let impact = motion.advance(1. / 120., bounds, None);
+                contacts += usize::from(impact.landed);
+                moving += usize::from(motion.active);
+                assert!(
+                    motion.position.cmpge(bounds.min).all()
+                        && motion.position.cmple(bounds.max).all()
+                );
+            }
+            (contacts, moving)
+        };
+        let normal = simulate(false);
+        let low = simulate(true);
+        assert!(low.1 > normal.1 * 2, "normal {normal:?}, low {low:?}");
+        assert!(low.0 >= 2);
     }
 }

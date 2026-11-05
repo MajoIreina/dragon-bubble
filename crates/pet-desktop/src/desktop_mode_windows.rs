@@ -213,6 +213,29 @@ impl Default for Detector {
 }
 
 impl Detector {
+    pub(super) fn any_fullscreen(&mut self) -> bool {
+        unsafe extern "system" fn visit(window: HWND, context: LPARAM) -> i32 {
+            let found = unsafe { &mut *(context as *mut bool) };
+            let monitor = unsafe { MonitorFromWindow(window, MONITOR_DEFAULTTONULL) };
+            let mut info: MONITORINFO = unsafe { std::mem::zeroed() };
+            info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+            if unsafe { GetMonitorInfoW(monitor, &mut info) } != 0 {
+                let point = Vec2::new(
+                    info.rcMonitor.left as f32 + 1.,
+                    info.rcMonitor.top as f32 + 1.,
+                );
+                if Sample::capture(window, point, std::process::id()).reason() == "fullscreen" {
+                    *found = true;
+                    return 0;
+                }
+            }
+            1
+        }
+        let mut found = false;
+        unsafe { EnumWindows(Some(visit), (&mut found as *mut bool) as LPARAM) };
+        found
+    }
+
     pub(super) fn poll(&mut self, point: Vec2) -> bool {
         let mut sample =
             Sample::capture(unsafe { GetForegroundWindow() }, point, std::process::id());

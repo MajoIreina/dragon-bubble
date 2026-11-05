@@ -387,6 +387,17 @@ pub fn input(
                 w.has_focus()
             }
         });
+        if rt.game.active() {
+            if left && !rt.last_left && inside && over_pet {
+                crate::game::hit(&mut rt, std::time::Instant::now());
+            }
+            if right && !rt.last_right {
+                crate::game::cancel(&mut rt, "本轮已取消，不计入历史。");
+            }
+            rt.last_left = left;
+            rt.last_right = right;
+            return;
+        }
         if left && !rt.last_left && inside && over_pet {
             rt.brain.interact();
             rt.pressed = true;

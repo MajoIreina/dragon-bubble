@@ -8,7 +8,11 @@ mod drag_probe;
 mod effects;
 mod expressions;
 mod face;
+#[path = "game.rs"]
+mod game;
 mod layered;
+#[path = "leaderboard.rs"]
+mod leaderboard;
 mod platform;
 mod popup;
 mod rear_stance;
@@ -68,11 +72,18 @@ fn main() -> AppExit {
             return AppExit::error();
         }
     };
+    #[cfg(windows)]
+    if std::env::args().any(|arg| arg == "--fullscreen-status") {
+        desktop_mode::native_status();
+        return AppExit::Success;
+    }
+    let practice_test = std::env::args().any(|arg| arg == "--practice-test");
     let drag_test = std::env::args().any(|arg| arg == "--drag-test");
     let resource_test = std::env::args().any(|arg| arg == "--resource-test");
     let menu_test = std::env::args().any(|arg| arg == "--menu-test");
     let bounce_test = std::env::args().any(|s| s == "--bounce-test");
-    let smoke = drag_test
+    let smoke = practice_test
+        || drag_test
         || resource_test
         || menu_test
         || bounce_test
@@ -195,7 +206,9 @@ fn main() -> AppExit {
     .add_systems(EguiPrimaryContextPass, ui::draw)
     .add_systems(popup::MenuPass, popup::draw)
     .add_systems(Last, layered::present);
-    if drag_test {
+    if practice_test {
+        app.add_systems(PostUpdate, game::probe.after(soft_body::update));
+    } else if drag_test {
         app.add_systems(PostUpdate, drag_probe::run.after(soft_body::update));
     } else if resource_test {
         app.add_systems(Update, resource_probe::run.after(platform::frame_pacing));
