@@ -249,6 +249,13 @@ fn run() -> AppExit {
     if practice_test {
         app.add_systems(PostUpdate, game::probe.after(soft_body::update));
     } else if drag_test {
+        app.init_resource::<drag_probe::Probe>();
+        app.add_systems(
+            Update,
+            drag_probe::drive
+                .after(runtime::simulate)
+                .before(avatar::animate),
+        );
         app.add_systems(PostUpdate, drag_probe::run.after(soft_body::update));
     } else if resource_test {
         app.add_systems(Update, resource_probe::run.after(platform::frame_pacing));
